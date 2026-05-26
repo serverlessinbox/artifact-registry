@@ -31,6 +31,7 @@ const RAW_RUNTIME_STATE =
           ["@aws-sdk/client-s3", "npm:3.1053.0"],\
           ["@jwpkg/gitversion", "npm:1.3.2"],\
           ["@serverlessinbox/gitversion-plugin-s3", "workspace:."],\
+          ["@types/node", "npm:20.19.41"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
         "linkType": "SOFT"\
@@ -805,6 +806,7 @@ const RAW_RUNTIME_STATE =
           ["@aws-sdk/client-s3", "npm:3.1053.0"],\
           ["@jwpkg/gitversion", "npm:1.3.2"],\
           ["@serverlessinbox/gitversion-plugin-s3", "workspace:."],\
+          ["@types/node", "npm:20.19.41"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
         "linkType": "SOFT"\
@@ -1083,6 +1085,14 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@types/node", "npm:18.19.130"],\
           ["undici-types", "npm:5.26.5"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["npm:20.19.41", {\
+        "packageLocation": "../../../../../.yarn/berry/cache/@types-node-npm-20.19.41-58ab295062-10c0.zip/node_modules/@types/node/",\
+        "packageDependencies": [\
+          ["@types/node", "npm:20.19.41"],\
+          ["undici-types", "npm:6.21.0"]\
         ],\
         "linkType": "HARD"\
       }],\
@@ -4517,6 +4527,13 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "../../../../../.yarn/berry/cache/undici-types-npm-5.26.5-de4f7c7bb9-10c0.zip/node_modules/undici-types/",\
         "packageDependencies": [\
           ["undici-types", "npm:5.26.5"]\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["npm:6.21.0", {\
+        "packageLocation": "../../../../../.yarn/berry/cache/undici-types-npm-6.21.0-eb2b0ed56a-10c0.zip/node_modules/undici-types/",\
+        "packageDependencies": [\
+          ["undici-types", "npm:6.21.0"]\
         ],\
         "linkType": "HARD"\
       }],\

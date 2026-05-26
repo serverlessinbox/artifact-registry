@@ -1,7 +1,5 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { IPackManager, IPlugin } from '@jwpkg/gitversion';
-import { PackedPackage } from '@jwpkg/gitversion/src/core/pack-artifact';
-import { IWorkspace } from '@jwpkg/gitversion/src/core/workspace-utils';
+import { IPackManager, IPlugin, PackedPackage, IWorkspace } from '@jwpkg/gitversion';
 import { createReadStream, readdirSync, copyFileSync } from 'fs';
 import { join, basename } from 'path';
 
@@ -34,7 +32,7 @@ export class S3ArtifactPlugin implements IPlugin, IPackManager {
       return null;
     }
 
-    const zipFiles = readdirSync(this.artifactsDir).filter(f => f.endsWith('.zip'));
+    const zipFiles = readdirSync(this.artifactsDir).filter((f: string) => f.endsWith('.zip'));
 
     const staged: string[] = [];
     for (const file of zipFiles) {

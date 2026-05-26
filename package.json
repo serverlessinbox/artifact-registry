@@ -8,7 +8,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --noEmit false",
     "prepublishOnly": "yarn build"
   },
   "packageManager": "yarn@4.15.0",
@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@jwpkg/gitversion": "^1",
+    "@types/node": "^20",
     "typescript": "^5"
   },
   "peerDependencies": {
