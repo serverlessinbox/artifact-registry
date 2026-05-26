@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.3](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.2...v0.0.3) (Tue May 26 2026)
+
+### fix
+
+* Esmodule to commonjs ([dbcb135](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/dbcb1352bdc36842a201f40b94c1b76c3c53da7a))
+
 ## [0.0.2](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.1...v0.0.2) (Tue May 26 2026)
 
 ### feat
