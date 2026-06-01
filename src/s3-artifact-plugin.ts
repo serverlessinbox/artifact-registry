@@ -1,19 +1,21 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { IPackManager, IPlugin, PackedPackage, IWorkspace } from '@jwpkg/gitversion';
-import { createReadStream, readdirSync, copyFileSync } from 'fs';
+import { createReadStream, readdirSync, copyFileSync, existsSync } from 'fs';
 import { join, basename } from 'path';
 
-export interface S3ArtifactPluginProps {
+interface S3ArtifactPluginProps {
   bucketName: string;
   basePath: string;
+  packageName: string;         // e.g. 'lambdas', 'webmail', 'admin'
   artifactsDir?: string;       // default: 'dist/release'
-  fileNameTemplate?: string;   // default: '{basePath}/v{version}/lambdas/{filename}'
+  fileNameTemplate?: string;   // default: '{basePath}/v{version}/{packageName}/{filename}'
 }
 
 export class S3ArtifactPlugin implements IPlugin, IPackManager {
   readonly ident = 's3-artifact';
   readonly name = 'S3 artifact plugin';
 
+  get packManager(): IPackManager {
   get packManager(): IPackManager {
     return this;
   }
@@ -23,7 +25,9 @@ export class S3ArtifactPlugin implements IPlugin, IPackManager {
 
   constructor(private readonly props: S3ArtifactPluginProps) {
     this.artifactsDir = props.artifactsDir ?? 'dist/release';
-    this.fileNameTemplate = props.fileNameTemplate ?? '{basePath}/v{version}/lambdas/{filename}';
+  constructor(private readonly props: S3ArtifactPluginProps) {
+    this.artifactsDir = props.artifactsDir ?? 'dist/release';
+    this.fileNameTemplate = props.fileNameTemplate ?? '{basePath}/v{version}/{packageName}/{filename}';
   }
 
   async pack(workspace: IWorkspace, outputFolder: string): Promise<string[] | null> {
@@ -32,7 +36,19 @@ export class S3ArtifactPlugin implements IPlugin, IPackManager {
       return null;
     }
 
+    if (!existsSync(this.artifactsDir)) {
+      console.log(`[s3-artifact] WARNING: artifactsDir "${this.artifactsDir}" does not exist — nothing to stage`);
+      return [];
+    }
+
+    console.log(`[s3-artifact] pack started: workspace="${workspace.manifest.name}", outputFolder="${outputFolder}"`);
+
     const zipFiles = readdirSync(this.artifactsDir).filter((f: string) => f.endsWith('.zip'));
+    console.log(`[s3-artifact] found ${zipFiles.length} .zip files in ${this.artifactsDir}`);
+
+    if (zipFiles.length === 0) {
+      console.warn(`[s3-artifact] WARNING: no .zip files found in ${this.artifactsDir}`);
+    }
 
     const staged: string[] = [];
     for (const file of zipFiles) {
@@ -43,14 +59,14 @@ export class S3ArtifactPlugin implements IPlugin, IPackManager {
       console.log(`[s3-artifact] staged: ${file}`);
     }
 
-    return staged;
-  }
-
   async publish(packedPackage: PackedPackage, fileName: string, releaseTag: string, dryRun: boolean, _module?: string): Promise<void> {
     const key = this.fileNameTemplate
       .replace('{basePath}', this.props.basePath)
-      .replace('{version}', packedPackage.version)
+      .replace('{version}', releaseTag.replace(/^v/, ''))
+      .replace('{packageName}', this.props.packageName)
       .replace('{filename}', basename(fileName));
+
+  async publish(packedPackage: PackedPackage, fileName: string, releaseTag: string, dryRun: boolean, _module?: string): Promise<void> {
 
     if (dryRun) {
       console.log(`[s3-artifact] dry-run: would upload s3://${this.props.bucketName}/${key}`);
