@@ -6,7 +6,7 @@ import { join, basename } from 'path';
 interface S3ArtifactPluginProps {
   bucketName: string;
   basePath: string;
-  packageName: string;         // e.g. 'lambdas', 'webmail', 'admin'
+  packageName: string;         // e.g. 'lambdas', 'webmail',  'admin'
   artifactsDir?: string;       // default: 'dist/release'
   fileNameTemplate?: string;   // default: '{basePath}/v{version}/{packageName}/{filename}'
 }
