@@ -11,6 +11,9 @@
     "build": "tsc --noEmit false",
     "prepublishOnly": "yarn build"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "packageManager": "yarn@4.15.0",
   "license": "Apache-2.0",
   "dependencies": {
