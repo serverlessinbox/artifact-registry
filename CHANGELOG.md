@@ -4,6 +4,20 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.4](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.3...v0.0.4) (Mon Jun 01 2026)
+
+### feat
+
+* Added package name ([571daf0](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/571daf0dbcb1d96d85a1717fd447236c9a72c635))
+
+### fix
+
+* Fixed tsc errors ([5324aa7](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/5324aa7cca46fd955009e3f70c7654841d12c1bb))
+
+* Added bump ([4d7a092](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/4d7a092a01434faec09b3f98cee450f855156fe8))
+
+* Publish config ([c7c33d3](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/c7c33d3afdfc8c6277a1fcc278f573d8fd9587bb))
+
 ## [0.0.3](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.2...v0.0.3) (Tue May 26 2026)
 
 ### fix
