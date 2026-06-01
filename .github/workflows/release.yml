@@ -46,6 +46,6 @@ jobs:
         with:
           name: gitversion-packed
           path: gitversion.out/
-      - run: npm publish
+      - run: yarn gitversion publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          YARN_NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
