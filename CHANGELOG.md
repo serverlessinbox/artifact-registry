@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.5](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.4...v0.0.5) (Tue Jun 02 2026)
+
+### feat
+
+* Added version files and extracted logic for other packages ([2670f73](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/2670f73795d6ed99a43690b2543c5ffdd65e58d0))
+
 ## [0.0.4](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.3...v0.0.4) (Mon Jun 01 2026)
 
 ### feat
