@@ -1,9 +1,9 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import type { IPlugin, IPackManager, IWorkspace, PackedPackage } from '@jwpkg/gitversion';
+import { S3Uploader } from './uploader';
 
-export interface S3ArtifactPluginProps {
+interface S3ArtifactPluginProps {
   bucketName: string;
   basePath: string;
   packageName: string;
@@ -15,16 +15,18 @@ export interface S3ArtifactPluginProps {
   fileNameTemplate?: string;
 }
 
-export class S3ArtifactPlugin implements IPlugin, IPackManager {
+class S3ArtifactPlugin implements IPlugin, IPackManager {
   readonly ident = 's3-artifact';
   readonly name = 'S3 artifact plugin';
 
   private readonly artifactsDir: string;
   private readonly fileNameTemplate: string;
+  private readonly uploader: S3Uploader;
 
   constructor(private readonly props: S3ArtifactPluginProps) {
     this.artifactsDir = props.artifactsDir ?? 'dist/release';
     this.fileNameTemplate = props.fileNameTemplate ?? '{basePath}/v{version}/{packageName}/{filename}';
+    this.uploader = new S3Uploader();
   }
 
   get packManager(): IPackManager {
@@ -72,15 +74,28 @@ export class S3ArtifactPlugin implements IPlugin, IPackManager {
     }
 
     console.log(`[s3-artifact] Uploading ${basename} → s3://${this.props.bucketName}/${key}`);
-    const client = new S3Client({});
-    const body = await fs.readFile(fileName);
-
-    await client.send(new PutObjectCommand({
-      Bucket: this.props.bucketName,
-      Key: key,
-      Body: body,
-    }));
-
+    await this.uploader.upload(this.props.bucketName, key, fileName);
     console.log(`[s3-artifact] Upload complete: s3://${this.props.bucketName}/${key}`);
+
+    // Write version-alias pointer files
+    const versionParts = version.split('.');
+    const major = versionParts[0];
+    const minor = versionParts[1] ?? '0';
+    const publishedAt = new Date().toISOString();
+    const pointer = { version, publishedAt };
+
+    const pointerKeys = [
+      `${this.props.basePath}/latest-stable.json`,
+      `${this.props.basePath}/v${major}/latest-stable.json`,
+      `${this.props.basePath}/v${major}.${minor}/latest-stable.json`,
+    ];
+
+    for (const pointerKey of pointerKeys) {
+      console.log(`[s3-artifact] Writing pointer → s3://${this.props.bucketName}/${pointerKey}`);
+      await this.uploader.uploadJson(this.props.bucketName, pointerKey, pointer);
+    }
   }
 }
+
+export { S3ArtifactPlugin };
+export type { S3ArtifactPluginProps };
