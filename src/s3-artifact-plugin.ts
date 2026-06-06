@@ -29,9 +29,8 @@ export interface S3WorkspaceConfig {
 
 interface ArtifactMapEntry {
   bucketName: string;
-  basePath: string;
+  key: string;
   region?: string;
-  objectName: string;
 }
 
 class S3ArtifactPlugin implements IPlugin, IPackManager {
@@ -85,13 +84,14 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
         await fs.copyFile(resolved, outPath);
       }
 
+      const key = `${entry.basePath ?? config.basePath}/v${workspace.version}/${entry.objectName}`;
+
       files.push({
         name: outputBasename,
         metadata: {
           bucketName: entry.bucketName ?? config.bucketName,
-          basePath: entry.basePath ?? config.basePath,
+          key,
           region: entry.region,
-          objectName: entry.objectName,
         },
       });
 
@@ -103,7 +103,6 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
   }
 
   async publish(packedPackage: PackedPackage, fileName: string, releaseTag: string, dryRun: boolean): Promise<void> {
-    const version = packedPackage.version;
     const basename = path.basename(fileName);
 
     const pluginData = packedPackage.pluginData?.['s3-artifact'] as Record<string, ArtifactMapEntry> | undefined;
@@ -114,8 +113,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
       return;
     }
 
-    const { bucketName, basePath, region, objectName } = mapEntry;
-    const key = `${basePath}/v${version}/${objectName}`;
+    const { bucketName, key, region } = mapEntry;
     const uploader = new S3Uploader({ region });
 
     if (dryRun) {
@@ -127,6 +125,8 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     await uploader.upload(bucketName, key, fileName);
     console.log(`[s3-artifact] Upload complete: s3://${bucketName}/${key}`);
 
+    const version = packedPackage.version;
+    const basePath = key.slice(0, key.indexOf(`/v${version}/`));
     await uploader.writeVersionPointers(bucketName, basePath, version);
   }
 }
