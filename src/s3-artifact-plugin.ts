@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as fssync from 'fs';
 import * as path from 'path';
-import type { IPlugin, IPackManager, IWorkspace, PackedPackage } from '@jwpkg/gitversion';
+import type { IPlugin, IPackManager, IWorkspace, PackedPackage, PackResult, PackFileResult } from '@jwpkg/gitversion';
 import { S3Uploader } from './uploader';
 import { run } from './utils/common';
 
@@ -44,7 +44,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     return this;
   }
 
-  async pack(workspace: IWorkspace, outputFolder: string): Promise<string[] | null> {
+  async pack(workspace: IWorkspace, outputFolder: string): Promise<PackResult | null> {
     let config: S3WorkspaceConfig | undefined;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -62,8 +62,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
       return null;
     }
 
-    const outputFiles: string[] = [];
-    const sidecarData: Record<string, ArtifactMapEntry> = {};
+    const files: PackFileResult[] = [];
 
     for (const entry of config.artifacts) {
       const resolved = path.isAbsolute(entry.source)
@@ -86,40 +85,29 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
         await fs.copyFile(resolved, outPath);
       }
 
-      sidecarData[outputBasename] = {
-        bucketName: entry.bucketName ?? config.bucketName,
-        basePath: entry.basePath ?? config.basePath,
-        region: entry.region,
-        objectName: entry.objectName,
-      };
+      files.push({
+        name: outputBasename,
+        metadata: {
+          bucketName: entry.bucketName ?? config.bucketName,
+          basePath: entry.basePath ?? config.basePath,
+          region: entry.region,
+          objectName: entry.objectName,
+        },
+      });
 
       console.log(`[s3-artifact] Packing: ${entry.objectName} from ${resolved}`);
-
-      outputFiles.push(outputBasename);
     }
 
-    const sidecarPath = path.join(outputFolder, 's3-routing.json');
-    await fs.writeFile(sidecarPath, JSON.stringify(sidecarData, null, 2), 'utf8');
-    console.log(`[s3-artifact] Routing sidecar written to ${sidecarPath}`);
-
-    console.log(`[s3-artifact] Staged ${outputFiles.length} artifact(s) from ${workspace.cwd}/gitversion-s3.cjs`);
-    return outputFiles;
+    console.log(`[s3-artifact] Staged ${files.length} artifact(s) from ${workspace.cwd}/gitversion-s3.cjs`);
+    return { files };
   }
 
   async publish(packedPackage: PackedPackage, fileName: string, releaseTag: string, dryRun: boolean): Promise<void> {
     const version = packedPackage.version;
     const basename = path.basename(fileName);
 
-    const sidecarPath = path.join(path.dirname(fileName), 's3-routing.json');
-    let mapEntry: ArtifactMapEntry | undefined;
-    try {
-      const raw = await fs.readFile(sidecarPath, 'utf8');
-      const sidecarData = JSON.parse(raw) as Record<string, ArtifactMapEntry>;
-      console.log(`[s3-artifact] Loaded routing from sidecar`);
-      mapEntry = sidecarData[basename];
-    } catch {
-      // sidecar not found or unreadable — fall through to error below
-    }
+    const pluginData = packedPackage.pluginData?.['s3-artifact'] as Record<string, ArtifactMapEntry> | undefined;
+    const mapEntry = pluginData?.[basename];
 
     if (mapEntry === undefined) {
       console.log(`[s3-artifact] ERROR: no routing found for ${basename} — was pack run first?`);
