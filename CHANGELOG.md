@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.10](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.9...v0.0.10) (Sat Jun 06 2026)
+
+### fix
+
+* Updated readme ([1d33cdb](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/1d33cdbd256933cdd6892238658eb01f813244fd))
+
 ## [0.0.9](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.8...v0.0.9) (Sat Jun 06 2026)
 
 ### feat
