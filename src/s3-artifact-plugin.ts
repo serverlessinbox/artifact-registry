@@ -38,12 +38,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
   readonly ident = 's3-artifact';
   readonly name = 'S3 artifact plugin';
 
-  private readonly uploader: S3Uploader;
-  private readonly artifactMap = new Map<string, ArtifactMapEntry>();
-
-  constructor() {
-    this.uploader = new S3Uploader();
-  }
+  constructor() {}
 
   get packManager(): IPackManager {
     return this;
@@ -68,6 +63,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     }
 
     const outputFiles: string[] = [];
+    const sidecarData: Record<string, ArtifactMapEntry> = {};
 
     for (const entry of config.artifacts) {
       const resolved = path.isAbsolute(entry.source)
@@ -90,15 +86,21 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
         await fs.copyFile(resolved, outPath);
       }
 
-      this.artifactMap.set(outputBasename, {
+      sidecarData[outputBasename] = {
         bucketName: entry.bucketName ?? config.bucketName,
         basePath: entry.basePath ?? config.basePath,
         region: entry.region,
         objectName: entry.objectName,
-      });
+      };
+
+      console.log(`[s3-artifact] Packing: ${entry.objectName} from ${resolved}`);
 
       outputFiles.push(outputBasename);
     }
+
+    const sidecarPath = path.join(outputFolder, 's3-routing.json');
+    await fs.writeFile(sidecarPath, JSON.stringify(sidecarData, null, 2), 'utf8');
+    console.log(`[s3-artifact] Routing sidecar written to ${sidecarPath}`);
 
     console.log(`[s3-artifact] Staged ${outputFiles.length} artifact(s) from ${workspace.cwd}/gitversion-s3.cjs`);
     return outputFiles;
@@ -108,8 +110,19 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     const version = packedPackage.version;
     const basename = path.basename(fileName);
 
-    const mapEntry = this.artifactMap.get(basename);
+    const sidecarPath = path.join(path.dirname(fileName), 's3-routing.json');
+    let mapEntry: ArtifactMapEntry | undefined;
+    try {
+      const raw = await fs.readFile(sidecarPath, 'utf8');
+      const sidecarData = JSON.parse(raw) as Record<string, ArtifactMapEntry>;
+      console.log(`[s3-artifact] Loaded routing from sidecar`);
+      mapEntry = sidecarData[basename];
+    } catch {
+      // sidecar not found or unreadable — fall through to error below
+    }
+
     if (mapEntry === undefined) {
+      console.log(`[s3-artifact] ERROR: no routing found for ${basename} — was pack run first?`);
       return;
     }
 
@@ -122,7 +135,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
       return;
     }
 
-    console.log(`[s3-artifact] Uploading ${basename} → s3://${bucketName}/${key}`);
+    console.log(`[s3-artifact] Uploading: s3://${bucketName}/${key}`);
     await uploader.upload(bucketName, key, fileName);
     console.log(`[s3-artifact] Upload complete: s3://${bucketName}/${key}`);
 
