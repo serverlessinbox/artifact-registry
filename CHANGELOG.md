@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.8](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.7...v0.0.8) (Sat Jun 06 2026)
+
+### feat
+
+* temp fix with sidecar ([a7bb558](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/a7bb5580a11263df58459f6174e45c16298a88a8))
+
 ## [0.0.7](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.6...v0.0.7) (Sat Jun 06 2026)
 
 ### feat
