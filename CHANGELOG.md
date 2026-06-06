@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.7](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.6...v0.0.7) (Sat Jun 06 2026)
+
+### feat
+
+* temporatry publish in first job ([a11debb](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/a11debb35eb5499da5e0b8f1b97ff11bb3840be3))
+
+* temp publish pipeline ([a891ef3](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/a891ef311ce50a0491164de82cef966afaeb4976))
+
+* Plugin config from package ([0ba8cb6](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/0ba8cb67a2dd20da75b70aed38b193620d9833af))
+
+* Also tag rights ([a45cbc4](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/a45cbc4b7b7178108cebc37e0a026de9a81acb00))
+
 ## [0.0.5](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.4...v0.0.5) (Tue Jun 02 2026)
 
 ### feat
