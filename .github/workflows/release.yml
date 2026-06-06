@@ -9,9 +9,6 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,17 +21,34 @@ jobs:
       - run: yarn gitversion bump
       - run: yarn build
       - run: yarn gitversion pack
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::416716292717:role/github-actions-deploy-role
-          aws-region: eu-west-1
-      - run: yarn gitversion:publish
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}      
+      # - uses: actions/upload-artifact@v4
+      #   with:
+      #     name: gitversion-packed
+      #     path: gitversion.out/
+      #     if-no-files-found: error
 
-  publish:
-    needs: [release]
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: write
-    steps:
-      - run: echo "publish is a no-op - restore when artifact storage is available"
+  # publish:
+  #   needs: [release]
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     id-token: write
+  #     contents: write
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '20'
+  #         registry-url: 'https://registry.npmjs.org'
+  #     - run: yarn install
+  #     - uses: actions/download-artifact@v4
+  #       with:
+  #         name: gitversion-packed
+  #         path: gitversion.out/
+  #     - run: npm publish
+  #       env:
+  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
