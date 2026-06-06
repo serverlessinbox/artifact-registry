@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.9](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.8...v0.0.9) (Sat Jun 06 2026)
+
+### feat
+
+* updated plugin to output meta data ([e280867](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/e2808676561fde3bf2400e1ce3dbf89346b95310))
+
 ## [0.0.8](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.7...v0.0.8) (Sat Jun 06 2026)
 
 ### feat
