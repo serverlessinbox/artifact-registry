@@ -790,9 +790,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jwpkg/gitversion@npm:1.4.0-pack-order.1":
-  version: 1.4.0-pack-order.1
-  resolution: "@jwpkg/gitversion@npm:1.4.0-pack-order.1"
+"@jwpkg/gitversion@npm:1.4.0-pack-order.2":
+  version: 1.4.0-pack-order.2
+  resolution: "@jwpkg/gitversion@npm:1.4.0-pack-order.2"
   dependencies:
     "@yarnpkg/cli": "npm:^4.1.0"
     "@yarnpkg/core": "npm:^4.0.3"
@@ -811,7 +811,7 @@ __metadata:
     typanion: "npm:^3.14.0"
   bin:
     gitversion: bin/index.js
-  checksum: 10c0/a8f7b06d8cf984bde3d677f288327b6e6b9eb524eb03a75d4a37356e5db53e205b4958e6ffaa39ba28fed2d6d105f8c118ec7375f9be11ccaa4bafe1ad76c95f
+  checksum: 10c0/d171efb2dcffef4768879aaf5cc0c0d2a9d9916f2ad4efc1438029ba898a8e746f957394eda4f7d3648eefd1eef100b17dd9c0d4cdd9e69166f6c74b43a79933
   languageName: node
   linkType: hard
 
@@ -883,7 +883,7 @@ __metadata:
   resolution: "@serverlessinbox/artifact-tools@workspace:."
   dependencies:
     "@aws-sdk/client-s3": "npm:^3"
-    "@jwpkg/gitversion": "npm:1.4.0-pack-order.1"
+    "@jwpkg/gitversion": "npm:1.4.0-pack-order.2"
     "@types/node": "npm:^20"
     "@types/semver": "npm:^7.7.1"
     clipanion: "npm:^3.2.1"
@@ -891,7 +891,7 @@ __metadata:
     semver: "npm:^7.8.1"
     typescript: "npm:^5"
   peerDependencies:
-    "@jwpkg/gitversion": 1.4.0-pack-order.1
+    "@jwpkg/gitversion": 1.4.0-pack-order.2
   bin:
     artifact-tools: dist/cli-entry.js
   languageName: unknown
