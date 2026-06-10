@@ -44,3 +44,9 @@ export interface ArtifactMapEntry {
   key: string;
   region?: string;
 }
+
+export interface RequiredComponent {
+  basePath: string;
+  bucketName?: string;
+  region?: string;
+}
