@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.12](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.11...v0.0.12) (Wed Jun 10 2026)
+
+### feat
+
+* Check command ([8577c75](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/8577c759bd623525d1fd2a377991475772a9c65c))
+
 ## [0.0.11](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.10...v0.0.11) (Wed Jun 10 2026)
 
 ### feat
