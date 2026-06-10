@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.15](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.14...v0.0.15) (Wed Jun 10 2026)
+
+### feat
+
+* Artifact handling ([003c10b](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/003c10bf19412a29a3e8542271055a2f7d5b5579))
+
 ## [0.0.14](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.13...v0.0.14) (Wed Jun 10 2026)
 
 ### feat
