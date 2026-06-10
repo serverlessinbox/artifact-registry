@@ -1,6 +1,8 @@
 import { Builtins, Cli } from 'clipanion';
 import { BundleJsZipCommand } from './commands/bundle-js-zip';
 import { BuildArtifactsCommand } from './commands/build-artifacts-cmd';
+import { PublishChannelCommand } from './commands/publish-channel-cmd';
+import { PublishReleaseCommand } from './commands/publish-release-cmd';
 
 export async function runCli(argv: string[]) {
   const cli = new Cli({
@@ -14,6 +16,8 @@ export async function runCli(argv: string[]) {
 
   cli.register(BundleJsZipCommand);
   cli.register(BuildArtifactsCommand);
+  cli.register(PublishChannelCommand);
+  cli.register(PublishReleaseCommand);
 
   // Yarn scripts may inject a standalone `--` when forwarding args.
   const normalizedArgv = argv.filter((a) => a !== '--');

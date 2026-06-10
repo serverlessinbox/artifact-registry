@@ -1,6 +1,6 @@
 import { Command, Option } from 'clipanion';
 import * as path from 'path';
-import { buildArtifacts } from '../build-artifacts';
+import { buildArtifacts } from '../utils/build-artifacts';
 
 export class BuildArtifactsCommand extends Command {
   static override paths = [['build']];

@@ -2,36 +2,10 @@ import * as fs from 'fs/promises';
 import * as fssync from 'fs';
 import * as path from 'path';
 import type { IPlugin, IPackManager, IWorkspace, PackedPackage, PackResult, PackFileResult } from '@jwpkg/gitversion';
-import { S3Uploader } from './uploader';
+import { S3Uploader } from './utils/uploader';
 import { run } from './utils/common';
-
-export interface S3ArtifactEntry {
-  /** Path to source file or directory. Absolute or relative to workspace.cwd. */
-  source: string;
-  /** S3 object name for the output (e.g. 'lambdas/edge-deployer.zip', 'template.json'). */
-  objectName: string;
-  /** Overrides workspace-level bucketName for this artifact. */
-  bucketName?: string;
-  /** Overrides workspace-level basePath for this artifact. */
-  basePath?: string;
-  /** AWS region for the S3 client used to upload this artifact. Defaults to SDK default. */
-  region?: string;
-}
-
-export interface S3WorkspaceConfig {
-  /** Default S3 bucket for all artifacts in this workspace. */
-  bucketName: string;
-  /** Default S3 base path (e.g. 'packages/mailbox-cdk'). */
-  basePath: string;
-  /** Artifacts to stage and publish. */
-  artifacts: S3ArtifactEntry[];
-}
-
-interface ArtifactMapEntry {
-  bucketName: string;
-  key: string;
-  region?: string;
-}
+import { loadConfig, buildReleaseKey } from './utils/load-config';
+import type { S3ArtifactEntry, S3WorkspaceConfig, ArtifactMapEntry } from './utils/types';
 
 class S3ArtifactPlugin implements IPlugin, IPackManager {
   readonly ident = 's3-artifact';
@@ -46,8 +20,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
   async pack(workspace: IWorkspace, outputFolder: string): Promise<PackResult | null> {
     let config: S3WorkspaceConfig | undefined;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      config = require(path.join(workspace.cwd, 'gitversion-s3.cjs')) as S3WorkspaceConfig;
+      config = loadConfig(workspace.cwd) as S3WorkspaceConfig;
     } catch (err: unknown) {
       const nodeErr = err as NodeJS.ErrnoException;
       if (nodeErr.code !== 'MODULE_NOT_FOUND') {
@@ -84,7 +57,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
         await fs.copyFile(resolved, outPath);
       }
 
-      const key = `${entry.basePath ?? config.basePath}/v${workspace.version}/${entry.objectName}`;
+      const key = buildReleaseKey(entry.basePath ?? config.basePath, workspace.version, entry.objectName);
 
       files.push({
         name: outputBasename,
@@ -132,3 +105,4 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
 }
 
 export { S3ArtifactPlugin };
+export type { S3ArtifactEntry, S3WorkspaceConfig } from './utils/types';

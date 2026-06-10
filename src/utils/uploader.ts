@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import semver from 'semver';
+import { buildChannelKey } from './load-config';
 
 export class S3Uploader {
   private readonly client: S3Client;
@@ -19,7 +20,7 @@ export class S3Uploader {
   }
 
   async uploadChannel(bucket: string, basePath: string, channel: string, objectName: string, filePath: string): Promise<void> {
-    const key = `${basePath}/channels/${channel}/${objectName}`;
+    const key = buildChannelKey(basePath, channel, objectName);
     await this.upload(bucket, key, filePath);
   }
 

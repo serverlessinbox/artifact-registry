@@ -3,36 +3,8 @@ import * as fssync from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as esbuild from 'esbuild';
-import { run } from './utils/common';
-
-export interface S3ArtifactEntry {
-  /** Path to source file or directory. Absolute or relative to workspace.cwd. */
-  source: string;
-  /** S3 object name for the output (e.g. 'lambdas/edge-deployer.zip', 'template.json'). */
-  objectName: string;
-  /** Overrides workspace-level bucketName for this artifact. */
-  bucketName?: string;
-  /** Overrides workspace-level basePath for this artifact. */
-  basePath?: string;
-  /** AWS region for the S3 client used to upload this artifact. Defaults to SDK default. */
-  region?: string;
-  /** Bundle type. 'js-zip' bundles a TS/JS entrypoint via esbuild into a zip containing index.js. */
-  bundleType?: 'js-zip';
-}
-
-export interface S3WorkspaceConfig {
-  /** Default S3 bucket for all artifacts in this workspace. */
-  bucketName: string;
-  /** Default S3 base path (e.g. 'packages/mailbox-cdk'). */
-  basePath: string;
-  /** Artifacts to stage and publish. */
-  artifacts: S3ArtifactEntry[];
-}
-
-export interface ArtifactBuildResult {
-  outputFiles: string[];
-  routingMap: Map<string, { bucketName: string; basePath: string; region?: string; objectName: string }>;
-}
+import { run } from './common';
+import type { S3ArtifactEntry, S3WorkspaceConfig, ArtifactBuildResult } from './types';
 
 async function bundleJsZip(entryPoint: string, outZip: string): Promise<void> {
   const tmpDir = fssync.mkdtempSync(path.join(os.tmpdir(), 'mailbox-tools-bundle-'));
