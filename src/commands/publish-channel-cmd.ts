@@ -1,7 +1,7 @@
 import { Command, Option } from 'clipanion';
 import * as path from 'path';
 import { S3Uploader } from '../utils/uploader';
-import { loadConfig, selectArtifact, buildChannelKey } from '../utils/load-config';
+import { loadConfig, selectArtifact } from '../utils/artifact-key';
 
 export class PublishChannelCommand extends Command {
   static override paths = [['publish', 'channel']];
@@ -56,11 +56,12 @@ export class PublishChannelCommand extends Command {
       }
 
       const bucketName = entry.bucketName ?? config.bucketName;
-      const basePath = entry.basePath ?? config.basePath;
+      const artifactType = config.type;
+      const name = entry.name ?? config.name;
       const filePath = path.isAbsolute(entry.source) ? entry.source : path.join(cwd, entry.source);
       const uploader = new S3Uploader({ region: entry.region });
       this.context.stdout.write(`Uploading ${entry.objectName} to channel ${this.channel}...\n`);
-      await uploader.uploadChannel(bucketName, basePath, this.channel!, entry.objectName, filePath);
+      await uploader.uploadChannel(bucketName, artifactType, name, this.channel, entry.objectName, filePath);
     } else {
       if (config.artifacts.length === 0) {
         this.context.stderr.write(`Error: no artifacts found\n`);
@@ -69,11 +70,12 @@ export class PublishChannelCommand extends Command {
 
       for (const entry of config.artifacts) {
         const bucketName = entry.bucketName ?? config.bucketName;
-        const basePath = entry.basePath ?? config.basePath;
+        const artifactType = config.type;
+        const name = entry.name ?? config.name;
         const filePath = path.isAbsolute(entry.source) ? entry.source : path.join(cwd, entry.source);
         const uploader = new S3Uploader({ region: entry.region });
         this.context.stdout.write(`Uploading ${entry.objectName} to channel ${this.channel}...\n`);
-        await uploader.uploadChannel(bucketName, basePath, this.channel!, entry.objectName, filePath);
+        await uploader.uploadChannel(bucketName, artifactType, name, this.channel, entry.objectName, filePath);
       }
     }
 

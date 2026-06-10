@@ -1,7 +1,9 @@
 import { Command, Option } from 'clipanion';
 import * as path from 'path';
+import semver from 'semver';
+import type { ArtifactType } from '../utils/types';
 import { S3Uploader } from '../utils/uploader';
-import { loadConfig, selectArtifact, buildReleaseKey } from '../utils/load-config';
+import { loadConfig, selectArtifact, buildArtifactKey } from '../utils/artifact-key';
 
 export class PublishReleaseCommand extends Command {
   static override paths = [['publish', 'release']];
@@ -36,6 +38,12 @@ export class PublishReleaseCommand extends Command {
       process.env.AWS_PROFILE = this.profile;
     }
 
+    const version = semver.parse(this.version);
+    if (!version) {
+      this.context.stderr.write(`Error: invalid semver version "${this.version}"\n`);
+      return 1;
+    }
+
     const cwd = this.cwd ?? process.cwd();
 
     let config;
@@ -52,7 +60,8 @@ export class PublishReleaseCommand extends Command {
     const writtenPointers = new Set<string>();
     let lastUploader: S3Uploader | undefined;
     let lastBucketName: string | undefined;
-    let lastBasePath: string | undefined;
+    let lastArtifactType: ArtifactType | undefined;
+    let lastName: string | undefined;
 
     let artifacts = config.artifacts;
     if (this.object) {
@@ -66,29 +75,31 @@ export class PublishReleaseCommand extends Command {
 
     for (const entry of artifacts) {
       const bucketName = entry.bucketName ?? config.bucketName;
-      const basePath = entry.basePath ?? config.basePath;
+      const artifactType = config.type;
+      const name = entry.name ?? config.name;
       const filePath = path.isAbsolute(entry.source) ? entry.source : path.join(cwd, entry.source);
-      const key = buildReleaseKey(basePath, this.version, entry.objectName);
+      const key = buildArtifactKey(artifactType, name, { type: 'release', version, objectName: entry.objectName });
       const uploader = new S3Uploader({ region: entry.region });
       this.context.stdout.write(`Uploading ${entry.objectName} to ${key}...\n`);
       await uploader.upload(bucketName, key, filePath);
 
-      const comboKey = `${bucketName}::${basePath}`;
+      const comboKey = `${bucketName}::${artifactType}::${name}`;
       if (!writtenPointers.has(comboKey)) {
         writtenPointers.add(comboKey);
         lastUploader = uploader;
         lastBucketName = bucketName;
-        lastBasePath = basePath;
+        lastArtifactType = artifactType;
+        lastName = name;
       }
     }
 
     for (const comboKey of writtenPointers) {
-      const [bucketName, basePath] = comboKey.split('::');
-      const uploader = (lastBucketName === bucketName && lastBasePath === basePath && lastUploader)
+      const [bucketName, artifactType, name] = comboKey.split('::') as [string, ArtifactType, string];
+      const uploader = (lastBucketName === bucketName && lastArtifactType === artifactType && lastName === name && lastUploader)
         ? lastUploader
         : new S3Uploader({});
-      this.context.stdout.write(`Writing version pointers for ${bucketName}/${basePath}...\n`);
-      await uploader.writeVersionPointers(bucketName, basePath, this.version!);
+      this.context.stdout.write(`Writing version pointers for ${bucketName}/${artifactType}/${name}...\n`);
+      await uploader.writeVersionPointers(bucketName, artifactType, name, version);
     }
 
     this.context.stdout.write('Done.\n');

@@ -1,10 +1,11 @@
 import * as fs from 'fs/promises';
 import * as fssync from 'fs';
 import * as path from 'path';
+import semver from 'semver';
 import type { IPlugin, IPackManager, IWorkspace, PackedPackage, PackResult, PackFileResult } from '@jwpkg/gitversion';
 import { S3Uploader } from './utils/uploader';
 import { run } from './utils/common';
-import { loadConfig, buildReleaseKey } from './utils/load-config';
+import { loadConfig, buildArtifactKey } from './utils/artifact-key';
 import type { S3ArtifactEntry, S3WorkspaceConfig, ArtifactMapEntry } from './utils/types';
 
 class S3ArtifactPlugin implements IPlugin, IPackManager {
@@ -57,12 +58,18 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
         await fs.copyFile(resolved, outPath);
       }
 
-      const key = buildReleaseKey(entry.basePath ?? config.basePath, workspace.version, entry.objectName);
+      const artifactType = config.type;
+      const name = entry.name ?? config.name;
+      const parsedVersion = semver.parse(workspace.version);
+      if (!parsedVersion) throw new Error(`Invalid semver version from workspace: ${workspace.version}`);
+      const key = buildArtifactKey(artifactType, name, { type: 'release', version: parsedVersion, objectName: entry.objectName });
 
       files.push({
         name: outputBasename,
         metadata: {
           bucketName: entry.bucketName ?? config.bucketName,
+          artifactType,
+          name,
           key,
           region: entry.region,
         },
@@ -98,9 +105,11 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     await uploader.upload(bucketName, key, fileName);
     console.log(`[s3-artifact] Upload complete: s3://${bucketName}/${key}`);
 
-    const version = packedPackage.version;
-    const basePath = key.slice(0, key.indexOf(`/v${version}/`));
-    await uploader.writeVersionPointers(bucketName, basePath, version);
+    const versionStr = packedPackage.version;
+    const version = semver.parse(versionStr);
+    if (!version) throw new Error(`Invalid semver version from packed package: ${versionStr}`);
+    const { artifactType, name } = mapEntry;
+    await uploader.writeVersionPointers(bucketName, artifactType, name, version);
   }
 }
 

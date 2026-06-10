@@ -1,8 +1,10 @@
 import { Command, Option } from 'clipanion';
 import * as fs from 'fs';
 import * as path from 'path';
+import semver from 'semver';
+import type { ArtifactType } from '../utils/types';
 import { S3Uploader } from '../utils/uploader';
-import { buildReleaseKey } from '../utils/load-config';
+import { buildArtifactKey } from '../utils/artifact-key';
 
 export class PublishManifestCommand extends Command {
   static override paths = [['publish', 'manifest']];
@@ -12,7 +14,7 @@ export class PublishManifestCommand extends Command {
     examples: [
       [
         'Publish manifest for CDK release 1.2.3',
-        '$0 publish manifest --bucket mailbox-artifacts-eu-west-1 --region eu-west-1 --base-path packages/mailbox-cdk --version 1.2.3 --versions-file artifact-versions.json --extra-component mailbox-cdk-edge:{version}',
+        '$0 publish manifest --bucket mailbox-artifacts-eu-west-1 --region eu-west-1 --type package --name mailbox-cdk --version 1.2.3 --versions-file artifact-versions.json --extra-component mailbox-cdk-edge:{version}',
       ],
     ],
   });
@@ -30,9 +32,14 @@ export class PublishManifestCommand extends Command {
     description: 'AWS profile to use.',
   });
 
-  basePath = Option.String('--base-path', {
+  artifactType = Option.String('--type', {
     required: true,
-    description: 'S3 base path for the manifest (e.g. packages/mailbox-cdk).',
+    description: 'Artifact type (e.g. package, template).',
+  });
+
+  name = Option.String('--name', {
+    required: true,
+    description: 'Artifact name (e.g. mailbox-cdk).',
   });
 
   version = Option.String('--version', {
@@ -99,7 +106,9 @@ export class PublishManifestCommand extends Command {
       components,
     };
 
-    const key = buildReleaseKey(this.basePath, version, 'manifest.json');
+    const parsedVersion = semver.parse(version);
+    if (!parsedVersion) throw new Error(`Invalid semver version: ${version}`);
+    const key = buildArtifactKey(this.artifactType as ArtifactType, this.name, { type: 'release', version: parsedVersion, objectName: 'manifest.json' });
     const uploader = new S3Uploader({ region: this.region });
 
     this.context.stdout.write(`Publishing manifest to s3://${this.bucket}/${key}\n`);

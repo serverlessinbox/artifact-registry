@@ -1,3 +1,5 @@
+export type ArtifactType = 'package' | 'template';
+
 /**
  * S3 artifact entry configuration.
  */
@@ -8,8 +10,8 @@ export interface S3ArtifactEntry {
   objectName: string;
   /** Overrides workspace-level bucketName for this artifact. */
   bucketName?: string;
-  /** Overrides workspace-level basePath for this artifact. */
-  basePath?: string;
+  /** Overrides workspace-level name for this artifact (used to build S3 key prefix). */
+  name?: string;
   /** AWS region for the S3 client used to upload this artifact. Defaults to SDK default. */
   region?: string;
   /** Bundle type. 'js-zip' bundles a TS/JS entrypoint via esbuild into a zip containing index.js. */
@@ -22,8 +24,10 @@ export interface S3ArtifactEntry {
 export interface S3WorkspaceConfig {
   /** Default S3 bucket for all artifacts in this workspace. */
   bucketName: string;
-  /** Default S3 base path (e.g. 'packages/mailbox-cdk'). */
-  basePath: string;
+  /** Artifact type. Determines the S3 key prefix ('packages', 'templates', …). */
+  type: ArtifactType;
+  /** Artifact name. Combined with type to form the S3 key prefix (e.g. 'mailbox-cdk'). */
+  name: string;
   /** Artifacts to stage and publish. */
   artifacts: S3ArtifactEntry[];
 }
@@ -33,7 +37,7 @@ export interface S3WorkspaceConfig {
  */
 export interface ArtifactBuildResult {
   outputFiles: string[];
-  routingMap: Map<string, { bucketName: string; basePath: string; region?: string; objectName: string }>;
+  routingMap: Map<string, { bucketName: string; artifactType: ArtifactType; name: string; region?: string; objectName: string }>;
 }
 
 /**
@@ -41,6 +45,8 @@ export interface ArtifactBuildResult {
  */
 export interface ArtifactMapEntry {
   bucketName: string;
+  artifactType: ArtifactType;
+  name: string;
   key: string;
   region?: string;
 }

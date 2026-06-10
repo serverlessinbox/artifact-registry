@@ -1,7 +1,8 @@
 import * as fs from 'fs/promises';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import semver from 'semver';
-import { buildChannelKey, buildVersionPointerKey } from './load-config';
+import { buildArtifactKey } from './artifact-key';
+import type { ArtifactType } from './types';
+import type { SemVer } from 'semver';
 
 export class S3Uploader {
   private readonly client: S3Client;
@@ -19,8 +20,8 @@ export class S3Uploader {
     }));
   }
 
-  async uploadChannel(bucket: string, basePath: string, channel: string, objectName: string, filePath: string): Promise<void> {
-    const key = buildChannelKey(basePath, channel, objectName);
+  async uploadChannel(bucket: string, artifactType: ArtifactType, name: string, channel: string, objectName: string, filePath: string): Promise<void> {
+    const key = buildArtifactKey(artifactType, name, { type: 'channel', channel, objectName });
     await this.upload(bucket, key, filePath);
   }
 
@@ -45,17 +46,16 @@ export class S3Uploader {
     return JSON.parse(body);
   }
 
-  async writeVersionPointers(bucket: string, basePath: string, version: string): Promise<void> {
-    const parsed = semver.parse(version);
-    if (!parsed) return;
-    const { major, minor } = parsed;
-    const pointer = { version, publishedAt: new Date().toISOString() };
-    await this.uploadJson(bucket, buildVersionPointerKey(basePath), pointer);
-    for (const track of [
-      `v${major}/latest-stable`,
-      `v${major}.${minor}/latest-stable`,
-    ]) {
-      await this.uploadJson(bucket, `${basePath}/${track}.json`, pointer);
+  async writeVersionPointers(bucket: string, artifactType: ArtifactType, name: string, version: SemVer): Promise<void> {
+    const pointer = { version: version.version, publishedAt: new Date().toISOString() };
+    if (version.prerelease.length > 0) {
+      const prereleaseTag = String(version.prerelease[0]);
+      await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-prerelease-pointer', prereleaseTag }), pointer);
+      return;
     }
+    const { major, minor } = version;
+    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer' }), pointer);
+    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}` }), pointer);
+    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}.${minor}` }), pointer);
   }
 }

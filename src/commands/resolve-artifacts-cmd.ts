@@ -2,7 +2,8 @@ import { Command, Option } from 'clipanion';
 import * as fs from 'fs';
 import * as path from 'path';
 import { S3Uploader } from '../utils/uploader';
-import { buildVersionPointerKey } from '../utils/load-config';
+import { buildArtifactKey } from '../utils/artifact-key';
+import type { ArtifactType } from '../utils/types';
 
 export class ResolveArtifactsCommand extends Command {
   static override paths = [['resolve-artifacts']];
@@ -12,7 +13,7 @@ export class ResolveArtifactsCommand extends Command {
     examples: [
       [
         'Resolve three components and write to two paths',
-        '$0 resolve-artifacts --bucket mailbox-artifacts-eu-west-1 --region eu-west-1 --component mailbox-go:packages/mailbox-go --component mailbox-admin-ui:packages/mailbox-admin-ui --output artifact-versions.json --output packages/mailbox/artifact-versions.json',
+        '$0 resolve-artifacts --bucket mailbox-artifacts-eu-west-1 --region eu-west-1 --component mailbox-go:package:mailbox-go --component mailbox-admin-ui:package:mailbox-admin-ui --output artifact-versions.json --output packages/mailbox/artifact-versions.json',
       ],
     ],
   });
@@ -32,7 +33,7 @@ export class ResolveArtifactsCommand extends Command {
 
   components = Option.Array('--component', {
     required: true,
-    description: 'Component in the form key:basePath. Repeatable.',
+    description: 'Component in the form key:type:name (e.g. mailbox-go:package:mailbox-go). Repeatable.',
   });
 
   outputs = Option.Array('--output', {
@@ -49,14 +50,13 @@ export class ResolveArtifactsCommand extends Command {
     const result: Record<string, string> = {};
 
     for (const component of this.components) {
-      const colonIdx = component.indexOf(':');
-      if (colonIdx === -1) {
-        this.context.stderr.write(`Error: --component must be in the form key:basePath, got: ${component}\n`);
+      const parts = component.split(':');
+      if (parts.length !== 3) {
+        this.context.stderr.write(`Error: --component must be in the form key:type:name, got: ${component}\n`);
         return 1;
       }
-      const key = component.slice(0, colonIdx);
-      const basePath = component.slice(colonIdx + 1);
-      const s3Key = buildVersionPointerKey(basePath);
+      const [key, artifactType, name] = parts as [string, ArtifactType, string];
+      const s3Key = buildArtifactKey(artifactType, name, { type: 'release-pointer' });
 
       this.context.stdout.write(`Resolving ${key} from s3://${this.bucket}/${s3Key} ... `);
       const data = await uploader.readJson(this.bucket, s3Key) as { version?: string };

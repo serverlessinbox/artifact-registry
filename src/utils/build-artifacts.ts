@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as esbuild from 'esbuild';
 import { run } from './common';
-import type { S3ArtifactEntry, S3WorkspaceConfig, ArtifactBuildResult } from './types';
+import type { ArtifactType, S3ArtifactEntry, S3WorkspaceConfig, ArtifactBuildResult } from './types';
 
 async function bundleJsZip(entryPoint: string, outZip: string): Promise<void> {
   const tmpDir = fssync.mkdtempSync(path.join(os.tmpdir(), 'mailbox-tools-bundle-'));
@@ -36,7 +36,7 @@ async function buildEntry(
   workspaceCwd: string,
   outputFolder: string,
   config: S3WorkspaceConfig,
-): Promise<{ basename: string; routing: { bucketName: string; basePath: string; region?: string; objectName: string } }> {
+): Promise<{ basename: string; routing: { bucketName: string; artifactType: ArtifactType; name: string; region?: string; objectName: string } }> {
   const resolved = path.isAbsolute(entry.source)
     ? entry.source
     : path.join(workspaceCwd, entry.source);
@@ -65,7 +65,8 @@ async function buildEntry(
     basename: outputBasename,
     routing: {
       bucketName: entry.bucketName ?? config.bucketName,
-      basePath: entry.basePath ?? config.basePath,
+      artifactType: config.type,
+      name: entry.name ?? config.name,
       region: entry.region,
       objectName: entry.objectName,
     },
@@ -104,7 +105,7 @@ export async function buildArtifacts(
     config.artifacts.map(entry => buildEntry(entry, workspaceCwd, outputFolder, config)),
   );
 
-  const routingMap = new Map<string, { bucketName: string; basePath: string; region?: string; objectName: string }>();
+  const routingMap = new Map<string, { bucketName: string; artifactType: ArtifactType; name: string; region?: string; objectName: string }>();
   const outputFiles: string[] = [];
 
   for (const result of results) {
