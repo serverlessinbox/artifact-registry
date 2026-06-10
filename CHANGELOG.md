@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.14](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.13...v0.0.14) (Wed Jun 10 2026)
+
+### feat
+
+* Resolving artifacts ([ddad41c](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/ddad41c4f141d202cf1975f3cd0fb7a514de03a7))
+
 ## [0.0.13](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.12...v0.0.13) (Wed Jun 10 2026)
 
 ### feat
