@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.13](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.12...v0.0.13) (Wed Jun 10 2026)
+
+### feat
+
+* Removed check artifacts command ([75ede21](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/75ede2180dd8fa3c5544020d0e06f183f07db23a))
+
 ## [0.0.12](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.11...v0.0.12) (Wed Jun 10 2026)
 
 ### feat
