@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.11](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.10...v0.0.11) (Wed Jun 10 2026)
+
+### feat
+
+* Integrated artifact handling ([3ce1888](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/3ce1888691dc324db24df46ec1eeec303ee9b088))
+
 ## [0.0.10](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.9...v0.0.10) (Sat Jun 06 2026)
 
 ### fix
