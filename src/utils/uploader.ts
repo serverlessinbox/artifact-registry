@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import semver from 'semver';
-import { buildChannelKey } from './load-config';
+import { buildChannelKey, buildVersionPointerKey } from './load-config';
 
 export class S3Uploader {
   private readonly client: S3Client;
@@ -50,8 +50,8 @@ export class S3Uploader {
     if (!parsed) return;
     const { major, minor } = parsed;
     const pointer = { version, publishedAt: new Date().toISOString() };
+    await this.uploadJson(bucket, buildVersionPointerKey(basePath), pointer);
     for (const track of [
-      'latest-stable',
       `v${major}/latest-stable`,
       `v${major}.${minor}/latest-stable`,
     ]) {

@@ -31,3 +31,7 @@ export function buildReleaseKey(basePath: string, version: string, objectName: s
 export function buildChannelKey(basePath: string, channel: string, objectName: string): string {
   return `${basePath}/channels/${channel}/${objectName}`;
 }
+
+export function buildVersionPointerKey(basePath: string): string {
+  return `${basePath}/latest-stable.json`;
+}
