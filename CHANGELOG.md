@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.16](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.15...v0.0.16) (Thu Jun 11 2026)
+
+### feat
+
+* Added track logic for templates ([5391235](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/5391235dcbd19ec1ba5a563480f4503bf70d230e))
+
 ## [0.0.15](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.14...v0.0.15) (Wed Jun 10 2026)
 
 ### feat
