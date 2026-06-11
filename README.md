@@ -1,14 +1,15 @@
 # @serverlessinbox/artifact-tools
 
-A [`@jwpkg/gitversion`](https://github.com/jwpkg/gitversion) plugin that stages pre-built artifacts and uploads them to S3 on release.
+This package provides two distinct capabilities for working with S3-hosted build artifacts:
+
+- **`S3ArtifactPlugin`** — a [`@jwpkg/gitversion`](https://github.com/jwpkg/gitversion) plugin that stages pre-built artifacts and uploads them to S3 on release. Requires `@jwpkg/gitversion` as a peer dependency.
+- **`loadChannelVersions`** — a standalone API for resolving the current artifact versions published on a given release channel. Has no dependency on `@jwpkg/gitversion` and can be used independently (e.g. from a CDK app).
 
 ## Installation
 
 ```bash
 yarn add --dev @serverlessinbox/artifact-tools
 ```
-
-Requires `@jwpkg/gitversion` as a peer dependency.
 
 ## Usage
 
@@ -119,22 +120,21 @@ The plugin uses the AWS SDK default credential chain:
 
 Ensure the environment has S3 write permission on all configured buckets.
 
-## Local Dev: `loadDevChannelVersions`
+## Local Dev: `loadChannelVersions`
 
-`loadDevChannelVersions` is an exported helper for CDK apps (`main.ts`) that need to resolve which artifact versions are currently published on a given dev channel. It is independent of the gitversion plugin itself — no `gitversion.cjs` or workspace config is involved.
+`loadChannelVersions` is an exported helper for CDK apps (`main.ts`) that need to resolve which artifact versions are currently published on a given dev channel. It is independent of the gitversion plugin itself — no `gitversion.cjs` or workspace config is involved.
 
 ### Signature
 
 ```typescript
-export interface DevChannelOptions {
+export interface ChannelVersionsOptions {
   channel: string;                        // e.g. 'dev'
   bucketBase: string;                     // bucket name prefix, e.g. 'mailbox-artifacts'
-  profile?: string;                       // AWS named profile (optional; falls back to SDK default)
   packages: Record<string, string>;       // packageName → region
 }
 
-export async function loadDevChannelVersions(
-  options: DevChannelOptions,
+export async function loadChannelVersions(
+  options: ChannelVersionsOptions,
 ): Promise<Record<string, string>>
 ```
 
@@ -161,19 +161,18 @@ All reads are performed in parallel. The full bucket name is constructed by appe
 
 ### AWS credentials
 
-When `profile` is provided it is applied via the `AWS_PROFILE` environment variable for the duration of the call. When omitted the SDK default credential chain is used — OIDC-issued environment variable credentials in CI/CD work automatically without any profile configuration.
+The SDK default credential chain is used — set `AWS_PROFILE` in your environment for local named-profile access, or rely on OIDC-issued environment variable credentials in CI/CD.
 
 ### Intended use
 
-Call `loadDevChannelVersions` at the top of a CDK app's `main.ts` to resolve current dev-channel versions for local iteration, then pass the returned map into your stack constructors. This avoids CDK context coupling while still allowing the version to be updated by re-running the app.
+Call `loadChannelVersions` at the top of a CDK app's `main.ts` to resolve current dev-channel versions for local iteration, then pass the returned map into your stack constructors. This avoids CDK context coupling while still allowing the version to be updated by re-running the app.
 
 ```typescript
-import { loadDevChannelVersions } from '@serverlessinbox/artifact-tools';
+import { loadChannelVersions } from '@serverlessinbox/artifact-tools';
 
-const versions = await loadDevChannelVersions({
+const versions = await loadChannelVersions({
   channel: 'dev',
   bucketBase: 'mailbox-artifacts',
-  profile: process.env.AWS_PROFILE,
   packages: {
     'mailbox-go':  'eu-west-1',
     'mailbox-cdk': 'eu-west-1',

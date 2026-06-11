@@ -1,13 +1,11 @@
 import { S3Uploader } from './uploader';
 import { buildArtifactKey } from './artifact-key';
 
-export interface DevChannelOptions {
+export interface ChannelVersionsOptions {
   /** Channel name, e.g. 'dev'. */
   channel: string;
   /** Base bucket name without region suffix, e.g. 'mailbox-artifacts'. */
   bucketBase: string;
-  /** AWS named profile (optional; falls back to SDK default via AWS_PROFILE / instance metadata). */
-  profile?: string;
   /** Map of packageName → region. */
   packages: Record<string, string>;
 }
@@ -18,11 +16,7 @@ export interface DevChannelOptions {
  *
  * No CDK imports — pure S3 + JSON.
  */
-export async function loadDevChannelVersions(options: DevChannelOptions): Promise<Record<string, string>> {
-  if (options.profile) {
-    process.env['AWS_PROFILE'] = options.profile;
-  }
-
+export async function loadChannelVersions(options: ChannelVersionsOptions): Promise<Record<string, string>> {
   const entries = Object.entries(options.packages);
 
   const results = await Promise.all(
