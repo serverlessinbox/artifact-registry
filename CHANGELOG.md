@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.17](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.16...v0.0.17) (Thu Jun 11 2026)
+
+### fix
+
+* Channel handling ([0735f54](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/0735f549b780d99e01c4e55e084b25e5d9fd9297))
+
 ## [0.0.16](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.15...v0.0.16) (Thu Jun 11 2026)
 
 ### feat
