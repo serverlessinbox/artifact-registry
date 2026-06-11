@@ -15,7 +15,8 @@ export type ArtifactKeySpec =
   | { type: 'channel';                    channel: string; objectName: string }
   | { type: 'release-pointer';            track?: string                      }
   | { type: 'release-prerelease-pointer'; prereleaseTag: string               }
-  | { type: 'channel-pointer';            channel: string                     };
+  | { type: 'channel-pointer';            channel: string                     }
+  | { type: 'release-track';             track: string; objectName: string    };
 
 export function buildArtifactKey(
   artifactType: ArtifactType,
@@ -37,6 +38,8 @@ export function buildArtifactKey(
       return `${base}/releases/latest-${spec.prereleaseTag}.json`;
     case 'channel-pointer':
       return `${base}/channels/${spec.channel}/latest-stable.json`;
+    case 'release-track':
+      return `${base}/releases/${spec.track}/${spec.objectName}`;
   }
 }
 

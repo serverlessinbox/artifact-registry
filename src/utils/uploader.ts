@@ -46,6 +46,13 @@ export class S3Uploader {
     return JSON.parse(body);
   }
 
+  async uploadReleaseTrack(bucket: string, artifactType: ArtifactType, name: string, track: string, entries: Array<{ objectName: string; filePath: string }>): Promise<void> {
+    for (const entry of entries) {
+      const key = buildArtifactKey(artifactType, name, { type: 'release-track', track, objectName: entry.objectName });
+      await this.upload(bucket, key, entry.filePath);
+    }
+  }
+
   async writeVersionPointers(bucket: string, artifactType: ArtifactType, name: string, version: SemVer): Promise<void> {
     const pointer = { version: version.version, publishedAt: new Date().toISOString() };
     if (version.prerelease.length > 0) {

@@ -7,7 +7,7 @@ import { run } from './common';
 import type { ArtifactType, S3ArtifactEntry, S3WorkspaceConfig, ArtifactBuildResult } from './types';
 
 async function bundleJsZip(entryPoint: string, outZip: string): Promise<void> {
-  const tmpDir = fssync.mkdtempSync(path.join(os.tmpdir(), 'mailbox-tools-bundle-'));
+  const tmpDir = fssync.mkdtempSync(path.join(os.tmpdir(), 'artifact-tools-bundle-'));
   try {
     const outJs = path.join(tmpDir, 'index.js');
 

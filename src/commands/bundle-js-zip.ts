@@ -52,7 +52,7 @@ export class BundleJsZipCommand extends Command {
     const outZip = path.isAbsolute(this.out) ? this.out : path.join(process.cwd(), this.out);
     ensureParentDirExists(outZip);
 
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mailbox-tools-bundle-'));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'artifact-tools-bundle-'));
     try {
       const outJs = path.join(tmpDir, 'index.js');
 

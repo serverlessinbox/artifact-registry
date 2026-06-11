@@ -3,3 +3,5 @@ export { S3Uploader } from './utils/uploader';
 export type { S3WorkspaceConfig, S3ArtifactEntry } from './utils/types';
 export { buildArtifacts } from './utils/build-artifacts';
 export type { ArtifactBuildResult } from './utils/types';
+export { loadDevChannelVersions } from './utils/load-dev-channel';
+export type { DevChannelOptions } from './utils/load-dev-channel';

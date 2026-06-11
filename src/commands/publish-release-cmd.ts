@@ -63,6 +63,9 @@ export class PublishReleaseCommand extends Command {
     let lastArtifactType: ArtifactType | undefined;
     let lastName: string | undefined;
 
+    // Tracks artifact entries per comboKey for release-track writes (template type only).
+    const trackEntries = new Map<string, { uploader: S3Uploader; bucketName: string; artifactType: ArtifactType; name: string; entries: Array<{ objectName: string; filePath: string }> }>();
+
     let artifacts = config.artifacts;
     if (this.object) {
       const entry = selectArtifact(config, this.object);
@@ -91,6 +94,13 @@ export class PublishReleaseCommand extends Command {
         lastArtifactType = artifactType;
         lastName = name;
       }
+
+      if (artifactType === 'template') {
+        if (!trackEntries.has(comboKey)) {
+          trackEntries.set(comboKey, { uploader, bucketName, artifactType, name, entries: [] });
+        }
+        trackEntries.get(comboKey)!.entries.push({ objectName: entry.objectName, filePath });
+      }
     }
 
     for (const comboKey of writtenPointers) {
@@ -100,6 +110,19 @@ export class PublishReleaseCommand extends Command {
         : new S3Uploader({});
       this.context.stdout.write(`Writing version pointers for ${bucketName}/${artifactType}/${name}...\n`);
       await uploader.writeVersionPointers(bucketName, artifactType, name, version);
+    }
+
+    for (const { uploader, bucketName, artifactType, name, entries } of trackEntries.values()) {
+      if (version.prerelease.length > 0) {
+        const prereleaseTag = String(version.prerelease[0]);
+        this.context.stdout.write(`Writing release track '${prereleaseTag}' for ${bucketName}/${artifactType}/${name}...\n`);
+        await uploader.uploadReleaseTrack(bucketName, artifactType, name, prereleaseTag, entries);
+      } else {
+        const { major } = version;
+        this.context.stdout.write(`Writing release tracks 'latest' and '${major}.x' for ${bucketName}/${artifactType}/${name}...\n`);
+        await uploader.uploadReleaseTrack(bucketName, artifactType, name, 'latest', entries);
+        await uploader.uploadReleaseTrack(bucketName, artifactType, name, `${major}.x`, entries);
+      }
     }
 
     this.context.stdout.write('Done.\n');

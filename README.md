@@ -82,6 +82,27 @@ packages/my-lambda/v1.2.3/lambdas/my-lambda.zip
 
 After upload, the plugin also writes version pointer files alongside the artifact path.
 
+### Release Tracks (Templates)
+
+For `template`-type artifacts, `publish release` additionally writes mutable release-track copies after the immutable versioned upload. This allows consumers to reference a stable track key that is overwritten on each release rather than pinning to a specific version.
+
+**Stable release** (e.g. `1.2.3`):
+
+```
+templates/{name}/releases/v1.2.3/template.json   — immutable versioned (existing behaviour)
+templates/{name}/releases/latest/template.json   — overwritten on each stable release
+templates/{name}/releases/1.x/template.json      — overwritten on each stable release
+```
+
+**Prerelease** (e.g. `1.2.3-alpha.0`):
+
+```
+templates/{name}/releases/v1.2.3-alpha.0/template.json   — immutable versioned (existing behaviour)
+templates/{name}/releases/alpha/template.json             — overwritten (track = prerelease tag)
+```
+
+`package`-type artifacts are not affected — they continue to receive only the immutable versioned upload and their pointer files. No JSON pointer files are written for template tracks.
+
 ## How It Works
 
 During the `pack` phase the plugin reads `gitversion-s3.cjs` from each workspace, resolves sources, zips any directories, and stages the output files with their target S3 key baked in.
@@ -97,6 +118,70 @@ The plugin uses the AWS SDK default credential chain:
 - `~/.aws/credentials` / SSO profile
 
 Ensure the environment has S3 write permission on all configured buckets.
+
+## Local Dev: `loadDevChannelVersions`
+
+`loadDevChannelVersions` is an exported helper for CDK apps (`main.ts`) that need to resolve which artifact versions are currently published on a given dev channel. It is independent of the gitversion plugin itself — no `gitversion.cjs` or workspace config is involved.
+
+### Signature
+
+```typescript
+export interface DevChannelOptions {
+  channel: string;                        // e.g. 'dev'
+  bucketBase: string;                     // bucket name prefix, e.g. 'mailbox-artifacts'
+  profile?: string;                       // AWS named profile (optional; falls back to SDK default)
+  packages: Record<string, string>;       // packageName → region
+}
+
+export async function loadDevChannelVersions(
+  options: DevChannelOptions,
+): Promise<Record<string, string>>
+```
+
+### Return value
+
+A `Record<packageName, semverVersionString>` — for example:
+
+```json
+{
+  "mailbox-go": "1.5.2",
+  "mailbox-cdk": "1.5.2"
+}
+```
+
+### How it works
+
+For each entry in `packages`, the function reads:
+
+```
+s3://{bucketBase}-{region}/packages/{packageName}/channels/{channel}/latest-stable.json
+```
+
+All reads are performed in parallel. The full bucket name is constructed by appending `-{region}` to `bucketBase`, so a multi-region setup can use separate regional buckets with a shared name prefix.
+
+### AWS credentials
+
+When `profile` is provided it is applied via the `AWS_PROFILE` environment variable for the duration of the call. When omitted the SDK default credential chain is used — OIDC-issued environment variable credentials in CI/CD work automatically without any profile configuration.
+
+### Intended use
+
+Call `loadDevChannelVersions` at the top of a CDK app's `main.ts` to resolve current dev-channel versions for local iteration, then pass the returned map into your stack constructors. This avoids CDK context coupling while still allowing the version to be updated by re-running the app.
+
+```typescript
+import { loadDevChannelVersions } from '@serverlessinbox/artifact-tools';
+
+const versions = await loadDevChannelVersions({
+  channel: 'dev',
+  bucketBase: 'mailbox-artifacts',
+  profile: process.env.AWS_PROFILE,
+  packages: {
+    'mailbox-go':  'eu-west-1',
+    'mailbox-cdk': 'eu-west-1',
+  },
+});
+
+new MailboxStack(app, 'MailboxStack', { versions });
+```
 
 ## License
 
