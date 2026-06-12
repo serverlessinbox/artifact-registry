@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.18](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.17...v0.0.18) (Fri Jun 12 2026)
+
+### feat
+
+* Artifact registry ([82575d0](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/82575d0b4afed2a18f8b5fbbf7109197ee94b5c1))
+
 ## [0.0.17](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.16...v0.0.17) (Thu Jun 11 2026)
 
 ### fix
