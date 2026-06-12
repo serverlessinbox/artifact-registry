@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.19](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.18...v0.0.19) (Fri Jun 12 2026)
+
+### feat
+
+* Bucket functions ([746d5a1](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/746d5a18c072af6b768fe7b5cfb7b76c8479dd6e))
+
 ## [0.0.18](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.17...v0.0.18) (Fri Jun 12 2026)
 
 ### feat
