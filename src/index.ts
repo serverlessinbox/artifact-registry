@@ -7,7 +7,7 @@ export { loadChannelVersions } from './utils/load-channel';
 export type { ChannelVersionsOptions } from './utils/load-channel';
 export type { ArtifactType } from './utils/types';
 export type { ArtifactTarget, ReleaseTarget, ChannelTarget, TrackTarget } from './utils/artifact-target';
-export { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName } from './utils/artifact-target';
+export { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from './utils/artifact-target';
 export type { ResolvedArtifact, IArtifactRegistry } from './utils/artifact-registry';
 export { S3ArtifactRegistry } from './utils/artifact-registry';
 export { readArtifactVersions } from './utils/artifact-versions';

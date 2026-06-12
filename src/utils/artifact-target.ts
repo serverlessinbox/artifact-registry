@@ -42,3 +42,14 @@ export function buildChannelPrefix(
 export function buildArtifactBucketName(bucketBase: string, region: string): string {
   return `${bucketBase}-${region}`;
 }
+
+/** HTTPS URL for an S3 object, optionally pinned to a specific version. */
+export function buildArtifactUrl(bucket: string, region: string, key: string, versionId?: string): string {
+  const base = `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+  return versionId !== undefined && versionId !== '' ? `${base}?versionId=${versionId}` : base;
+}
+
+/** S3 ARN for an object: arn:aws:s3:::{bucket}/{key} */
+export function buildArtifactArn(bucket: string, key: string): string {
+  return `arn:aws:s3:::${bucket}/${key}`;
+}
