@@ -1,7 +1,10 @@
-import { S3Uploader } from './uploader';
+import { S3Client, ListObjectVersionsCommand } from '@aws-sdk/client-s3';
+import type { ArtifactType } from './types';
 import { buildArtifactKey } from './artifact-key';
 
 export interface ChannelVersionsOptions {
+  /** Artifact type — determines the S3 key prefix ('packages' or 'templates'). */
+  artifactType: ArtifactType;
   /** Channel name, e.g. 'dev'. */
   channel: string;
   /** Base bucket name without region suffix, e.g. 'mailbox-artifacts'. */
@@ -11,10 +14,10 @@ export interface ChannelVersionsOptions {
 }
 
 /**
- * Reads the latest-stable.json pointer for each package in parallel and returns
- * a map of packageName → semver version string.
+ * Loads the S3 version map for all objects under packages/{packageName}/channels/{channel}/.
+ * Returns a flat map of s3Key → versionId for all latest-version objects.
  *
- * No CDK imports — pure S3 + JSON.
+ * Uses ListObjectVersionsCommand with pagination to gather VersionIds needed for CloudFormation.
  */
 export async function loadChannelVersions(options: ChannelVersionsOptions): Promise<Record<string, string>> {
   const entries = Object.entries(options.packages);
@@ -22,15 +25,50 @@ export async function loadChannelVersions(options: ChannelVersionsOptions): Prom
   const results = await Promise.all(
     entries.map(async ([packageName, region]) => {
       const bucket = `${options.bucketBase}-${region}`;
-      const key = buildArtifactKey('package', packageName, {
-        type: 'channel-pointer',
-        channel: options.channel,
-      });
-      const uploader = new S3Uploader({ region });
-      const pointer = await uploader.readJson(bucket, key) as { version: string };
-      return [packageName, pointer.version] as const;
+      const prefix = buildArtifactKey(options.artifactType, packageName, { type: 'channel-prefix', channel: options.channel });
+      const client = new S3Client({ region });
+      const versionMap: Record<string, string> = {};
+
+      let keyMarker: string | undefined;
+      let versionIdMarker: string | undefined;
+
+      // Paginate through all versions, collecting latest entries
+      while (true) {
+        const response = await client.send(
+          new ListObjectVersionsCommand({
+            Bucket: bucket,
+            Prefix: prefix,
+            KeyMarker: keyMarker,
+            VersionIdMarker: versionIdMarker,
+          }),
+        );
+
+        if (response.Versions) {
+          for (const entry of response.Versions) {
+            if (entry.IsLatest && entry.Key && entry.VersionId) {
+              versionMap[entry.Key] = entry.VersionId;
+            }
+          }
+        }
+
+        // Check if there are more results to fetch
+        if (!response.IsTruncated) {
+          break;
+        }
+
+        keyMarker = response.NextKeyMarker;
+        versionIdMarker = response.NextVersionIdMarker;
+      }
+
+      return versionMap;
     }),
   );
 
-  return Object.fromEntries(results);
+  // Merge all per-package maps into one flat map
+  const merged: Record<string, string> = {};
+  for (const versionMap of results) {
+    Object.assign(merged, versionMap);
+  }
+
+  return merged;
 }

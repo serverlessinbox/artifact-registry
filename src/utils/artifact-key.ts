@@ -13,9 +13,9 @@ const ARTIFACT_TYPE_PREFIX: Record<ArtifactType, string> = {
 export type ArtifactKeySpec =
   | { type: 'release';                    version: SemVer; objectName: string }
   | { type: 'channel';                    channel: string; objectName: string }
+  | { type: 'channel-prefix';             channel: string                     }
   | { type: 'release-pointer';            track?: string                      }
   | { type: 'release-prerelease-pointer'; prereleaseTag: string               }
-  | { type: 'channel-pointer';            channel: string                     }
   | { type: 'release-track';             track: string; objectName: string    };
 
 export function buildArtifactKey(
@@ -30,14 +30,14 @@ export function buildArtifactKey(
       return `${base}/releases/v${spec.version.version}/${spec.objectName}`;
     case 'channel':
       return `${base}/channels/${spec.channel}/${spec.objectName}`;
+    case 'channel-prefix':
+      return `${base}/channels/${spec.channel}/`;
     case 'release-pointer':
       return spec.track
         ? `${base}/releases/${spec.track}/latest-stable.json`
         : `${base}/releases/latest-stable.json`;
     case 'release-prerelease-pointer':
       return `${base}/releases/latest-${spec.prereleaseTag}.json`;
-    case 'channel-pointer':
-      return `${base}/channels/${spec.channel}/latest-stable.json`;
     case 'release-track':
       return `${base}/releases/${spec.track}/${spec.objectName}`;
   }
