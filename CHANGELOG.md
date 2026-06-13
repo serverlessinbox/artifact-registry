@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.20](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.19...v0.0.20) (Sat Jun 13 2026)
+
+### feat
+
+* Artifact resolvefr ([bb177ac](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/bb177accec24d8f03c5d9ae3b5ed8e46900a7b1c))
+
 ## [0.0.19](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.18...v0.0.19) (Fri Jun 12 2026)
 
 ### feat
