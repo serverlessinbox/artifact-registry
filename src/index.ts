@@ -12,5 +12,5 @@ export type { ResolvedArtifact, IArtifactRegistry } from './utils/artifact-regis
 export { S3ArtifactRegistry } from './utils/artifact-registry';
 export { readArtifactVersions } from './utils/artifact-versions';
 export type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from './utils/artifact-versions';
-export { createArtifactResolver, createPackageRegionMap } from './utils/artifact-resolver-factory';
-export type { ResolvedArtifactData, ArtifactResolverFactoryOptions } from './utils/artifact-resolver-factory';
+export { ArtifactResolver, createPackageRegionMap, resolveArtifact } from './utils/artifact-resolver-factory';
+export type { IArtifactResolver, ResolvedArtifactData, ArtifactResolverFactoryOptions } from './utils/artifact-resolver-factory';

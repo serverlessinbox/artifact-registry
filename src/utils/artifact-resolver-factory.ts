@@ -1,6 +1,7 @@
 import type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from './artifact-versions';
-import { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName } from './artifact-target';
+import { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from './artifact-target';
 import type { ArtifactType } from './types';
+import type { ResolvedArtifact } from './artifact-registry';
 
 /**
  * Pre-computed artifact resolution data for a single package.
@@ -10,6 +11,80 @@ export interface ResolvedArtifactData {
   readonly bucket: string;
   readonly prefix: string;
   readonly versionId?: string;
+}
+
+/**
+ * Resolves a {@link ResolvedArtifact} for a specific object within a resolved
+ * artifact. The S3 key is formed by joining `data.prefix` and `objectPath`
+ * (any leading slashes on `objectPath` are stripped).
+ */
+export function resolveArtifact(data: ResolvedArtifactData, objectPath: string): ResolvedArtifact {
+  const normalizedPath = objectPath.replace(/^\/+/, '');
+  const key = `${data.prefix}/${normalizedPath}`;
+  if (data.versionId !== undefined) {
+    return { key, bucket: data.bucket, versionId: data.versionId };
+  }
+  return { key, bucket: data.bucket };
+}
+
+/**
+ * Pure interface for artifact resolution — no CDK, no AWS SDK.
+ */
+export interface IArtifactResolver {
+  resolve(packageName: string, objectPath: string): ResolvedArtifact;
+  getUrl(packageName: string, objectPath: string): string;
+  getArn(packageName: string, objectPath: string): string;
+}
+
+/**
+ * Pure TypeScript artifact resolver. No CDK, no AWS SDK.
+ * Holds pre-computed resolution data for all packages in the versions file.
+ */
+export class ArtifactResolver implements IArtifactResolver {
+  readonly resolvedData: Record<string, ResolvedArtifactData>;
+  private readonly _regionMap: Record<string, string>;
+
+  constructor(options: ArtifactResolverFactoryOptions) {
+    const bucketBase = options.bucketBaseOverride ?? options.versions.bucketBase;
+    if (!bucketBase) {
+      throw new Error(
+        'artifact-resolver-factory: bucketBase is required (either in versions file, as override, or both). ' +
+        'Provide bucketBaseOverride or ensure versions.bucketBase is set.',
+      );
+    }
+    const artifactType = options.artifactType ?? 'package';
+    const resolved: Record<string, ResolvedArtifactData> = {};
+    const regionMap: Record<string, string> = {};
+
+    for (const [packageName, entry] of Object.entries(options.versions.packages)) {
+      resolved[packageName] = resolveArtifactData(packageName, entry, bucketBase, options.deploymentRegion, artifactType);
+      regionMap[packageName] = entry.zone === 'edge' ? 'us-east-1' : options.deploymentRegion;
+    }
+
+    this.resolvedData = Object.freeze(resolved);
+    this._regionMap = Object.freeze(regionMap);
+  }
+
+  resolve(packageName: string, objectPath: string): ResolvedArtifact {
+    const data = this.resolvedData[packageName];
+    if (!data) throw new Error(`No resolved data for package '${packageName}'`);
+    return resolveArtifact(data, objectPath);
+  }
+
+  getUrl(packageName: string, objectPath: string): string {
+    const data = this.resolvedData[packageName];
+    if (!data) throw new Error(`No resolved data for package '${packageName}'`);
+    const resolved = resolveArtifact(data, objectPath);
+    const region = this._regionMap[packageName]!;
+    return buildArtifactUrl(data.bucket, region, resolved.key, data.versionId);
+  }
+
+  getArn(packageName: string, objectPath: string): string {
+    const data = this.resolvedData[packageName];
+    if (!data) throw new Error(`No resolved data for package '${packageName}'`);
+    const key = resolveArtifact(data, objectPath).key;
+    return buildArtifactArn(data.bucket, key);
+  }
 }
 
 /**
@@ -46,44 +121,6 @@ function resolveArtifactData(
     bucket,
     prefix,
   };
-}
-
-/**
- * Factory function: builds a pre-computed map of resolved artifact data.
- *
- * Accepts parsed artifact-versions data (with bucketBase and per-package zone metadata),
- * an optional bucketBase override (for CDK context), and a deployment region.
- * Returns a frozen map from package name to resolved bucket and key prefix.
- *
- * This factory is pure and synchronous — no AWS SDK calls, no CDK types, no async.
- * The returned object is frozen and can be passed directly to CDK thin wrapper.
- */
-export function createArtifactResolver(
-  options: ArtifactResolverFactoryOptions,
-): Record<string, ResolvedArtifactData> {
-  const bucketBase = options.bucketBaseOverride ?? options.versions.bucketBase;
-  if (!bucketBase) {
-    throw new Error(
-      `artifact-resolver-factory: bucketBase is required (either in versions file, as override, or both). ` +
-      `Provide bucketBaseOverride or ensure versions.bucketBase is set.`,
-    );
-  }
-
-  const artifactType = options.artifactType ?? 'package';
-  const result: Record<string, ResolvedArtifactData> = {};
-
-  for (const [packageName, entry] of Object.entries(options.versions.packages)) {
-    result[packageName] = resolveArtifactData(
-      packageName,
-      entry,
-      bucketBase,
-      options.deploymentRegion,
-      artifactType,
-    );
-  }
-
-  // Return a frozen object to prevent accidental mutation
-  return Object.freeze(result);
 }
 
 /**
