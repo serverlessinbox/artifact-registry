@@ -1,5 +1,5 @@
 import type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from './artifact-versions';
-import { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from './artifact-target';
+import { buildReleasePrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from './artifact-target';
 import type { ArtifactType } from './types';
 import type { ResolvedArtifact } from './artifact-registry';
 
@@ -34,6 +34,12 @@ export interface IArtifactResolver {
   resolve(packageName: string, objectPath: string): ResolvedArtifact;
   getUrl(packageName: string, objectPath: string): string;
   getArn(packageName: string, objectPath: string): string;
+  /** Raw version string for the given package (e.g. "0.0.21" or "dev"). */
+  getVersion(packageName: string): string;
+  /** S3 version ID for the given package, or undefined if not pinned. */
+  getVersionId(packageName: string): string | undefined;
+  /** Bucket base (without region suffix), shared across all packages. */
+  getBucketBase(): string;
 }
 
 /**
@@ -41,8 +47,10 @@ export interface IArtifactResolver {
  * Holds pre-computed resolution data for all packages in the versions file.
  */
 export class ArtifactResolver implements IArtifactResolver {
-  readonly resolvedData: Record<string, ResolvedArtifactData>;
+  private readonly resolvedData: Record<string, ResolvedArtifactData>;
   private readonly _regionMap: Record<string, string>;
+  private readonly _versionMap: Record<string, string>;
+  private readonly _bucketBase: string;
 
   constructor(options: ArtifactResolverFactoryOptions) {
     const bucketBase = options.bucketBaseOverride ?? options.versions.bucketBase;
@@ -63,6 +71,12 @@ export class ArtifactResolver implements IArtifactResolver {
 
     this.resolvedData = Object.freeze(resolved);
     this._regionMap = Object.freeze(regionMap);
+    this._versionMap = Object.freeze(
+      Object.fromEntries(
+        Object.entries(options.versions.packages).map(([name, entry]) => [name, entry.version])
+      )
+    );
+    this._bucketBase = bucketBase;
   }
 
   resolve(packageName: string, objectPath: string): ResolvedArtifact {
@@ -84,6 +98,22 @@ export class ArtifactResolver implements IArtifactResolver {
     if (!data) throw new Error(`No resolved data for package '${packageName}'`);
     const key = resolveArtifact(data, objectPath).key;
     return buildArtifactArn(data.bucket, key);
+  }
+
+  getVersion(packageName: string): string {
+    const v = this._versionMap[packageName];
+    if (v === undefined) throw new Error(`No resolved data for package '${packageName}'`);
+    return v;
+  }
+
+  getVersionId(packageName: string): string | undefined {
+    const data = this.resolvedData[packageName];
+    if (!data) throw new Error(`No resolved data for package '${packageName}'`);
+    return data.versionId;
+  }
+
+  getBucketBase(): string {
+    return this._bucketBase;
   }
 }
 
