@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.21](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.20...v0.0.21) (Sun Jun 14 2026)
+
+### feat
+
+* Artifact refactor ([745edc7](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/745edc7c61f1217fbe98fe49ef8eedd914a30ca9))
+
 ## [0.0.20](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.19...v0.0.20) (Sat Jun 13 2026)
 
 ### feat
