@@ -4,6 +4,18 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.24](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.23...v0.0.24) (Mon Jun 15 2026)
+
+### feat
+
+* Removed bundling ([b35fce6](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/b35fce634d4845381ac86066768a11d84c57a0fa))
+
+### fix
+
+* Added s3VersionMap ([fbc4c02](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/fbc4c02d3eeed94b13b34ba740b19c00e5be4308))
+
+* s3 versions ([469270a](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/469270aecea3e327bb649f7517ab25bf92b7f6f6))
+
 ## [0.0.23](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.22...v0.0.23) (Mon Jun 15 2026)
 
 ### feat
