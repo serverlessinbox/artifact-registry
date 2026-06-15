@@ -14,6 +14,7 @@ export type ArtifactZone = 'regional' | 'edge';
 export interface ArtifactVersionsEntry {
   readonly version: string;
   readonly zone: ArtifactZone;
+  readonly channel?: string;
 }
 
 /**
@@ -69,6 +70,7 @@ export function readArtifactVersions(filePath: string): ParsedArtifactVersions {
 
     let version: string;
     let zone: ArtifactZone = 'regional'; // default
+    let channel: string | undefined;
 
     if (typeof value === 'string') {
       // Plain string format: defaults to regional zone
@@ -90,11 +92,18 @@ export function readArtifactVersions(filePath: string): ParsedArtifactVersions {
         }
         zone = obj.zone as ArtifactZone;
       }
+
+      if (obj.channel !== undefined) {
+        if (typeof obj.channel !== 'string') {
+          throw new Error(`artifact-versions: ${filePath}: entry "${key}" channel must be a string, got ${typeof obj.channel}`);
+        }
+        channel = obj.channel;
+      }
     } else {
       throw new Error(`artifact-versions: ${filePath}: value for "${key}" must be a string or object with version field, got ${typeof value}`);
     }
 
-    result[key] = { version, zone };
+    result[key] = channel !== undefined ? { version, zone, channel } : { version, zone };
   }
 
   return { packages: result, bucketBase };

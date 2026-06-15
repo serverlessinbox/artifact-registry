@@ -1,5 +1,5 @@
 import type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from './artifact-versions';
-import { buildReleasePrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from './artifact-target';
+import { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from './artifact-target';
 import type { ArtifactType } from './types';
 import type { ResolvedArtifact } from './artifact-registry';
 
@@ -145,7 +145,7 @@ function resolveArtifactData(
   // Determine the region based on zone
   const region = entry.zone === 'edge' ? 'us-east-1' : deploymentRegion;
   const bucket = buildArtifactBucketName(bucketBase, region);
-  const prefix = buildReleasePrefix(artifactType, packageName, entry.version);
+  const prefix = entry.channel ? buildChannelPrefix(artifactType, packageName, entry.channel) : buildReleasePrefix(artifactType, packageName, entry.version);
 
   return {
     bucket,
