@@ -65,7 +65,7 @@ export class ArtifactResolver implements IArtifactResolver {
     const regionMap: Record<string, string> = {};
 
     for (const [packageName, entry] of Object.entries(options.versions.packages)) {
-      resolved[packageName] = resolveArtifactData(packageName, entry, bucketBase, options.deploymentRegion, artifactType);
+      resolved[packageName] = resolveArtifactData(packageName, entry, bucketBase, options.deploymentRegion, artifactType, options.s3VersionMap);
       regionMap[packageName] = entry.zone === 'edge' ? 'us-east-1' : options.deploymentRegion;
     }
 
@@ -129,6 +129,8 @@ export interface ArtifactResolverFactoryOptions {
   readonly deploymentRegion: string;
   /** The artifact type (default: 'package'). */
   readonly artifactType?: ArtifactType;
+  /** Optional map of S3 keys to version IDs for pinning artifacts to specific S3 object versions. */
+  readonly s3VersionMap?: Record<string, string>;
 }
 
 /**
