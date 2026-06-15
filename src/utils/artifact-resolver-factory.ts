@@ -51,6 +51,7 @@ export class ArtifactResolver implements IArtifactResolver {
   private readonly _regionMap: Record<string, string>;
   private readonly _versionMap: Record<string, string>;
   private readonly _bucketBase: string;
+  private readonly _s3VersionMap: Record<string, string>;
 
   constructor(options: ArtifactResolverFactoryOptions) {
     const bucketBase = options.bucketBaseOverride ?? options.versions.bucketBase;
@@ -65,7 +66,7 @@ export class ArtifactResolver implements IArtifactResolver {
     const regionMap: Record<string, string> = {};
 
     for (const [packageName, entry] of Object.entries(options.versions.packages)) {
-      resolved[packageName] = resolveArtifactData(packageName, entry, bucketBase, options.deploymentRegion, artifactType, options.s3VersionMap);
+      resolved[packageName] = resolveArtifactData(packageName, entry, bucketBase, options.deploymentRegion, artifactType);
       regionMap[packageName] = entry.zone === 'edge' ? 'us-east-1' : options.deploymentRegion;
     }
 
@@ -77,12 +78,15 @@ export class ArtifactResolver implements IArtifactResolver {
       )
     );
     this._bucketBase = bucketBase;
+    this._s3VersionMap = Object.freeze(options.s3VersionMap ?? {});
   }
 
   resolve(packageName: string, objectPath: string): ResolvedArtifact {
     const data = this.resolvedData[packageName];
     if (!data) throw new Error(`No resolved data for package '${packageName}'`);
-    return resolveArtifact(data, objectPath);
+    const artifact = resolveArtifact(data, objectPath);
+    const versionId = this._s3VersionMap[artifact.key];
+    return versionId !== undefined ? { ...artifact, versionId } : artifact;
   }
 
   getUrl(packageName: string, objectPath: string): string {
