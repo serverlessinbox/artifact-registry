@@ -10,13 +10,15 @@ const ARTIFACT_TYPE_PREFIX: Record<ArtifactType, string> = {
 };
 // Not exported — all key construction goes through buildArtifactKey.
 
+export const CONFIG_FILENAME = 'artifact-registry.cjs';
+
 export type ArtifactKeySpec =
-  | { type: 'release';                    version: SemVer; objectName: string }
-  | { type: 'channel';                    channel: string; objectName: string }
-  | { type: 'channel-prefix';             channel: string                     }
-  | { type: 'release-pointer';            track?: string                      }
-  | { type: 'release-prerelease-pointer'; prereleaseTag: string               }
-  | { type: 'release-track';             track: string; objectName: string    };
+  | { type: 'release'; version: SemVer; objectName: string }
+  | { type: 'channel'; channel: string; objectName: string }
+  | { type: 'channel-prefix'; channel: string }
+  | { type: 'release-pointer'; track?: string }
+  | { type: 'release-prerelease-pointer'; prereleaseTag: string }
+  | { type: 'release-track'; track: string; objectName: string };
 
 export function buildArtifactKey(
   artifactType: ArtifactType,
@@ -44,7 +46,7 @@ export function buildArtifactKey(
 }
 
 export function loadConfig(cwd: string): S3WorkspaceConfig {
-  return require(path.join(cwd, 'artifact-tools.cjs'));
+  return require(path.join(cwd, CONFIG_FILENAME));
 }
 
 export function selectArtifact(

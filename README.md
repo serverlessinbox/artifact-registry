@@ -1,4 +1,4 @@
-# @serverlessinbox/artifact-tools
+# @serverlessinbox/artifact-registry
 
 This package provides two distinct capabilities for working with S3-hosted build artifacts:
 
@@ -8,7 +8,7 @@ This package provides two distinct capabilities for working with S3-hosted build
 ## Installation
 
 ```bash
-yarn add --dev @serverlessinbox/artifact-tools
+yarn add --dev @serverlessinbox/artifact-registry
 ```
 
 ## Usage
@@ -18,17 +18,17 @@ Register the plugin in your root `gitversion.cjs`. The constructor takes no argu
 ```js
 // gitversion.cjs
 const { defineConfig } = require('@jwpkg/gitversion');
-const { S3ArtifactPlugin } = require('@serverlessinbox/artifact-tools');
+const { S3ArtifactPlugin } = require('@serverlessinbox/artifact-registry');
 
 module.exports = defineConfig({
   plugins: [new S3ArtifactPlugin()],
 });
 ```
 
-Each workspace that has artifacts to publish needs a `gitversion-s3.cjs` file at its root:
+Each workspace that has artifacts to publish needs an `artifact-registry.cjs` file at its root:
 
 ```js
-// packages/my-lambda/gitversion-s3.cjs
+// packages/my-lambda/artifact-registry.cjs
 module.exports = {
   bucketName: 'my-artifacts-bucket',
   basePath: 'packages/my-lambda',
@@ -45,11 +45,11 @@ module.exports = {
 };
 ```
 
-Workspaces without a `gitversion-s3.cjs` file are silently skipped.
+Workspaces without an `artifact-registry.cjs` file are silently skipped.
 
 ## Configuration
 
-### `S3WorkspaceConfig` (`gitversion-s3.cjs`)
+### `S3WorkspaceConfig` (`artifact-registry.cjs`)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -106,7 +106,7 @@ templates/{name}/releases/alpha/template.json             — overwritten (track
 
 ## How It Works
 
-During the `pack` phase the plugin reads `gitversion-s3.cjs` from each workspace, resolves sources, zips any directories, and stages the output files with their target S3 key baked in.
+During the `pack` phase the plugin reads `artifact-registry.cjs` from each workspace, resolves sources, zips any directories, and stages the output files with their target S3 key baked in.
 
 During the `publish` phase each staged file is uploaded to S3 using the routing metadata recorded at pack time.
 
@@ -168,7 +168,7 @@ The SDK default credential chain is used — set `AWS_PROFILE` in your environme
 Call `loadChannelVersions` at the top of a CDK app's `main.ts` to resolve current dev-channel versions for local iteration, then pass the returned map into your stack constructors. This avoids CDK context coupling while still allowing the version to be updated by re-running the app.
 
 ```typescript
-import { loadChannelVersions } from '@serverlessinbox/artifact-tools';
+import { loadChannelVersions } from '@serverlessinbox/artifact-registry';
 
 const versions = await loadChannelVersions({
   channel: 'dev',

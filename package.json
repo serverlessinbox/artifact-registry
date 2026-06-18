@@ -1,7 +1,7 @@
 {
-  "name": "@serverlessinbox/artifact-tools",
+  "name": "@serverlessinbox/artifact-registry",
   "version": "0.0.0",
-  "description": "gitversion IPackManager plugin: stage pre-built Lambda zips and upload to S3",
+  "description": "S3-backed artifact registry: versioned artifact publishing and channel-based version resolution",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": "dist/cli-entry.js",
