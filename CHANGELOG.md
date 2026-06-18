@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.25](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.24...v0.0.25) (Thu Jun 18 2026)
+
+### feat
+
+* Changed package name ([b1096f5](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/b1096f5f4093e095ac8120e69a42e42820aa81f8))
+
+### fix
+
+* Updated yarn config ([88c8701](https://github.com/serverlessinbox/gitversion-plugin-s3/commit/88c870163d3b56211793654025dacc108a0a11f8))
+
 ## [0.0.24](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.23...v0.0.24) (Mon Jun 15 2026)
 
 ### feat
