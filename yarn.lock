@@ -878,9 +878,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@serverlessinbox/artifact-tools@workspace:.":
+"@serverlessinbox/artifact-registry@workspace:.":
   version: 0.0.0-use.local
-  resolution: "@serverlessinbox/artifact-tools@workspace:."
+  resolution: "@serverlessinbox/artifact-registry@workspace:."
   dependencies:
     "@aws-sdk/client-s3": "npm:^3"
     "@jwpkg/gitversion": "npm:1.4.0-pack-order.2"
@@ -893,7 +893,7 @@ __metadata:
   peerDependencies:
     "@jwpkg/gitversion": 1.4.0-pack-order.2
   bin:
-    artifact-tools: dist/cli-entry.js
+    artifact-registry: dist/cli-entry.js
   languageName: unknown
   linkType: soft
 

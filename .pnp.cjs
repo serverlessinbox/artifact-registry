@@ -11,7 +11,7 @@ const RAW_RUNTIME_STATE =
   ],\
   "dependencyTreeRoots": [\
     {\
-      "name": "@serverlessinbox/artifact-tools",\
+      "name": "@serverlessinbox/artifact-registry",\
       "reference": "workspace:."\
     }\
   ],\
@@ -19,7 +19,7 @@ const RAW_RUNTIME_STATE =
   "ignorePatternData": "(^(?:\\\\.yarn\\\\/sdks(?:\\\\/(?!\\\\.{1,2}(?:\\\\/|$))(?:(?:(?!(?:^|\\\\/)\\\\.{1,2}(?:\\\\/|$)).)*?)|$))$)",\
   "pnpZipBackend": "libzip",\
   "fallbackExclusionList": [\
-    ["@serverlessinbox/artifact-tools", ["workspace:."]]\
+    ["@serverlessinbox/artifact-registry", ["workspace:."]]\
   ],\
   "fallbackPool": [\
   ],\
@@ -30,10 +30,10 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@aws-sdk/client-s3", "npm:3.1053.0"],\
           ["@jwpkg/gitversion", "npm:1.4.0-pack-order.2"],\
-          ["@serverlessinbox/artifact-tools", "workspace:."],\
+          ["@serverlessinbox/artifact-registry", "workspace:."],\
           ["@types/node", "npm:20.19.41"],\
           ["@types/semver", "npm:7.7.1"],\
-          ["clipanion", "virtual:d3eb791baeb5a0a17bba808bb9a7c5e7019e80e53a42a7a802af9df75c23232a7dec5732ba7cbae73cd96cfed01b8daa324dc4629aed14134c6db702395c94b2#npm:3.2.1"],\
+          ["clipanion", "virtual:106832e7321ae4911079d085f872732c9b5120f43dc4c6f0dac609c8186c54119ac6905ffa47dc059e9c2345f6e0792bc7a2fc6beb49c63379e5ce04689faf48#npm:3.2.1"],\
           ["esbuild", "npm:0.27.7"],\
           ["semver", "npm:7.8.1"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
@@ -1037,16 +1037,16 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
-    ["@serverlessinbox/artifact-tools", [\
+    ["@serverlessinbox/artifact-registry", [\
       ["workspace:.", {\
         "packageLocation": "./",\
         "packageDependencies": [\
           ["@aws-sdk/client-s3", "npm:3.1053.0"],\
           ["@jwpkg/gitversion", "npm:1.4.0-pack-order.2"],\
-          ["@serverlessinbox/artifact-tools", "workspace:."],\
+          ["@serverlessinbox/artifact-registry", "workspace:."],\
           ["@types/node", "npm:20.19.41"],\
           ["@types/semver", "npm:7.7.1"],\
-          ["clipanion", "virtual:d3eb791baeb5a0a17bba808bb9a7c5e7019e80e53a42a7a802af9df75c23232a7dec5732ba7cbae73cd96cfed01b8daa324dc4629aed14134c6db702395c94b2#npm:3.2.1"],\
+          ["clipanion", "virtual:106832e7321ae4911079d085f872732c9b5120f43dc4c6f0dac609c8186c54119ac6905ffa47dc059e9c2345f6e0792bc7a2fc6beb49c63379e5ce04689faf48#npm:3.2.1"],\
           ["esbuild", "npm:0.27.7"],\
           ["semver", "npm:7.8.1"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
@@ -2793,11 +2793,11 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:b80567f1f726ad28b5f69c2f4d583115762754ed5e643c8ffc700d555267034c078163b8acf27ac9e54b95573c3afeb591dde0dc0755beb1e2c159d60551a612#npm:4.0.0-rc.4", {\
-        "packageLocation": "./.yarn/__virtual__/clipanion-virtual-4a3c099085/6/.yarn/berry/cache/clipanion-npm-4.0.0-rc.4-40deb7eb3b-10c0.zip/node_modules/clipanion/",\
+      ["virtual:106832e7321ae4911079d085f872732c9b5120f43dc4c6f0dac609c8186c54119ac6905ffa47dc059e9c2345f6e0792bc7a2fc6beb49c63379e5ce04689faf48#npm:3.2.1", {\
+        "packageLocation": "./.yarn/__virtual__/clipanion-virtual-2b6efcc97e/6/.yarn/berry/cache/clipanion-npm-3.2.1-fc9187f56c-10c0.zip/node_modules/clipanion/",\
         "packageDependencies": [\
           ["@types/typanion", null],\
-          ["clipanion", "virtual:b80567f1f726ad28b5f69c2f4d583115762754ed5e643c8ffc700d555267034c078163b8acf27ac9e54b95573c3afeb591dde0dc0755beb1e2c159d60551a612#npm:4.0.0-rc.4"],\
+          ["clipanion", "virtual:106832e7321ae4911079d085f872732c9b5120f43dc4c6f0dac609c8186c54119ac6905ffa47dc059e9c2345f6e0792bc7a2fc6beb49c63379e5ce04689faf48#npm:3.2.1"],\
           ["typanion", "npm:3.14.0"]\
         ],\
         "packagePeers": [\
@@ -2805,11 +2805,11 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "HARD"\
       }],\
-      ["virtual:d3eb791baeb5a0a17bba808bb9a7c5e7019e80e53a42a7a802af9df75c23232a7dec5732ba7cbae73cd96cfed01b8daa324dc4629aed14134c6db702395c94b2#npm:3.2.1", {\
-        "packageLocation": "./.yarn/__virtual__/clipanion-virtual-ef0f8850ac/6/.yarn/berry/cache/clipanion-npm-3.2.1-fc9187f56c-10c0.zip/node_modules/clipanion/",\
+      ["virtual:b80567f1f726ad28b5f69c2f4d583115762754ed5e643c8ffc700d555267034c078163b8acf27ac9e54b95573c3afeb591dde0dc0755beb1e2c159d60551a612#npm:4.0.0-rc.4", {\
+        "packageLocation": "./.yarn/__virtual__/clipanion-virtual-4a3c099085/6/.yarn/berry/cache/clipanion-npm-4.0.0-rc.4-40deb7eb3b-10c0.zip/node_modules/clipanion/",\
         "packageDependencies": [\
           ["@types/typanion", null],\
-          ["clipanion", "virtual:d3eb791baeb5a0a17bba808bb9a7c5e7019e80e53a42a7a802af9df75c23232a7dec5732ba7cbae73cd96cfed01b8daa324dc4629aed14134c6db702395c94b2#npm:3.2.1"],\
+          ["clipanion", "virtual:b80567f1f726ad28b5f69c2f4d583115762754ed5e643c8ffc700d555267034c078163b8acf27ac9e54b95573c3afeb591dde0dc0755beb1e2c159d60551a612#npm:4.0.0-rc.4"],\
           ["typanion", "npm:3.14.0"]\
         ],\
         "packagePeers": [\
