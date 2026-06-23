@@ -4,6 +4,16 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.26](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.25...v0.0.26) (Tue Jun 23 2026)
+
+### fix
+
+* Yarn config ([8cf7f6f](https://github.com/serverlessinbox/artifact-registry/commit/8cf7f6f2fbfbb0cb1398ec30c20e6c3cb9b961a0))
+
+### feat
+
+* Load track and load prerelease ([28ab3b3](https://github.com/serverlessinbox/artifact-registry/commit/28ab3b3a7a76eddf4b7d053142848ed251e98898))
+
 ## [0.0.25](https://github.com/serverlessinbox/gitversion-plugin-s3/compare/v0.0.24...v0.0.25) (Thu Jun 18 2026)
 
 ### feat
