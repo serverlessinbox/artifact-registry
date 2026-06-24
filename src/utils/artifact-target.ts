@@ -7,11 +7,8 @@ export interface TrackTarget    { readonly kind: 'track';   readonly track: stri
 export type ArtifactTarget = ReleaseTarget | ChannelTarget | TrackTarget;
 
 /**
- * S3 prefix for a versioned release artifact (CDK production schema):
- *   packages/{packageName}/v{version}  or  templates/{packageName}/v{version}
- *
- * Note: buildArtifactKey's release spec uses "releases/v{version}" — a different schema.
- * Do NOT delegate to that. This function uses the CDK production schema directly.
+ * S3 prefix for a versioned release artifact:
+ *   packages/{packageName}/releases/v{version}  or  templates/{packageName}/releases/v{version}
  */
 export function buildReleasePrefix(
   artifactType: ArtifactType,
@@ -19,7 +16,7 @@ export function buildReleasePrefix(
   version: string,
 ): string {
   const typePrefix = artifactType === 'package' ? 'packages' : 'templates';
-  return `${typePrefix}/${packageName}/v${version}`;
+  return `${typePrefix}/${packageName}/releases/v${version}`;
 }
 
 /**
