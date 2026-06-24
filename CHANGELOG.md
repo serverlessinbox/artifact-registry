@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.27](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.26...v0.0.27) (Wed Jun 24 2026)
+
+### fix
+
+* Use correct release targets ([5e15759](https://github.com/serverlessinbox/artifact-registry/commit/5e157592012c5d56c9103f7037d678c0a1c0e5ce))
+
 ## [0.0.26](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.25...v0.0.26) (Tue Jun 23 2026)
 
 ### fix
