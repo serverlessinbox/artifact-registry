@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.28](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.27...v0.0.28) (Sun Jul 05 2026)
+
+### feat
+
+* Prefix keys with project and track resolver ([27341d4](https://github.com/serverlessinbox/artifact-registry/commit/27341d45b7b1d7201765cf9614d0632913ce3eb2))
+
 ## [0.0.27](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.26...v0.0.27) (Wed Jun 24 2026)
 
 ### fix
