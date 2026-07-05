@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { buildArtifactKey } from './artifact-key';
-import type { ArtifactType } from './types';
+import type { ArtifactType, LatestStableObject, LatestStablePointer } from './types';
 import type { SemVer } from 'semver';
 
 export class S3Uploader {
@@ -53,16 +53,22 @@ export class S3Uploader {
     }
   }
 
-  async writeVersionPointers(bucket: string, artifactType: ArtifactType, name: string, version: SemVer): Promise<void> {
-    const pointer = { version: version.version, publishedAt: new Date().toISOString() };
-    if (version.prerelease.length > 0) {
-      const prereleaseTag = String(version.prerelease[0]);
-      await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-prerelease-pointer', prereleaseTag }), pointer);
-      return;
-    }
+  /**
+   * Writes the track-scoped, distTag-named pointer files for a release: one at v{major}
+   * granularity, one at v{major}.{minor}. `distTag` is 'stable' for a normal release, or
+   * the GitVersion prerelease label (e.g. 'beta', 'calendar') for a prerelease -- both are
+   * track-scoped now, uniformly, so there is no separate global/untracked prerelease branch.
+   *
+   * `objects` declares every artifact published in this release, self-describing for the
+   * TrackResolver custom resource (`track-resolver-handler.ts`) to route without hardcoding names --
+   * omitting it (or passing an empty array) writes a pointer with no `objects[]`, from which the
+   * resolver can resolve a version but zero per-object S3 keys.
+   */
+  async writeVersionPointers(bucket: string, artifactType: ArtifactType, name: string, version: SemVer, objects: LatestStableObject[] = []): Promise<void> {
+    const pointer: LatestStablePointer = { version: version.version, publishedAt: new Date().toISOString(), objects };
+    const distTag = version.prerelease.length > 0 ? String(version.prerelease[0]) : undefined;
     const { major, minor } = version;
-    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer' }), pointer);
-    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}` }), pointer);
-    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}.${minor}` }), pointer);
+    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}`, distTag }), pointer);
+    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}.${minor}`, distTag }), pointer);
   }
 }

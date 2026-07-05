@@ -9,11 +9,11 @@ export class ResolveArtifactsCommand extends Command {
   static override paths = [['resolve-artifacts']];
 
   static override usage = Command.Usage({
-    description: 'Resolve component artifact versions from S3 latest-stable pointers and write artifact-versions.json.',
+    description: 'Resolve component artifact versions from S3 track-scoped stable pointers and write artifact-versions.json.',
     examples: [
       [
         'Resolve three components and write to two paths',
-        '$0 resolve-artifacts --bucket mailbox-artifacts-eu-west-1 --region eu-west-1 --component mailbox-go:package:mailbox-go --component mailbox-admin-ui:package:mailbox-admin-ui --output artifact-versions.json --output packages/mailbox/artifact-versions.json',
+        '$0 resolve-artifacts --bucket mailbox-artifacts-eu-west-1 --region eu-west-1 --track v1 --component mailbox-go:package:mailbox-go --component mailbox-admin-ui:package:mailbox-admin-ui --output artifact-versions.json --output packages/mailbox/artifact-versions.json',
       ],
     ],
   });
@@ -36,6 +36,11 @@ export class ResolveArtifactsCommand extends Command {
     description: 'Component in the form key:type:name (e.g. mailbox-go:package:mailbox-go). Repeatable.',
   });
 
+  track = Option.String('--track', {
+    required: true,
+    description: 'Release track to resolve, e.g. v1 or v1.2. Pointers are track-scoped -- there is no untracked global pointer.',
+  });
+
   outputs = Option.Array('--output', {
     required: true,
     description: 'Output file path. Repeatable (writes to every path given).',
@@ -56,7 +61,7 @@ export class ResolveArtifactsCommand extends Command {
         return 1;
       }
       const [key, artifactType, name] = parts as [string, ArtifactType, string];
-      const s3Key = buildArtifactKey(artifactType, name, { type: 'release-pointer' });
+      const s3Key = buildArtifactKey(artifactType, name, { type: 'release-pointer', track: this.track });
 
       this.context.stdout.write(`Resolving ${key} from s3://${this.bucket}/${s3Key} ... `);
       const data = await uploader.readJson(this.bucket, s3Key) as { version?: string };

@@ -31,7 +31,8 @@ Each workspace that has artifacts to publish needs an `artifact-registry.cjs` fi
 // packages/my-lambda/artifact-registry.cjs
 module.exports = {
   bucketName: 'my-artifacts-bucket',
-  basePath: 'packages/my-lambda',
+  type: 'package',
+  name: 'my-lambda',
   artifacts: [
     {
       source: 'dist/my-lambda',   // directory — zipped automatically
@@ -54,7 +55,8 @@ Workspaces without an `artifact-registry.cjs` file are silently skipped.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `bucketName` | `string` | Yes | Default S3 bucket for all artifacts in this workspace. |
-| `basePath` | `string` | Yes | Default S3 base path (e.g. `packages/my-lambda`). |
+| `type` | `'package' \| 'template'` | Yes | Artifact type. Determines the S3 key prefix (`packages` or `templates`). |
+| `name` | `string` | Yes | Artifact name. Combined with `type` to build the S3 key prefix (e.g. `packages/my-lambda`). |
 | `artifacts` | `S3ArtifactEntry[]` | Yes | List of artifacts to stage and publish. |
 
 ### `S3ArtifactEntry`
@@ -64,45 +66,102 @@ Workspaces without an `artifact-registry.cjs` file are silently skipped.
 | `source` | `string` | Yes | Path to the source file or directory. Absolute, or relative to the workspace root. Directories are zipped automatically. |
 | `objectName` | `string` | Yes | S3 object name for the output. May include a subfolder prefix (e.g. `lambdas/my-lambda.zip`). |
 | `bucketName` | `string` | No | Overrides the workspace-level `bucketName` for this artifact. |
-| `basePath` | `string` | No | Overrides the workspace-level `basePath` for this artifact. |
+| `name` | `string` | No | Overrides the workspace-level `name` for this artifact (used to build the S3 key prefix). |
 | `region` | `string` | No | AWS region for the S3 client used to upload this artifact. Defaults to the SDK default. |
+| `kind` | `'lambda-zip' \| 'ui-bundle'` | No | Artifact kind, for self-update consumers to route without hardcoding names. |
 
 ## S3 Key Structure
 
-Keys are computed at pack time using the formula:
+Every key lives under a `{project}/` prefix (default `serverlessinbox`), followed by the artifact
+type (`packages` or `templates`):
 
 ```
-{basePath}/v{version}/{objectName}
+{project}/packages/{pkg}/releases/v{version}/{objectName}      # package release object (immutable)
+{project}/packages/{pkg}/releases/{track}/{distTag}.json       # package pointer (track-scoped)
+{project}/templates/{name}/releases/v{version}/{objectName}    # template release object (immutable)
+{project}/templates/{name}/releases/{track}/{distTag}.json     # template pointer (track-scoped)
 ```
 
-For example, version `1.2.3` with `basePath: 'packages/my-lambda'` and `objectName: 'lambdas/my-lambda.zip'` produces:
+A template's CloudFormation `TemplateURL` (used to reference a published nested/sub-stack template)
+follows the same release-object shape as any other release object, scoped under `templates/`:
 
 ```
-packages/my-lambda/v1.2.3/lambdas/my-lambda.zip
+{project}/templates/{name}/releases/{track}/{objectName}
 ```
 
-After upload, the plugin also writes version pointer files alongside the artifact path.
+- **`track`** — how far versions may drift: `v1` (major-only) or `v1.2` (major+minor).
+- **`distTag`** — which release line: `stable`, `beta`, `calendar`, … (npm dist-tag / GitVersion
+  prerelease label). Defaults to `stable`.
 
-### Release Tracks (Templates)
-
-For `template`-type artifacts, `publish release` additionally writes mutable release-track copies after the immutable versioned upload. This allows consumers to reference a stable track key that is overwritten on each release rather than pinning to a specific version.
-
-**Stable release** (e.g. `1.2.3`):
+For example, version `1.2.3` with project `serverlessinbox` and `objectName: 'lambdas/my-lambda.zip'` produces:
 
 ```
-templates/{name}/releases/v1.2.3/template.json   — immutable versioned (existing behaviour)
-templates/{name}/releases/latest/template.json   — overwritten on each stable release
-templates/{name}/releases/1.x/template.json      — overwritten on each stable release
+serverlessinbox/packages/my-lambda/releases/v1.2.3/lambdas/my-lambda.zip
 ```
 
-**Prerelease** (e.g. `1.2.3-alpha.0`):
+...and its `stable` pointer on the `v1` track lives at:
 
 ```
-templates/{name}/releases/v1.2.3-alpha.0/template.json   — immutable versioned (existing behaviour)
-templates/{name}/releases/alpha/template.json             — overwritten (track = prerelease tag)
+serverlessinbox/packages/my-lambda/releases/v1/stable.json
 ```
 
-`package`-type artifacts are not affected — they continue to receive only the immutable versioned upload and their pointer files. No JSON pointer files are written for template tracks.
+After upload, the plugin also writes these track-scoped pointer files alongside the artifact path,
+for both `package`- and `template`-type artifacts. There is no `latest-` prefix or untracked/global
+pointer in this schema — every distTag is scoped to a track.
+
+## Self-Update: TrackResolver
+
+`TrackResolver` is a CloudFormation custom resource handler that resolves one package's current
+release on a given track/distTag at deploy time, so a stack can follow a release line (e.g. "stay
+on `v1`, `stable`") instead of pinning to a fixed version.
+
+It is a pure, stateless resolver:
+
+1. Reads the track-scoped pointer file for **one package** from S3 (`{project}/packages/{pkg}/releases/{track}/{distTag}.json`).
+2. Parses the pointer's `version` and `objects`.
+3. Templates the deterministic release-object S3 keys via `buildArtifactKey`.
+4. Returns per-object S3 key + version as CFN `Data` attributes (readable via `Fn.GetAtt`).
+
+Create and Update do the identical thing (resolve + return) — the physical resource ID never
+changes, so an Update is always in-place. Delete is a zero-AWS-call no-op. Track format is
+validated by regex (`/^v\d{1,4}(\.\d{1,4})?$/`, accepting both `v1` and `v1.2`) before any S3 call;
+an invalid track throws immediately. The specific major-vs-major+minor drift *policy* is enforced
+one layer up, by the CDK-side `CfnParameter` `AllowedPattern` — not by this handler.
+
+Each `TrackResolver` custom resource instance resolves exactly one package. A stack that follows
+multiple packages instantiates one resolver per package.
+
+### Wiring from a CDK caller
+
+This package exposes exactly three things a CDK construct needs to wire up a `TrackResolver`
+custom resource — no CDK/construct logic lives in `@serverlessinbox/artifact-registry` itself:
+
+```typescript
+import {
+  TRACK_RESOLVER_HANDLER_SOURCE,
+  buildTrackResolverProperties,
+  trackResolverObjectAttrName,
+  trackResolverVersionAttrName,
+} from '@serverlessinbox/artifact-registry';
+```
+
+- **`TRACK_RESOLVER_HANDLER_SOURCE`** — the minified handler JS as a string, for `lambda.Code.fromInline(...)`.
+- **`buildTrackResolverProperties({ project?, package, track, distTag? })`** — builds the exact
+  `ResourceProperties` object to pass to the `CfnCustomResource` (`{ Project, Package, Track, DistTag }`,
+  applying the `serverlessinbox`/`stable` defaults).
+- **`trackResolverObjectAttrName(packageName, objectPath)`** / **`trackResolverVersionAttrName(packageName)`**
+  — read back the matching `GetAtt` attribute names from the resolved custom resource.
+
+```typescript
+const resolver = new CustomResource(this, 'TrackResolver', {
+  serviceToken: provider.serviceToken, // Lambda backed by TRACK_RESOLVER_HANDLER_SOURCE
+  properties: buildTrackResolverProperties({ package: 'mailbox-go', track: 'v1' }),
+});
+
+const codeKey = resolver.getAttString(
+  trackResolverObjectAttrName('mailbox-go', 'lambdas/admin-api.zip'),
+);
+```
 
 ## How It Works
 
@@ -120,14 +179,18 @@ The plugin uses the AWS SDK default credential chain:
 
 Ensure the environment has S3 write permission on all configured buckets.
 
-## Local Dev: `loadChannelVersions`
+## Local Dev: `loadChannelVersions` / `loadTrackVersions`
 
-`loadChannelVersions` is an exported helper for CDK apps (`main.ts`) that need to resolve which artifact versions are currently published on a given dev channel. It is independent of the gitversion plugin itself — no `gitversion.cjs` or workspace config is involved.
+Two exported helpers for CDK apps (`main.ts`) that need to resolve currently published S3 object
+versions ahead of synth — one for the mutable dev/release **channel** axis, one for a track/distTag
+**pointer**. Both are independent of the gitversion plugin itself — no
+`gitversion.cjs` or workspace config is involved.
 
-### Signature
+### `loadChannelVersions`
 
 ```typescript
 export interface ChannelVersionsOptions {
+  artifactType: ArtifactType;             // 'package' | 'template'
   channel: string;                        // e.g. 'dev'
   bucketBase: string;                     // bucket name prefix, e.g. 'mailbox-artifacts'
   packages: Record<string, string>;       // packageName → region
@@ -138,39 +201,65 @@ export async function loadChannelVersions(
 ): Promise<Record<string, string>>
 ```
 
-### Return value
-
-A `Record<packageName, semverVersionString>` — for example:
+For each entry in `packages`, lists all objects under
+`{project}/{packages|templates}/{packageName}/channels/{channel}/` (the `channel-prefix`
+spec) via `ListObjectVersionsCommand`, and returns a flat map of **s3Key →
+versionId** for every latest-version object found — for example:
 
 ```json
 {
-  "mailbox-go": "1.5.2",
-  "mailbox-cdk": "1.5.2"
+  "serverlessinbox/packages/mailbox-go/channels/dev/lambdas/admin-api.zip": "AbCd1234...",
+  "serverlessinbox/packages/mailbox-cdk/channels/dev/lambdas/edge.zip": "WxYz5678..."
 }
 ```
 
-### How it works
+Pass this map straight through as CDK context/props so `lambda.Code.fromBucket` can pin to an
+exact S3 object version. All reads are performed in parallel; the full bucket name is constructed
+by appending `-{region}` to `bucketBase`, so a multi-region setup can use separate regional buckets
+with a shared name prefix.
 
-For each entry in `packages`, the function reads:
+### `loadTrackVersions`
 
+```typescript
+export interface TrackVersionsOptions {
+  track: string;                          // e.g. 'v1', 'v1.2'
+  artifactType: ArtifactType;
+  bucketBase: string;
+  packages: Record<string, string>;       // packageName → region
+}
+
+export interface TrackVersionsResult {
+  versionMap: Record<string, string>;       // s3Key → versionId
+  resolvedVersions: Record<string, string>; // packageName → resolved semver string
+}
+
+export async function loadTrackVersions(
+  options: TrackVersionsOptions,
+): Promise<TrackVersionsResult>
 ```
-s3://{bucketBase}-{region}/packages/{packageName}/channels/{channel}/latest-stable.json
-```
 
-All reads are performed in parallel. The full bucket name is constructed by appending `-{region}` to `bucketBase`, so a multi-region setup can use separate regional buckets with a shared name prefix.
+For each package, reads its track-scoped `stable` pointer
+(`{project}/packages/{name}/releases/{track}/stable.json`) to resolve the pinned version, then
+lists all objects under that version's release prefix
+(`{project}/packages/{name}/releases/v{version}/`) to build the same s3Key → versionId map shape
+as `loadChannelVersions`, plus a `packageName → version` map for convenience.
 
 ### AWS credentials
 
-The SDK default credential chain is used — set `AWS_PROFILE` in your environment for local named-profile access, or rely on OIDC-issued environment variable credentials in CI/CD.
+Both helpers use the SDK default credential chain — set `AWS_PROFILE` in your environment for
+local named-profile access, or rely on OIDC-issued environment variable credentials in CI/CD.
 
 ### Intended use
 
-Call `loadChannelVersions` at the top of a CDK app's `main.ts` to resolve current dev-channel versions for local iteration, then pass the returned map into your stack constructors. This avoids CDK context coupling while still allowing the version to be updated by re-running the app.
+Call one of these at the top of a CDK app's `main.ts` to resolve currently published versions for
+local iteration, then pass the returned map into your stack constructors. This avoids CDK context
+coupling while still allowing the version to be updated by re-running the app.
 
 ```typescript
 import { loadChannelVersions } from '@serverlessinbox/artifact-registry';
 
-const versions = await loadChannelVersions({
+const versionMap = await loadChannelVersions({
+  artifactType: 'package',
   channel: 'dev',
   bucketBase: 'mailbox-artifacts',
   packages: {
@@ -179,7 +268,7 @@ const versions = await loadChannelVersions({
   },
 });
 
-new MailboxStack(app, 'MailboxStack', { versions });
+new MailboxStack(app, 'MailboxStack', { versionMap });
 ```
 
 ## License

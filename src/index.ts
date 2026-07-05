@@ -18,3 +18,13 @@ export { readArtifactVersions } from './utils/artifact-versions';
 export type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from './utils/artifact-versions';
 export { ArtifactResolver, createPackageRegionMap, resolveArtifact } from './utils/artifact-resolver-factory';
 export type { IArtifactResolver, ResolvedArtifactData, ArtifactResolverFactoryOptions } from './utils/artifact-resolver-factory';
+
+// Track resolver: TrackResolver construct and types (deployed as CFN custom resource)
+export {
+  TRACK_RESOLVER_HANDLER_SOURCE,
+  trackResolverObjectAttrName,
+  trackResolverVersionAttrName,
+  buildTrackResolverProperties,
+} from './track-resolver';
+export type { TrackResolverPropertiesInput } from './track-resolver';
+export type { LatestStablePointer, LatestStableObject } from './utils/types';

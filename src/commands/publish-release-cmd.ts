@@ -1,7 +1,7 @@
 import { Command, Option } from 'clipanion';
 import * as path from 'path';
 import semver from 'semver';
-import type { ArtifactType } from '../utils/types';
+import type { ArtifactType, LatestStableObject } from '../utils/types';
 import { S3Uploader } from '../utils/uploader';
 import { loadConfig, selectArtifact, buildArtifactKey } from '../utils/artifact-key';
 
@@ -66,6 +66,10 @@ export class PublishReleaseCommand extends Command {
     // Tracks artifact entries per comboKey for release-track writes (template type only).
     const trackEntries = new Map<string, { uploader: S3Uploader; bucketName: string; artifactType: ArtifactType; name: string; entries: Array<{ objectName: string; filePath: string }> }>();
 
+    // Tracks every published objectName + kind per comboKey, for the pointer's `objects[]` (all
+    // artifact types, not just template) -- this is what the TrackResolver custom resource reads.
+    const pointerObjects = new Map<string, LatestStableObject[]>();
+
     let artifacts = config.artifacts;
     if (this.object) {
       const entry = selectArtifact(config, this.object);
@@ -95,6 +99,11 @@ export class PublishReleaseCommand extends Command {
         lastName = name;
       }
 
+      if (!pointerObjects.has(comboKey)) {
+        pointerObjects.set(comboKey, []);
+      }
+      pointerObjects.get(comboKey)!.push({ name: entry.objectName, kind: entry.kind });
+
       if (artifactType === 'template') {
         if (!trackEntries.has(comboKey)) {
           trackEntries.set(comboKey, { uploader, bucketName, artifactType, name, entries: [] });
@@ -109,7 +118,7 @@ export class PublishReleaseCommand extends Command {
         ? lastUploader
         : new S3Uploader({});
       this.context.stdout.write(`Writing version pointers for ${bucketName}/${artifactType}/${name}...\n`);
-      await uploader.writeVersionPointers(bucketName, artifactType, name, version);
+      await uploader.writeVersionPointers(bucketName, artifactType, name, version, pointerObjects.get(comboKey) ?? []);
     }
 
     for (const { uploader, bucketName, artifactType, name, entries } of trackEntries.values()) {

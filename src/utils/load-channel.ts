@@ -14,7 +14,8 @@ export interface ChannelVersionsOptions {
 }
 
 /**
- * Loads the S3 version map for all objects under packages/{packageName}/channels/{channel}/.
+ * Loads the S3 version map for all objects under {project}/packages/{packageName}/channels/{channel}/
+ * (see `buildArtifactKey`'s 'channel-prefix' spec).
  * Returns a flat map of s3Key → versionId for all latest-version objects.
  *
  * Uses ListObjectVersionsCommand with pagination to gather VersionIds needed for CloudFormation.

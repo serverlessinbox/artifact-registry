@@ -66,7 +66,7 @@ export class ArtifactResolver implements IArtifactResolver {
     const regionMap: Record<string, string> = {};
 
     for (const [packageName, entry] of Object.entries(options.versions.packages)) {
-      resolved[packageName] = resolveArtifactData(packageName, entry, bucketBase, options.deploymentRegion, artifactType);
+      resolved[packageName] = resolveArtifactData(packageName, entry, bucketBase, options.deploymentRegion, artifactType, options.project);
       regionMap[packageName] = entry.zone === 'edge' ? 'us-east-1' : options.deploymentRegion;
     }
 
@@ -135,6 +135,8 @@ export interface ArtifactResolverFactoryOptions {
   readonly artifactType?: ArtifactType;
   /** Optional map of S3 keys to version IDs for pinning artifacts to specific S3 object versions. */
   readonly s3VersionMap?: Record<string, string>;
+  /** Optional override for the `{project}/` key prefix. Defaults to DEFAULT_PROJECT. */
+  readonly project?: string;
 }
 
 /**
@@ -147,11 +149,14 @@ function resolveArtifactData(
   bucketBase: string,
   deploymentRegion: string,
   artifactType: ArtifactType,
+  project?: string,
 ): ResolvedArtifactData {
   // Determine the region based on zone
   const region = entry.zone === 'edge' ? 'us-east-1' : deploymentRegion;
   const bucket = buildArtifactBucketName(bucketBase, region);
-  const prefix = entry.channel ? buildChannelPrefix(artifactType, packageName, entry.channel) : buildReleasePrefix(artifactType, packageName, entry.version);
+  const prefix = entry.channel
+    ? buildChannelPrefix(artifactType, packageName, entry.channel, project)
+    : buildReleasePrefix(artifactType, packageName, entry.version, project);
 
   return {
     bucket,

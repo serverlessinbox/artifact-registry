@@ -4,8 +4,12 @@ import type { ArtifactType } from './types';
 import { buildArtifactKey } from './artifact-key';
 
 export interface TrackVersionsOptions {
-  /** Track name, e.g. 'v1', 'v1.2', or undefined for global latest-stable. */
-  track?: string;
+  /**
+   * Track name, e.g. 'v1', 'v1.2'. Required -- all pointers are track-scoped
+   * (`{project}/packages/{name}/releases/{track}/stable.json`); there is no
+   * untracked/global pointer to fall back to.
+   */
+  track: string;
   bucketBase: string;
   artifactType: ArtifactType;
   /** Map of packageName → region. */
@@ -21,9 +25,10 @@ export interface TrackVersionsResult {
 
 /**
  * Loads the S3 version map for all objects under a release track.
- * Reads the release pointer to determine the pinned version, then lists all
- * objects under packages/{name}/releases/v{version}/ (the stored key schema
- * used by buildArtifactKey type:'release' — distinct from the CDK buildReleasePrefix schema).
+ * Reads the (track-scoped, 'stable' distTag) release pointer to determine the pinned version,
+ * then lists all objects under {project}/packages/{name}/releases/v{version}/ — the same
+ * buildArtifactKey type:'release' schema that buildReleasePrefix (artifact-target.ts) now also
+ * routes through, so the CDK-side resolver's prefix agrees with this listing.
  */
 export async function loadTrackVersions(options: TrackVersionsOptions): Promise<TrackVersionsResult> {
   const entries = Object.entries(options.packages);
@@ -52,8 +57,9 @@ export async function loadTrackVersions(options: TrackVersionsOptions): Promise<
       }
       const resolvedVersion = parsed.version;
 
-      // 3. Build listing prefix using buildArtifactKey 'release' schema: packages/{name}/releases/v{version}/
-      //    This is the schema written by uploader.ts and differs from buildReleasePrefix (CDK schema: packages/{name}/v{version}).
+      // 3. Build listing prefix using buildArtifactKey 'release' schema: {project}/packages/{name}/releases/v{version}/
+      //    This is the schema written by uploader.ts; buildReleasePrefix (artifact-target.ts, used by the
+      //    CDK-side resolver) now routes through the same buildArtifactKey spec, so both sides agree.
       const listingPrefix = buildArtifactKey(options.artifactType, packageName, {
         type: 'release',
         version: parsed,

@@ -6,7 +6,7 @@ import type { IPlugin, IPackManager, IWorkspace, PackedPackage, PackResult, Pack
 import { S3Uploader } from './utils/uploader';
 import { run } from './utils/common';
 import { loadConfig, buildArtifactKey } from './utils/artifact-key';
-import type { S3ArtifactEntry, S3WorkspaceConfig, ArtifactMapEntry } from './utils/types';
+import type { S3ArtifactEntry, S3WorkspaceConfig, ArtifactMapEntry, LatestStableObject } from './utils/types';
 
 class S3ArtifactPlugin implements IPlugin, IPackManager {
   readonly ident = 's3-artifact';
@@ -72,6 +72,8 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
           name,
           key,
           region: entry.region,
+          objectName: entry.objectName,
+          kind: entry.kind,
         },
       });
 
@@ -109,7 +111,18 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     const version = semver.parse(versionStr);
     if (!version) throw new Error(`Invalid semver version from packed package: ${versionStr}`);
     const { artifactType, name } = mapEntry;
-    await uploader.writeVersionPointers(bucketName, artifactType, name, version);
+
+    // `pluginData` holds every file's metadata for this package (populated at pack time), not just
+    // the one file this publish() call is currently uploading -- so the pointer's `objects[]` is
+    // built from the full sibling set every time, and stays identical (and complete) regardless of
+    // publish order or which file's call happens to trigger the write.
+    const objects: LatestStableObject[] = pluginData
+      ? Object.values(pluginData)
+          .filter(e => e.bucketName === bucketName && e.artifactType === artifactType && e.name === name)
+          .map(e => ({ name: e.objectName, kind: e.kind }))
+      : [{ name: mapEntry.objectName, kind: mapEntry.kind }];
+
+    await uploader.writeVersionPointers(bucketName, artifactType, name, version, objects);
   }
 }
 

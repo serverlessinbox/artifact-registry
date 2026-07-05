@@ -7,30 +7,40 @@ export interface TrackTarget    { readonly kind: 'track';   readonly track: stri
 export type ArtifactTarget = ReleaseTarget | ChannelTarget | TrackTarget;
 
 /**
- * S3 prefix for a versioned release artifact:
- *   packages/{packageName}/releases/v{version}  or  templates/{packageName}/releases/v{version}
+ * S3 prefix for a versioned release artifact — routes through `buildArtifactKey`'s
+ * 'release' spec with an empty objectName, so it stays in lockstep with the schema every writer
+ * uses:
+ *   {project}/packages/{packageName}/releases/v{version}  or  {project}/templates/{packageName}/releases/v{version}
  */
 export function buildReleasePrefix(
   artifactType: ArtifactType,
   packageName: string,
   version: string,
+  project?: string,
 ): string {
-  const typePrefix = artifactType === 'package' ? 'packages' : 'templates';
-  return `${typePrefix}/${packageName}/releases/v${version}`;
+  const key = buildArtifactKey(artifactType, packageName, {
+    type: 'release',
+    version: { version } as any,
+    objectName: '',
+    project,
+  });
+  return key.replace(/\/$/, '');
 }
 
 /**
  * S3 prefix for a mutable channel artifact:
- *   packages/{packageName}/channels/{channel}  or  templates/{packageName}/channels/{channel}
+ *   {project}/packages/{packageName}/channels/{channel}  or  {project}/templates/{packageName}/channels/{channel}
  */
 export function buildChannelPrefix(
   artifactType: ArtifactType,
   packageName: string,
   channel: string,
+  project?: string,
 ): string {
   const key = buildArtifactKey(artifactType, packageName, {
     type: 'channel-prefix',
     channel,
+    project,
   });
   return key.replace(/\/$/, '');
 }

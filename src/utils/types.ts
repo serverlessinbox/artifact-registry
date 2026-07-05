@@ -16,6 +16,11 @@ export interface S3ArtifactEntry {
   region?: string;
   /** Bundle type. 'js-zip' bundles a TS/JS entrypoint via esbuild into a zip containing index.js. */
   bundleType?: 'js-zip';
+  /**
+   * Artifact kind, for self-update consumers to route without hardcoding names (plan-a/plan-e).
+   * Optional — existing configs that don't set this are unaffected; template-type workspaces never need it.
+   */
+  kind?: 'lambda-zip' | 'ui-bundle';
 }
 
 /**
@@ -49,10 +54,44 @@ export interface ArtifactMapEntry {
   name: string;
   key: string;
   region?: string;
+  /** S3 object name for this artifact (e.g. 'lambdas/admin-api.zip'), for pointer `objects[]` entries. */
+  objectName: string;
+  /** Artifact kind, propagated from `S3ArtifactEntry.kind`, for pointer `objects[]` entries. */
+  kind?: 'lambda-zip' | 'ui-bundle';
 }
 
 export interface RequiredComponent {
   basePath: string;
   bucketName?: string;
   region?: string;
+}
+
+/**
+ * Entry in the distTag-named pointer file's `objects[]` array (plan-a, stack-self-update;
+ * e.g. `stable.json`, `beta.json`). Declares an artifact that was published in this release,
+ * with its kind for routing.
+ */
+export interface LatestStableObject {
+  /** S3 object name (e.g. 'lambdas/admin-api.zip'). */
+  name: string;
+  /**
+   * Artifact kind: 'lambda-zip' for Lambda binaries, 'ui-bundle' for UI assets. Optional -- entries
+   * for artifacts with no configured `kind` (see `S3ArtifactEntry.kind`) omit it; the resolver only
+   * needs `name` to template an object key, `kind` is downstream routing metadata.
+   */
+  kind?: 'lambda-zip' | 'ui-bundle';
+}
+
+/**
+ * Shape of the track-scoped, distTag-named pointer file (plan-a, stack-self-update).
+ * Returned by `GET {project}/packages/{name}/releases/v{major}/{distTag}.json` (or `v{major}.{minor}`),
+ * e.g. `serverlessinbox/packages/{name}/releases/v1/stable.json`.
+ */
+export interface LatestStablePointer {
+  /** Resolved version (e.g. "1.23.5"). */
+  version: string;
+  /** ISO 8601 timestamp when this pointer was published. */
+  publishedAt: string;
+  /** Array of objects published in this release, self-describing for consumer routing. */
+  objects?: LatestStableObject[];
 }

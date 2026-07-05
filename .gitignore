@@ -9,3 +9,4 @@ dist
 ins
 
 gitversion.out
+src/track-resolver/generated/
