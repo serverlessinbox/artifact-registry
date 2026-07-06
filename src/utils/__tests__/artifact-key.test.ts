@@ -111,6 +111,29 @@ describe('buildArtifactKey', () => {
       expect(key).not.toContain('latest-');
       expect(key.endsWith('/stable.json')).toBe(true);
     });
+
+    it('emits the global (untracked) pointer when track is omitted', () => {
+      const key = buildArtifactKey('package', 'admin-api', {
+        type: 'release-pointer',
+      });
+      expect(key).toBe('serverlessinbox/packages/admin-api/releases/stable.json');
+    });
+
+    it('emits the global pointer with explicit distTag when track is omitted', () => {
+      const key = buildArtifactKey('package', 'admin-api', {
+        type: 'release-pointer',
+        distTag: 'beta',
+      });
+      expect(key).toBe('serverlessinbox/packages/admin-api/releases/beta.json');
+    });
+
+    it('honors project override for global pointer', () => {
+      const key = buildArtifactKey('package', 'admin-api', {
+        type: 'release-pointer',
+        project: 'acme',
+      });
+      expect(key).toBe('acme/packages/admin-api/releases/stable.json');
+    });
   });
 
   describe("'channel' / 'channel-prefix' specs", () => {

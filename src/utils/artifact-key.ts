@@ -20,14 +20,13 @@ export type ArtifactKeySpec =
   | { type: 'release'; version: SemVer; objectName: string; project?: string }
   | { type: 'channel'; channel: string; objectName: string; project?: string }
   | { type: 'channel-prefix'; channel: string; project?: string }
-  // Unified, track-scoped, distTag-named pointer. Replaces the former
-  // 'release-pointer' (optional track, no project) + 'release-prerelease-pointer' (global,
-  // untracked) split -- every distTag (stable/beta/calendar/...) is now track-scoped and lives
-  // under the project prefix: `{project}/packages/{name}/releases/{track}/{distTag}.json`.
-  // NB: `distTag` is the npm dist-tag / GitVersion prerelease label (stable/beta/calendar) --
+  // Unified, track-scoped and global, distTag-named pointer. When `track` is present,
+  // the pointer is track-scoped: `{project}/packages/{name}/releases/{track}/{distTag}.json`.
+  // When `track` is absent, it is the global untracked pointer: `{project}/packages/{name}/releases/{distTag}.json`.
+  // `distTag` is the npm dist-tag / GitVersion prerelease label (stable/beta/calendar) --
   // distinct from `channel` (the dev|release mutable-publish axis) and from `track` (major /
   // major.minor drift line).
-  | { type: 'release-pointer'; track: string; distTag?: string; project?: string }
+  | { type: 'release-pointer'; track?: string; distTag?: string; project?: string }
   | { type: 'release-track'; track: string; objectName: string; project?: string };
 
 export function buildArtifactKey(
@@ -53,7 +52,10 @@ export function buildArtifactKey(
     case 'release-pointer': {
       const project = spec.project ?? DEFAULT_PROJECT;
       const distTag = spec.distTag ?? DEFAULT_DIST_TAG;
-      return `${project}/${base}/releases/${spec.track}/${distTag}.json`;
+      if (spec.track) {
+        return `${project}/${base}/releases/${spec.track}/${distTag}.json`;
+      }
+      return `${project}/${base}/releases/${distTag}.json`;
     }
     case 'release-track': {
       const project = spec.project ?? DEFAULT_PROJECT;

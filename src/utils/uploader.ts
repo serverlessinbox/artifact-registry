@@ -54,10 +54,9 @@ export class S3Uploader {
   }
 
   /**
-   * Writes the track-scoped, distTag-named pointer files for a release: one at v{major}
-   * granularity, one at v{major}.{minor}. `distTag` is 'stable' for a normal release, or
-   * the GitVersion prerelease label (e.g. 'beta', 'calendar') for a prerelease -- both are
-   * track-scoped now, uniformly, so there is no separate global/untracked prerelease branch.
+   * Writes the track-scoped, distTag-named pointer files for a release: one global (untracked),
+   * one at v{major} granularity, one at v{major}.{minor}. `distTag` is 'stable' for a normal
+   * release, or the GitVersion prerelease label (e.g. 'beta', 'calendar') for a prerelease.
    *
    * `objects` declares every artifact published in this release, self-describing for the
    * TrackResolver custom resource (`track-resolver-handler.ts`) to route without hardcoding names --
@@ -68,6 +67,9 @@ export class S3Uploader {
     const pointer: LatestStablePointer = { version: version.version, publishedAt: new Date().toISOString(), objects };
     const distTag = version.prerelease.length > 0 ? String(version.prerelease[0]) : undefined;
     const { major, minor } = version;
+    // Global (untracked) pointer
+    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', distTag }), pointer);
+    // Track-scoped pointers
     await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}`, distTag }), pointer);
     await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}.${minor}`, distTag }), pointer);
   }

@@ -9,11 +9,11 @@ export class ResolveArtifactsCommand extends Command {
   static override paths = [['resolve-artifacts']];
 
   static override usage = Command.Usage({
-    description: 'Resolve component artifact versions from S3 track-scoped stable pointers and write artifact-versions.json.',
+    description: 'Resolve component artifact versions from S3 release pointers and write artifact-versions.json. Pointers can be track-scoped (--track) or global (no --track).',
     examples: [
       [
-        'Resolve three components and write to two paths',
-        '$0 resolve-artifacts --bucket mailbox-artifacts-eu-west-1 --region eu-west-1 --track v1 --component mailbox-go:package:mailbox-go --component mailbox-admin-ui:package:mailbox-admin-ui --output artifact-versions.json --output packages/mailbox/artifact-versions.json',
+        'Resolve three components from the global latest-stable pointer',
+        '$0 resolve-artifacts --bucket mailbox-artifacts-eu-west-1 --region eu-west-1 --component mailbox-go:package:mailbox-go --component mailbox-admin-ui:package:mailbox-admin-ui --output artifact-versions.json --output packages/mailbox/artifact-versions.json',
       ],
     ],
   });
@@ -37,8 +37,7 @@ export class ResolveArtifactsCommand extends Command {
   });
 
   track = Option.String('--track', {
-    required: true,
-    description: 'Release track to resolve, e.g. v1 or v1.2. Pointers are track-scoped -- there is no untracked global pointer.',
+    description: 'Release track to resolve, e.g. v1 or v1.2. When omitted, resolves the global untracked latest-stable pointer.',
   });
 
   outputs = Option.Array('--output', {
