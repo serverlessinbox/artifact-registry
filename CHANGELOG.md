@@ -4,6 +4,14 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.33](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.32...v0.0.33) (Mon Jul 06 2026)
+
+### fix
+
+* Artifact resolver handler with cfn response ([853a9fd](https://github.com/serverlessinbox/artifact-registry/commit/853a9fd712ba02a0f843734f9f3866a416d22160))
+
+* Not found now throws ([b2b4f91](https://github.com/serverlessinbox/artifact-registry/commit/b2b4f9162bfac3902a822a2300f5b6c5468760ba))
+
 ## [0.0.32](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.31...v0.0.32) (Mon Jul 06 2026)
 
 ### fix
