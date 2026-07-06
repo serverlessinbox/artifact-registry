@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.31](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.30...v0.0.31) (Mon Jul 06 2026)
+
+### fix
+
+* Put back the latest stable pointer ([922995f](https://github.com/serverlessinbox/artifact-registry/commit/922995fb6e5cc3ec10917064688373d1ae953af8))
+
 ## [0.0.30](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.29...v0.0.30) (Mon Jul 06 2026)
 
 ### feat
