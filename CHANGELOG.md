@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.30](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.29...v0.0.30) (Mon Jul 06 2026)
+
+### feat
+
+* Added loggin and track resolver handler size stripping ([701f865](https://github.com/serverlessinbox/artifact-registry/commit/701f86592d0321a6679082a86358baa06eb98d1f))
+
 ## [0.0.29](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.28...v0.0.29) (Mon Jul 06 2026)
 
 ### fix
