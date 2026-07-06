@@ -5,11 +5,11 @@ import { buildArtifactKey } from './artifact-key';
 
 export interface TrackVersionsOptions {
   /**
-   * Track name, e.g. 'v1', 'v1.2'. Required -- all pointers are track-scoped
-   * (`{project}/packages/{name}/releases/{track}/stable.json`); there is no
-   * untracked/global pointer to fall back to.
+   * Track name, e.g. 'v1', 'v1.2'. When omitted, the GLOBAL untracked latest-stable
+   * pointer is used (`{project}/packages/{name}/releases/stable.json`); when present,
+   * the track-scoped pointer (`{project}/packages/{name}/releases/{track}/stable.json`).
    */
-  track: string;
+  track?: string;
   bucketBase: string;
   artifactType: ArtifactType;
   /** Map of packageName → region. */

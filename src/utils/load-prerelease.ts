@@ -8,11 +8,11 @@ export interface PrereleaseVersionsOptions {
   /** Prerelease tag (distTag), e.g. 'beta', 'calendar', 'rc'. */
   prereleaseTag: string;
   /**
-   * Track name, e.g. 'v1', 'v1.2'. Required -- prerelease pointers are track-scoped just like
-   * stable ones (`{project}/packages/{name}/releases/{track}/{distTag}.json`); there is no
-   * global/untracked prerelease pointer.
+   * Track name, e.g. 'v1', 'v1.2'. When omitted, the GLOBAL untracked prerelease
+   * pointer is used (`{project}/packages/{name}/releases/{distTag}.json`); when present,
+   * the track-scoped pointer (`{project}/packages/{name}/releases/{track}/{distTag}.json`).
    */
-  track: string;
+  track?: string;
   bucketBase: string;
   artifactType: ArtifactType;
   /** Map of packageName → region. */
