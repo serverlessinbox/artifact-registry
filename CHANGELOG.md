@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.32](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.31...v0.0.32) (Mon Jul 06 2026)
+
+### fix
+
+* Artifact registry update ([539a1d2](https://github.com/serverlessinbox/artifact-registry/commit/539a1d26a227cef78b14c3824482beb49e822288))
+
 ## [0.0.31](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.30...v0.0.31) (Mon Jul 06 2026)
 
 ### fix
