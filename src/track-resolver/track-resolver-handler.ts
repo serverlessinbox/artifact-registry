@@ -37,6 +37,10 @@ const s3 = new S3Client({});
 
 const BUCKET_BASE = process.env.ARTIFACT_BUCKET_BASE ?? 'mailbox-artifacts';
 const REGION = process.env.AWS_REGION ?? 'eu-west-1';
+// Base config, constant for every lookup in the stack -- set once as the Lambda's env var, not
+// passed per-CfnCustomResource. See build-properties.ts for the ResourceProperties shape this
+// pairs with (`{ Package, Track, DistTag }`, no `Project`).
+const PROJECT = process.env.PROJECT ?? DEFAULT_PROJECT;
 
 /**
  * Validate track format before any S3 call (fail closed). Accepts both major (`v1`) and
@@ -141,20 +145,19 @@ export async function handleRequest(event: any): Promise<HandlerResponse> {
     return { PhysicalResourceId: PHYSICAL_RESOURCE_ID };
   }
 
-  const { Track, Package, Project, DistTag } = event.ResourceProperties;
+  const { Track, Package, DistTag } = event.ResourceProperties;
 
   // Validate track format -- fail closed, zero AWS calls, before any S3 access.
   if (!validateTrack(Track)) {
     throw new Error(`bad track: ${Track}`);
   }
 
-  // Project/DistTag default sanely so the resolver stays testable standalone; the CDK-side props
-  // to set these explicitly are Phase 2 (mailbox-cdk, gated on this artifact-registry republish).
-  const project: string = Project ?? DEFAULT_PROJECT;
+  // DistTag defaults sanely so the resolver stays testable standalone. Project is base config,
+  // not a per-resource property -- read once from the `PROJECT` env var (module-level, above).
   const distTag: string = DistTag ?? DEFAULT_DIST_TAG;
 
   const bucket = `${BUCKET_BASE}-${REGION}`;
-  const resolution = await resolvePackage(bucket, Package, Track, project, distTag);
+  const resolution = await resolvePackage(bucket, Package, Track, PROJECT, distTag);
 
   // Data attrs for the one resolved package: version + per-object keys. Left empty if the
   // package failed to resolve (missing/malformed pointer) -- same partial-failure behavior as

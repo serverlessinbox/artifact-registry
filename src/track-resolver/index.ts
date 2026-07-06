@@ -13,5 +13,5 @@ export {
   trackResolverObjectAttrName,
   trackResolverVersionAttrName,
 } from './attr-name';
-export { buildTrackResolverProperties } from './build-properties';
+export { buildTrackResolverProperties, deriveTrack } from './build-properties';
 export type { TrackResolverPropertiesInput } from './build-properties';

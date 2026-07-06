@@ -131,6 +131,12 @@ one layer up, by the CDK-side `CfnParameter` `AllowedPattern` — not by this ha
 Each `TrackResolver` custom resource instance resolves exactly one package. A stack that follows
 multiple packages instantiates one resolver per package.
 
+`project` (the leading key segment, e.g. `serverlessinbox`) is base config: it is constant for
+every package lookup in a stack, so it is **not** a per-`CfnCustomResource` property. Instead the
+resolver Lambda must set it once as the `PROJECT` environment variable (defaults to
+`serverlessinbox` if unset) — the handler reads `process.env.PROJECT` directly. Only
+`{ Package, Track, DistTag }` travel through `ResourceProperties`.
+
 ### Wiring from a CDK caller
 
 This package exposes exactly three things a CDK construct needs to wire up a `TrackResolver`
@@ -140,22 +146,34 @@ custom resource — no CDK/construct logic lives in `@serverlessinbox/artifact-r
 import {
   TRACK_RESOLVER_HANDLER_SOURCE,
   buildTrackResolverProperties,
+  deriveTrack,
   trackResolverObjectAttrName,
   trackResolverVersionAttrName,
 } from '@serverlessinbox/artifact-registry';
 ```
 
 - **`TRACK_RESOLVER_HANDLER_SOURCE`** — the minified handler JS as a string, for `lambda.Code.fromInline(...)`.
-- **`buildTrackResolverProperties({ project?, package, track, distTag? })`** — builds the exact
-  `ResourceProperties` object to pass to the `CfnCustomResource` (`{ Project, Package, Track, DistTag }`,
-  applying the `serverlessinbox`/`stable` defaults).
+  The CDK caller must set `PROJECT` as an environment variable on this Lambda (base config, constant
+  for the stack) — it is not passed as a `ResourceProperties` field.
+- **`buildTrackResolverProperties({ package, version, granularity, distTag? })`** — builds the exact
+  `ResourceProperties` object to pass to the `CfnCustomResource` (`{ Package, Track, DistTag }`, no
+  `Project`). `Track` is derived from `version` (a semver string, e.g. `1.4.2`) and `granularity`
+  (`'major'` → `v{major}`, `'minor'` → `v{major}.{minor}`) — callers never construct track segments
+  or parse S3 keys themselves. `DistTag` defaults to `stable`.
+- **`deriveTrack(version, granularity)`** — the pure helper `buildTrackResolverProperties` uses
+  internally to derive `Track`; exported as the single source of the `v{major}`/`v{major}.{minor}`
+  format. Accepts both bare (`1.4.2`) and `v`-prefixed (`v1.4.2`) version strings; throws on garbage.
 - **`trackResolverObjectAttrName(packageName, objectPath)`** / **`trackResolverVersionAttrName(packageName)`**
   — read back the matching `GetAtt` attribute names from the resolved custom resource.
 
 ```typescript
 const resolver = new CustomResource(this, 'TrackResolver', {
-  serviceToken: provider.serviceToken, // Lambda backed by TRACK_RESOLVER_HANDLER_SOURCE
-  properties: buildTrackResolverProperties({ package: 'mailbox-go', track: 'v1' }),
+  serviceToken: provider.serviceToken, // Lambda backed by TRACK_RESOLVER_HANDLER_SOURCE, with PROJECT set as an env var
+  properties: buildTrackResolverProperties({
+    package: 'mailbox-go',
+    version: '1.4.2',
+    granularity: 'major', // -> Track: 'v1'
+  }),
 });
 
 const codeKey = resolver.getAttString(

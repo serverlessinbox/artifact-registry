@@ -10,8 +10,11 @@
  *   and `v1.2` shapes; the major-vs-major+minor policy lives only in the CDK `CfnParameter`).
  * - Single package: one `Package` string in `ResourceProperties`, not a `Packages` array.
  *
- * `ARTIFACT_BUCKET_BASE`/`AWS_REGION` are set in `env-setup.ts` (jest `setupFiles`) before this
- * module is first required, since the handler reads them as module-level constants at load time.
+ * `ARTIFACT_BUCKET_BASE`/`AWS_REGION`/`PROJECT` are set in `env-setup.ts` (jest `setupFiles`)
+ * before this module is first required, since the handler reads them as module-level constants at
+ * load time. `PROJECT` is base config (constant for the whole stack) -- it is no longer a
+ * `ResourceProperties` field, so tests below never pass a `Project` per-event; the env-setup value
+ * (`serverlessinbox`, matching `DEFAULT_PROJECT`) applies to every case.
  */
 
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
@@ -26,21 +29,20 @@ const s3Mock = mockClient(S3Client);
 const BUCKET = 'mailbox-artifacts-us-east-1';
 
 interface ExtraProps {
-  project?: string;
   distTag?: string;
 }
 
 function createEvent(track: string, pkg: string, extra?: ExtraProps) {
   return {
     RequestType: 'Create',
-    ResourceProperties: { Track: track, Package: pkg, Project: extra?.project, DistTag: extra?.distTag },
+    ResourceProperties: { Track: track, Package: pkg, DistTag: extra?.distTag },
   };
 }
 
 function updateEvent(track: string, pkg: string, extra?: ExtraProps) {
   return {
     RequestType: 'Update',
-    ResourceProperties: { Track: track, Package: pkg, Project: extra?.project, DistTag: extra?.distTag },
+    ResourceProperties: { Track: track, Package: pkg, DistTag: extra?.distTag },
   };
 }
 
@@ -141,14 +143,14 @@ describe('TrackResolver handler (pure stateless resolver)', () => {
       expect(calls[0].args[0].input.Key).toBe('serverlessinbox/packages/mailbox-go/releases/v1/beta.json');
     });
 
-    it('should use an explicit DistTag (calendar) and explicit Project in the pointer-file key, with a v1.2 track', async () => {
+    it('should use an explicit DistTag (calendar) in the pointer-file key, with a v1.2 track', async () => {
       const pointer: LatestStablePointer = { version: '1.0.0-calendar.0', publishedAt: '2026-07-05T00:00:00Z' };
       s3Mock.on(GetObjectCommand).resolves({ Body: Buffer.from(JSON.stringify(pointer)) } as any);
 
-      await handleRequest(createEvent('v1.2', 'mailbox-webmail-ui', { project: 'acme', distTag: 'calendar' }));
+      await handleRequest(createEvent('v1.2', 'mailbox-webmail-ui', { distTag: 'calendar' }));
 
       const calls = s3Mock.commandCalls(GetObjectCommand);
-      expect(calls[0].args[0].input.Key).toBe('acme/packages/mailbox-webmail-ui/releases/v1.2/calendar.json');
+      expect(calls[0].args[0].input.Key).toBe('serverlessinbox/packages/mailbox-webmail-ui/releases/v1.2/calendar.json');
     });
 
     it('should use release spec for object keys, exact string match', async () => {
@@ -172,7 +174,7 @@ describe('TrackResolver handler (pure stateless resolver)', () => {
       );
     });
 
-    it('should propagate an explicit Project into the object keys, not just the pointer key', async () => {
+    it('should use the PROJECT env var (base config) in both the pointer key and the object keys', async () => {
       const pointer: LatestStablePointer = {
         version: '1.0.0',
         publishedAt: '2026-07-05T00:00:00Z',
@@ -180,10 +182,12 @@ describe('TrackResolver handler (pure stateless resolver)', () => {
       };
       s3Mock.on(GetObjectCommand).resolves({ Body: Buffer.from(JSON.stringify(pointer)) } as any);
 
-      const result = await handleRequest(createEvent('v1', 'mailbox-go', { project: 'acme' }));
+      const result = await handleRequest(createEvent('v1', 'mailbox-go'));
 
+      const calls = s3Mock.commandCalls(GetObjectCommand);
+      expect(calls[0].args[0].input.Key).toBe('serverlessinbox/packages/mailbox-go/releases/v1/stable.json');
       expect(result.Data!['obj_mailbox_go_lambdas_admin_api_zip']).toBe(
-        'acme/packages/mailbox-go/releases/v1.0.0/lambdas/admin-api.zip',
+        'serverlessinbox/packages/mailbox-go/releases/v1.0.0/lambdas/admin-api.zip',
       );
     });
   });
