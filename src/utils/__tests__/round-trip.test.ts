@@ -16,10 +16,18 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { S3Uploader } from '../uploader';
 import { buildArtifactKey } from '../artifact-key';
 import { buildReleasePrefix, buildChannelPrefix } from '../artifact-target';
-import { handleRequest } from '../../track-resolver/track-resolver-handler';
-import { trackResolverObjectAttrName, trackResolverVersionAttrName } from '../../track-resolver/attr-name';
+import { handleRequest, TRACK_RESOLVER_VERSION_ATTR } from '../../track-resolver/track-resolver-handler';
 
 const s3Mock = mockClient(S3Client);
+
+/**
+ * Wrap a Buffer in an object with transformToString() method to match AWS SDK v3 GetObject Body API.
+ */
+function mockS3Body(buffer: any) {
+  return {
+    transformToString: async () => buffer.toString('utf-8'),
+  };
+}
 
 // Matches ARTIFACT_BUCKET_BASE/AWS_REGION set in track-resolver/__tests__/env-setup.ts (a global
 // jest setupFiles entry -- applies to every test file in the suite).
@@ -31,7 +39,7 @@ describe('writer/reader round trips', () => {
   });
 
   describe('pointer round trip: a real writer-produced body drives the resolver', () => {
-    it('writeVersionPointers (with objects) -> handleRequest yields non-empty object keys', async () => {
+    it('writeVersionPointers -> handleRequest yields the resolved version', async () => {
       const uploader = new S3Uploader({});
       const version = semver.parse('1.2.3')!;
 
@@ -49,22 +57,18 @@ describe('writer/reader round trips', () => {
 
       // Feed the real writer output into the real reader (handleRequest), not a hand-built pointer.
       s3Mock.reset();
-      s3Mock.on(GetObjectCommand).resolves({ Body: Buffer.from(writtenBody) } as any);
+      s3Mock.on(GetObjectCommand).resolves({ Body: mockS3Body(Buffer.from(writtenBody)) } as any);
 
       const result = await handleRequest({
         RequestType: 'Create',
         ResourceProperties: { Track: 'v1', Package: 'mailbox-go' },
       });
 
-      const objAttr = trackResolverObjectAttrName('mailbox-go', 'lambdas/admin-api.zip');
-      expect(Object.keys(result.Data ?? {})).not.toHaveLength(0);
-      expect(result.Data![objAttr]).toBe(
-        buildArtifactKey('package', 'mailbox-go', { type: 'release', version, objectName: 'lambdas/admin-api.zip' }),
-      );
-      expect(result.Data![trackResolverVersionAttrName('mailbox-go')]).toBe('1.2.3');
+      expect(result.Data![TRACK_RESOLVER_VERSION_ATTR]).toBe('1.2.3');
+      expect(Object.keys(result.Data ?? {})).toEqual([TRACK_RESOLVER_VERSION_ATTR]);
     });
 
-    it('writeVersionPointers with no objects (default []) round-trips to empty resolver Data, not a crash', async () => {
+    it('writeVersionPointers with no objects (default []) round-trips to resolved version', async () => {
       const uploader = new S3Uploader({});
       const version = semver.parse('4.0.0')!;
 
@@ -75,16 +79,16 @@ describe('writer/reader round trips', () => {
       const writtenBody = puts.find(c => c.args[0].input.Key === v4Key)!.args[0].input.Body as string;
 
       s3Mock.reset();
-      s3Mock.on(GetObjectCommand).resolves({ Body: Buffer.from(writtenBody) } as any);
+      s3Mock.on(GetObjectCommand).resolves({ Body: mockS3Body(Buffer.from(writtenBody)) } as any);
 
       const result = await handleRequest({
         RequestType: 'Create',
         ResourceProperties: { Track: 'v4', Package: 'mailbox-webmail-ui' },
       });
 
-      // Version still resolves; just no obj_* attrs since no objects were published.
-      expect(result.Data![trackResolverVersionAttrName('mailbox-webmail-ui')]).toBe('4.0.0');
-      expect(Object.keys(result.Data ?? {})).toEqual([trackResolverVersionAttrName('mailbox-webmail-ui')]);
+      // Version resolves; just the version attribute.
+      expect(result.Data![TRACK_RESOLVER_VERSION_ATTR]).toBe('4.0.0');
+      expect(Object.keys(result.Data ?? {})).toEqual([TRACK_RESOLVER_VERSION_ATTR]);
     });
   });
 

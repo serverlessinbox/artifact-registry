@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "build:inline-handler": "node -e \"const e=require('esbuild');const r=e.buildSync({entryPoints:['src/track-resolver/track-resolver-handler.ts'],bundle:true,minify:true,format:'cjs',write:false,external:['@aws-sdk/client-s3','aws-lambda','aws-custom-resources','path','https'],platform:'node',target:'node20'});const code=r.outputFiles[0].text;const bytes=Buffer.byteLength(code,'utf-8');if(bytes>4096){console.error('FAIL: inline handler is '+bytes+' bytes, exceeds ~4KB limit');process.exit(1)}const fs=require('fs');const dir='src/track-resolver/generated';if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(dir+'/track-resolver-handler-source.ts','export const TRACK_RESOLVER_HANDLER_SOURCE = '+JSON.stringify(code)+';\\\\n');console.log('Generated inline handler: '+bytes+' bytes')\"",
+    "build:inline-handler": "node -e \"const e=require('esbuild');const r=e.buildSync({entryPoints:['src/track-resolver/track-resolver-handler.ts'],bundle:true,minify:true,format:'cjs',write:false,external:['@aws-sdk/client-s3','aws-lambda','path','https','url'],platform:'node',target:'node20'});const code=r.outputFiles[0].text;const bytes=Buffer.byteLength(code,'utf-8');if(bytes>4096){console.error('FAIL: inline handler is '+bytes+' bytes, exceeds ~4KB limit');process.exit(1)}const fs=require('fs');const dir='src/track-resolver/generated';if(!fs.existsSync(dir))fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(dir+'/track-resolver-handler-source.ts','export const TRACK_RESOLVER_HANDLER_SOURCE = '+JSON.stringify(code)+';\\\\n');console.log('Generated inline handler: '+bytes+' bytes')\"",
     "build": "yarn build:inline-handler && tsc --noEmit false",
     "pretest": "yarn build:inline-handler",
     "test": "yarn build:inline-handler && jest",
@@ -22,7 +22,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@aws-sdk/client-s3": "^3",
-    "aws-custom-resources": "^0.0.4",
     "clipanion": "^3.2.1",
     "esbuild": "^0.27.1",
     "semver": "^7.8.1"

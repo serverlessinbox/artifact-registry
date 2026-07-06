@@ -16,6 +16,28 @@ export const DEFAULT_PROJECT = 'serverlessinbox';
 /** Default distTag (release line) for the unified pointer spec. */
 export const DEFAULT_DIST_TAG = 'stable';
 
+/**
+ * Build the S3 key for a release pointer file.
+ * Pointer: `{project}/{typePrefix}/{name}/releases/{track}/{distTag}.json` (track-scoped)
+ *          or `{project}/{typePrefix}/{name}/releases/{distTag}.json` (global, no track).
+ */
+export function buildReleasePointerKey(
+  artifactType: ArtifactType,
+  name: string,
+  opts?: { track?: string; distTag?: string; project?: string },
+): string {
+  const typePrefix = ARTIFACT_TYPE_PREFIX[artifactType];
+  const base = `${typePrefix}/${name}`;
+  const project = opts?.project ?? DEFAULT_PROJECT;
+  const distTag = opts?.distTag ?? DEFAULT_DIST_TAG;
+  const track = opts?.track;
+
+  if (track) {
+    return `${project}/${base}/releases/${track}/${distTag}.json`;
+  }
+  return `${project}/${base}/releases/${distTag}.json`;
+}
+
 export type ArtifactKeySpec =
   | { type: 'release'; version: SemVer; objectName: string; project?: string }
   | { type: 'channel'; channel: string; objectName: string; project?: string }
@@ -50,12 +72,11 @@ export function buildArtifactKey(
       return `${project}/${base}/channels/${spec.channel}/`;
     }
     case 'release-pointer': {
-      const project = spec.project ?? DEFAULT_PROJECT;
-      const distTag = spec.distTag ?? DEFAULT_DIST_TAG;
-      if (spec.track) {
-        return `${project}/${base}/releases/${spec.track}/${distTag}.json`;
-      }
-      return `${project}/${base}/releases/${distTag}.json`;
+      return buildReleasePointerKey(artifactType, name, {
+        track: spec.track,
+        distTag: spec.distTag,
+        project: spec.project,
+      });
     }
     case 'release-track': {
       const project = spec.project ?? DEFAULT_PROJECT;

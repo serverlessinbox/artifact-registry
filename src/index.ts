@@ -22,9 +22,9 @@ export type { IArtifactResolver, ResolvedArtifactData, ArtifactResolverFactoryOp
 // Track resolver: TrackResolver construct and types (deployed as CFN custom resource)
 export {
   TRACK_RESOLVER_HANDLER_SOURCE,
-  trackResolverObjectAttrName,
-  trackResolverVersionAttrName,
+  TRACK_RESOLVER_VERSION_ATTR,
   buildTrackResolverProperties,
 } from './track-resolver';
 export type { TrackResolverPropertiesInput } from './track-resolver';
+export { buildArtifactKey, buildReleasePointerKey } from './utils/artifact-key';
 export type { LatestStablePointer, LatestStableObject } from './utils/types';
