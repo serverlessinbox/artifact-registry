@@ -89,21 +89,21 @@ describe('TrackResolver handler (minimal version resolver)', () => {
   });
 
   describe('Pointer parse', () => {
-    it('should return empty Data when the pointer is malformed JSON', async () => {
+    it('should throw when the pointer is malformed JSON', async () => {
       s3Mock.on(GetObjectCommand).resolves({ Body: mockS3Body(Buffer.from('not valid json')) } as any);
 
-      const result = await handleRequest(createEvent('v1', 'mailbox-go'));
-
-      expect(Object.keys(result.Data ?? {})).toHaveLength(0);
+      await expect(handleRequest(createEvent('v1', 'mailbox-go'))).rejects.toThrow(
+        'TrackResolver: pointer missing or has no version'
+      );
     });
 
-    it('should return empty Data when the pointer is missing a version', async () => {
+    it('should throw when the pointer is missing a version', async () => {
       const pointer = { publishedAt: '2026-07-05T00:00:00Z' };
       s3Mock.on(GetObjectCommand).resolves({ Body: mockS3Body(Buffer.from(JSON.stringify(pointer))) } as any);
 
-      const result = await handleRequest(createEvent('v1', 'mailbox-go'));
-
-      expect(Object.keys(result.Data ?? {})).toHaveLength(0);
+      await expect(handleRequest(createEvent('v1', 'mailbox-go'))).rejects.toThrow(
+        'TrackResolver: pointer missing or has no version'
+      );
     });
   });
 

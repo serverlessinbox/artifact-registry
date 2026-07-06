@@ -67,8 +67,7 @@ export async function handleRequest(event: any): Promise<HandlerResponse> {
     const pointer = await parsePointer(res.Body);
 
     if (!pointer || !pointer.version) {
-      console.log('pointer not found or missing version', { Package, Track, DistTag });
-      return { PhysicalResourceId: PHYSICAL_RESOURCE_ID, Data: {} };
+      throw new Error(`TrackResolver: pointer missing or has no version for ${Package} (track=${Track}, distTag=${DistTag}) at s3://${bucket}/${key}`);
     }
 
     console.log('resolved', { Package, Track, DistTag, version: pointer.version });
@@ -77,12 +76,6 @@ export async function handleRequest(event: any): Promise<HandlerResponse> {
       Data: { [TRACK_RESOLVER_VERSION_ATTR]: pointer.version },
     };
   } catch (err: any) {
-    // S3 NoSuchKey is a legitimate case (pointer not yet created), safe to treat as empty Data.
-    const isNotFound = err?.Code === 'NoSuchKey' || err?.name === 'NoSuchKey';
-    if (isNotFound) {
-      console.log('pointer not found', { Package, Track, DistTag });
-      return { PhysicalResourceId: PHYSICAL_RESOURCE_ID, Data: {} };
-    }
     // Operational failure: re-throw so handler sends CFN FAILED.
     console.error('S3 error resolving package', { Package, Track, DistTag, error: err.message });
     throw err;
