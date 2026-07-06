@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.29](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.28...v0.0.29) (Mon Jul 06 2026)
+
+### fix
+
+* Dynamic track loading tweaks ([418021f](https://github.com/serverlessinbox/artifact-registry/commit/418021ffe7e639849b4891d4504330c9db99eafc))
+
 ## [0.0.28](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.27...v0.0.28) (Sun Jul 05 2026)
 
 ### feat
