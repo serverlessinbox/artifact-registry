@@ -85,7 +85,8 @@ async function parsePointer(body: any): Promise<LatestStablePointer | null> {
       text = Buffer.concat(chunks).toString('utf-8');
     }
     return JSON.parse(text);
-  } catch {
+  } catch (err) {
+    console.error('parsePointer', err);
     return null;
   }
 }
@@ -98,6 +99,7 @@ async function resolvePackage(
   project: string,
   distTag: string,
 ): Promise<PackageResolution | null> {
+  const ctx = { p: pkg, t: track, d: distTag };
   try {
     const key = buildArtifactKey('package', pkg, {
       type: 'release-pointer',
@@ -105,12 +107,19 @@ async function resolvePackage(
       project,
       distTag,
     });
+    console.log('resolve', { ...ctx, k: key });
     const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     const pointer = await parsePointer(res.Body);
-    if (!pointer || !pointer.version) return null;
+    if (!pointer || !pointer.version) {
+      console.log('no-ptr', ctx);
+      return null;
+    }
 
     const parsedVersion = parseVersionForKey(pointer.version);
-    if (!parsedVersion) return null;
+    if (!parsedVersion) {
+      console.log('bad-ver', { ...ctx, v: pointer.version });
+      return null;
+    }
 
     const objects: Record<string, string> = {};
     if (pointer.objects) {
@@ -124,9 +133,20 @@ async function resolvePackage(
         objects[trackResolverObjectAttrName(pkg, obj.name)] = artifactKey;
       }
     }
+    console.log('ok', { ...ctx, v: pointer.version, n: pointer.objects?.length ?? 0 });
     return { version: pointer.version, objects };
-  } catch {
-    return null;
+  } catch (err: any) {
+    // S3 NoSuchKey is a legitimate case (pointer not yet created), safe to treat as empty Data.
+    // Other operational errors (AccessDenied, throttle, network) should fail the stack update so
+    // the operator sees the root cause, not a misleading "attribute not found" at the consuming resource.
+    const isNotFound = err?.Code === 'NoSuchKey' || err?.name === 'NoSuchKey';
+    if (isNotFound) {
+      console.log('missing', ctx);
+      return null;
+    }
+    // Operational failure: re-throw so wrapHandler sends CFN FAILED.
+    console.error('err', { ...ctx, e: err });
+    throw err;
   }
 }
 
@@ -141,11 +161,14 @@ interface HandlerResponse {
  * dispatched on `RequestType` (not inferred from `Track`) and is a zero-AWS-call no-op.
  */
 export async function handleRequest(event: any): Promise<HandlerResponse> {
-  if (event.RequestType === 'Delete') {
+  const rt = event.RequestType;
+  const { Track, Package, DistTag } = event.ResourceProperties;
+  const ctx = { p: Package, t: Track, d: DistTag };
+  console.log('in', { rt, ...ctx });
+
+  if (rt === 'Delete') {
     return { PhysicalResourceId: PHYSICAL_RESOURCE_ID };
   }
-
-  const { Track, Package, DistTag } = event.ResourceProperties;
 
   // Validate track format -- fail closed, zero AWS calls, before any S3 access.
   if (!validateTrack(Track)) {
@@ -154,10 +177,10 @@ export async function handleRequest(event: any): Promise<HandlerResponse> {
 
   // DistTag defaults sanely so the resolver stays testable standalone. Project is base config,
   // not a per-resource property -- read once from the `PROJECT` env var (module-level, above).
-  const distTag: string = DistTag ?? DEFAULT_DIST_TAG;
+  const distTag_resolved: string = DistTag ?? DEFAULT_DIST_TAG;
 
   const bucket = `${BUCKET_BASE}-${REGION}`;
-  const resolution = await resolvePackage(bucket, Package, Track, PROJECT, distTag);
+  const resolution = await resolvePackage(bucket, Package, Track, PROJECT, distTag_resolved);
 
   // Data attrs for the one resolved package: version + per-object keys. Left empty if the
   // package failed to resolve (missing/malformed pointer) -- same partial-failure behavior as
@@ -168,6 +191,7 @@ export async function handleRequest(event: any): Promise<HandlerResponse> {
     Object.assign(data, resolution.objects);
   }
 
+  console.log('out', { ...ctx, v: resolution?.version, n: Object.keys(data).length });
   return { PhysicalResourceId: PHYSICAL_RESOURCE_ID, Data: data };
 }
 

@@ -1,4 +1,3 @@
-import * as path from 'path';
 import type { SemVer } from 'semver';
 import type { ArtifactType, S3ArtifactEntry, S3WorkspaceConfig } from './types';
 
@@ -64,6 +63,7 @@ export function buildArtifactKey(
 }
 
 export function loadConfig(cwd: string): S3WorkspaceConfig {
+  const path = require('path') as any;
   return require(path.join(cwd, CONFIG_FILENAME));
 }
 
