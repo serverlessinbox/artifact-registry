@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.34](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.33...v0.0.34) (Tue Jul 07 2026)
+
+### fix
+
+* Added miissing region ([68923b9](https://github.com/serverlessinbox/artifact-registry/commit/68923b9c1b6ba31ec56591529a07713f09d496d8))
+
 ## [0.0.33](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.32...v0.0.33) (Mon Jul 06 2026)
 
 ### fix
