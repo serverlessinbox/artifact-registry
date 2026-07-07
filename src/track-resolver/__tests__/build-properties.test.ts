@@ -44,12 +44,14 @@ describe('buildTrackResolverProperties', () => {
       package: 'mailbox-go',
       version: '1.4.2',
       granularity: 'major',
+      region: 'eu-west-1',
     });
 
     expect(result).toEqual({
       Package: 'mailbox-go',
       Track: 'v1',
       DistTag: DEFAULT_DIST_TAG,
+      Region: 'eu-west-1',
     });
   });
 
@@ -58,12 +60,14 @@ describe('buildTrackResolverProperties', () => {
       package: 'mailbox-go',
       version: '1.4.2',
       granularity: 'minor',
+      region: 'eu-west-1',
     });
 
     expect(result).toEqual({
       Package: 'mailbox-go',
       Track: 'v1.4',
       DistTag: 'stable',
+      Region: 'eu-west-1',
     });
   });
 
@@ -73,12 +77,14 @@ describe('buildTrackResolverProperties', () => {
       version: '1.2.9',
       granularity: 'minor',
       distTag: 'beta',
+      region: 'us-east-1',
     });
 
     expect(result).toEqual({
       Package: 'mailbox-webmail-ui',
       Track: 'v1.2',
       DistTag: 'beta',
+      Region: 'us-east-1',
     });
   });
 
@@ -87,9 +93,10 @@ describe('buildTrackResolverProperties', () => {
       package: 'mailbox-go',
       version: '2.0.0',
       granularity: 'major',
+      region: 'eu-west-1',
     });
 
     expect(result).not.toHaveProperty('Project');
-    expect(Object.keys(result).sort()).toEqual(['DistTag', 'Package', 'Track']);
+    expect(Object.keys(result).sort()).toEqual(['DistTag', 'Package', 'Region', 'Track']);
   });
 });

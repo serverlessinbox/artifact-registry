@@ -38,6 +38,8 @@ export interface TrackResolverPropertiesInput {
   granularity: 'major' | 'minor';
   /** Defaults to `stable`. */
   distTag?: string;
+  /** AWS region of the artifact bucket for this package — `us-east-1` for edge-zone artifacts, the deployment region otherwise. Required. */
+  region: string;
 }
 
 /**
@@ -53,5 +55,6 @@ export function buildTrackResolverProperties(
     Package: input.package,
     Track: deriveTrack(input.version, input.granularity),
     DistTag: input.distTag ?? DEFAULT_DIST_TAG,
+    Region: input.region,
   };
 }

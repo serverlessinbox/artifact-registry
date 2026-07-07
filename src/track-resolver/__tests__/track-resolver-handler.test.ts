@@ -38,21 +38,21 @@ interface ExtraProps {
 function createEvent(track: string, pkg: string, extra?: ExtraProps) {
   return {
     RequestType: 'Create',
-    ResourceProperties: { Track: track, Package: pkg, DistTag: extra?.distTag },
+    ResourceProperties: { Track: track, Package: pkg, DistTag: extra?.distTag, Region: 'us-east-1' },
   };
 }
 
 function updateEvent(track: string, pkg: string, extra?: ExtraProps) {
   return {
     RequestType: 'Update',
-    ResourceProperties: { Track: track, Package: pkg, DistTag: extra?.distTag },
+    ResourceProperties: { Track: track, Package: pkg, DistTag: extra?.distTag, Region: 'us-east-1' },
   };
 }
 
 function deleteEvent(track: string, pkg: string) {
   return {
     RequestType: 'Delete',
-    ResourceProperties: { Track: track, Package: pkg },
+    ResourceProperties: { Track: track, Package: pkg, Region: 'us-east-1' },
   };
 }
 
@@ -140,6 +140,39 @@ describe('TrackResolver handler (minimal version resolver)', () => {
 
       const calls = s3Mock.commandCalls(GetObjectCommand);
       expect(calls[0].args[0].input.Key).toBe('serverlessinbox/packages/mailbox-webmail-ui/releases/v1.2/calendar.json');
+    });
+  });
+
+  describe('Region-aware bucket resolution', () => {
+    it('should use the Region from ResourceProperties to construct the S3 bucket name (edge case: us-east-1)', async () => {
+      const pointer: LatestStablePointer = { version: '1.0.0', publishedAt: '2026-07-05T00:00:00Z' };
+      s3Mock.on(GetObjectCommand).resolves({ Body: mockS3Body(Buffer.from(JSON.stringify(pointer))) } as any);
+
+      const event = {
+        RequestType: 'Create',
+        ResourceProperties: { Track: 'v1', Package: 'mailbox-cdk-edge', DistTag: 'stable', Region: 'us-east-1' },
+      };
+
+      await handleRequest(event);
+
+      const calls = s3Mock.commandCalls(GetObjectCommand);
+      expect(calls[0].args[0].input.Bucket).toBe('mailbox-artifacts-us-east-1');
+    });
+
+    it('should fall back to AWS_REGION env var if Region is not provided (back-compat)', async () => {
+      const pointer: LatestStablePointer = { version: '1.0.0', publishedAt: '2026-07-05T00:00:00Z' };
+      s3Mock.on(GetObjectCommand).resolves({ Body: mockS3Body(Buffer.from(JSON.stringify(pointer))) } as any);
+
+      const event = {
+        RequestType: 'Create',
+        ResourceProperties: { Track: 'v1', Package: 'mailbox-go' },
+      };
+
+      await handleRequest(event);
+
+      const calls = s3Mock.commandCalls(GetObjectCommand);
+      // Should use us-east-1 from env-setup.ts or fall back to eu-west-1
+      expect(calls[0].args[0].input.Bucket).toMatch(/^mailbox-artifacts-(us-east-1|eu-west-1)$/);
     });
   });
 

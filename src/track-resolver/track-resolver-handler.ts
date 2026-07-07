@@ -21,7 +21,6 @@ export const TRACK_RESOLVER_VERSION_ATTR = 'Version';
 /** Static PhysicalResourceId: guarantees every Update is in-place, never a replacement. */
 const PHYSICAL_RESOURCE_ID = 'TrackResolver';
 
-const s3 = new S3Client({});
 
 const BUCKET_BASE = process.env.ARTIFACT_BUCKET_BASE ?? 'mailbox-artifacts';
 const REGION = process.env.AWS_REGION ?? 'eu-west-1';
@@ -53,15 +52,17 @@ interface HandlerResponse {
  */
 export async function handleRequest(event: any): Promise<HandlerResponse> {
   const rt = event.RequestType;
-  const { Track, Package, DistTag } = event.ResourceProperties;
+  const { Track, Package, DistTag, Region } = event.ResourceProperties;
 
   if (rt === 'Delete') {
     return { PhysicalResourceId: PHYSICAL_RESOURCE_ID };
   }
 
-  const bucket = `${BUCKET_BASE}-${REGION}`;
+  const region = Region ?? REGION;
+  const bucket = `${BUCKET_BASE}-${region}`;
   const key = buildReleasePointerKey('package', Package, { track: Track, distTag: DistTag, project: PROJECT });
 
+  const s3 = new S3Client({ region });
   try {
     const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     const pointer = await parsePointer(res.Body);
