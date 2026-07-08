@@ -19,12 +19,9 @@ export type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from
 export { ArtifactResolver, createPackageRegionMap, resolveArtifact } from './utils/artifact-resolver-factory';
 export type { IArtifactResolver, ResolvedArtifactData, ArtifactResolverFactoryOptions } from './utils/artifact-resolver-factory';
 
-// Track resolver: TrackResolver construct and types (deployed as CFN custom resource)
-export {
-  TRACK_RESOLVER_HANDLER_SOURCE,
-  TRACK_RESOLVER_VERSION_ATTR,
-  buildTrackResolverProperties,
-} from './track-resolver';
-export type { TrackResolverPropertiesInput } from './track-resolver';
+// Track resolver: pure version→track math only. The CFN custom-resource handler,
+// buildTrackResolverProperties, TRACK_RESOLVER_VERSION_ATTR, and the inline-handler bundle moved to
+// @serverlessinbox/mailbox-cdk-shared (stack-self-update, phase A cleanup) -- this package stays pure.
+export { deriveTrack } from './track-resolver';
 export { buildArtifactKey, buildReleasePointerKey } from './utils/artifact-key';
 export type { LatestStablePointer, LatestStableObject } from './utils/types';
