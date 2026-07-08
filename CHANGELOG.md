@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.35](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.34...v0.0.35) (Wed Jul 08 2026)
+
+### feat
+
+* Removed cf custom resource logic ([77b1d02](https://github.com/serverlessinbox/artifact-registry/commit/77b1d02f19996add2a4856a51e5965b9a331aab1))
+
 ## [0.0.34](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.33...v0.0.34) (Tue Jul 07 2026)
 
 ### fix
