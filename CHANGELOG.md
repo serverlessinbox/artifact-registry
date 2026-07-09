@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.36](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.35...v0.0.36) (Thu Jul 09 2026)
+
+### feat
+
+* Release pointer parsing ([3073a6a](https://github.com/serverlessinbox/artifact-registry/commit/3073a6a313eaa573a52b73caed7b5608aa2b0538))
+
 ## [0.0.35](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.34...v0.0.35) (Wed Jul 08 2026)
 
 ### feat
