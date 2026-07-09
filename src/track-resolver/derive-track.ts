@@ -3,7 +3,7 @@
  *
  * Split out of the former `build-properties.ts` when the CFN-specific `buildTrackResolverProperties`
  * builder (and the handler it serves) moved to `@serverlessinbox/mailbox-cdk-shared` -- that package
- * owns the CDK/CFN wiring; artifact-registry stays pure (no CDK/CFN knowledge). This function has
+ * owns the CDK/CFN wiring; artifact-registry stays pure (no CDK/CFN knowledge). This module has
  * zero `aws-cdk-lib`/construct imports and stays here.
  */
 

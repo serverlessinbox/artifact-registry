@@ -25,3 +25,7 @@ export type { IArtifactResolver, ResolvedArtifactData, ArtifactResolverFactoryOp
 export { deriveTrack } from './track-resolver';
 export { buildArtifactKey, buildReleasePointerKey } from './utils/artifact-key';
 export type { LatestStablePointer, LatestStableObject } from './utils/types';
+
+// Scheduled updater runtime utilities: read track-scoped pointers.
+export { readReleasePointer } from './utils/read-release-pointer';
+export type { ReadReleasePointerOptions } from './utils/read-release-pointer';
