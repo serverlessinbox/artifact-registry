@@ -11,7 +11,13 @@
  */
 
 import type { SemVer } from 'semver';
-import { buildArtifactKey, DEFAULT_PROJECT, DEFAULT_DIST_TAG } from '../artifact-key';
+import {
+  buildArtifactKey,
+  DEFAULT_PROJECT,
+  DEFAULT_DIST_TAG,
+  VERSION_PLACEHOLDER,
+  OBJECT_NAME_PLACEHOLDER,
+} from '../artifact-key';
 
 function fakeVersion(version: string): SemVer {
   return { version } as unknown as SemVer;
@@ -192,6 +198,27 @@ describe('buildArtifactKey', () => {
         project: 'acme',
       });
       expect(key).toBe('acme/templates/mailbox-cdk/releases/latest/template.json');
+    });
+  });
+
+  describe("'release-template' spec", () => {
+    it('builds a release key with literal {version}/{objectName} placeholders', () => {
+      const key = buildArtifactKey('template', 'mailbox-standard', {
+        type: 'release-template',
+      });
+      expect(key).toBe(
+        `serverlessinbox/templates/mailbox-standard/releases/v${VERSION_PLACEHOLDER}/${OBJECT_NAME_PLACEHOLDER}`,
+      );
+    });
+
+    it('honors an explicit project override', () => {
+      const key = buildArtifactKey('template', 'mailbox-standard', {
+        type: 'release-template',
+        project: 'acme',
+      });
+      expect(key).toBe(
+        `acme/templates/mailbox-standard/releases/v${VERSION_PLACEHOLDER}/${OBJECT_NAME_PLACEHOLDER}`,
+      );
     });
   });
 });

@@ -11,6 +11,11 @@ const ARTIFACT_TYPE_PREFIX: Record<ArtifactType, string> = {
 
 export const CONFIG_FILENAME = 'artifact-registry.cjs';
 
+/** Placeholder tokens for templated release keys. A runtime consumer substitutes these literal
+ *  strings with the concrete version / object name (e.g. read from a release pointer). */
+export const VERSION_PLACEHOLDER = '{version}';
+export const OBJECT_NAME_PLACEHOLDER = '{objectName}';
+
 /** Default leading key segment for release/pointer specs. */
 export const DEFAULT_PROJECT = 'serverlessinbox';
 /** Default distTag (release line) for the unified pointer spec. */
@@ -49,7 +54,10 @@ export type ArtifactKeySpec =
   // distinct from `channel` (the dev|release mutable-publish axis) and from `track` (major /
   // major.minor drift line).
   | { type: 'release-pointer'; track?: string; distTag?: string; project?: string }
-  | { type: 'release-track'; track: string; objectName: string; project?: string };
+  | { type: 'release-track'; track: string; objectName: string; project?: string }
+  // Builds a release key with literal `{version}` / `{objectName}` placeholders instead of
+  // concrete values, for callers that resolve the actual version/object at runtime.
+  | { type: 'release-template'; project?: string };
 
 export function buildArtifactKey(
   artifactType: ArtifactType,
@@ -81,6 +89,10 @@ export function buildArtifactKey(
     case 'release-track': {
       const project = spec.project ?? DEFAULT_PROJECT;
       return `${project}/${base}/releases/${spec.track}/${spec.objectName}`;
+    }
+    case 'release-template': {
+      const project = spec.project ?? DEFAULT_PROJECT;
+      return `${project}/${base}/releases/v${VERSION_PLACEHOLDER}/${OBJECT_NAME_PLACEHOLDER}`;
     }
   }
 }
