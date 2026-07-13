@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.0.37](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.36...v0.0.37) (Mon Jul 13 2026)
+
+### feat
+
+* Templated release urls ([0828eea](https://github.com/serverlessinbox/artifact-registry/commit/0828eea6502109baa6244d8569b7f3b78cd30471))
+
 ## [0.0.36](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.35...v0.0.36) (Thu Jul 09 2026)
 
 ### feat
