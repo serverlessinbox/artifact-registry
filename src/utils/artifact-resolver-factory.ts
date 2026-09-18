@@ -48,10 +48,10 @@ export interface IArtifactResolver {
  */
 export class ArtifactResolver implements IArtifactResolver {
   private readonly resolvedData: Record<string, ResolvedArtifactData>;
-  private readonly _regionMap: Record<string, string>;
-  private readonly _versionMap: Record<string, string>;
-  private readonly _bucketBase: string;
-  private readonly _s3VersionMap: Record<string, string>;
+  private readonly regionMap: Record<string, string>;
+  private readonly versionMap: Record<string, string>;
+  private readonly bucketBase: string;
+  private readonly s3VersionMap: Record<string, string>;
 
   constructor(options: ArtifactResolverFactoryOptions) {
     const bucketBase = options.bucketBaseOverride ?? options.versions.bucketBase;
@@ -71,21 +71,21 @@ export class ArtifactResolver implements IArtifactResolver {
     }
 
     this.resolvedData = Object.freeze(resolved);
-    this._regionMap = Object.freeze(regionMap);
-    this._versionMap = Object.freeze(
+    this.regionMap = Object.freeze(regionMap);
+    this.versionMap = Object.freeze(
       Object.fromEntries(
         Object.entries(options.versions.packages).map(([name, entry]) => [name, entry.version])
       )
     );
-    this._bucketBase = bucketBase;
-    this._s3VersionMap = Object.freeze(options.s3VersionMap ?? {});
+    this.bucketBase = bucketBase;
+    this.s3VersionMap = Object.freeze(options.s3VersionMap ?? {});
   }
 
   resolve(packageName: string, objectPath: string): ResolvedArtifact {
     const data = this.resolvedData[packageName];
     if (!data) throw new Error(`No resolved data for package '${packageName}'`);
     const artifact = resolveArtifact(data, objectPath);
-    const versionId = this._s3VersionMap[artifact.key];
+    const versionId = this.s3VersionMap[artifact.key];
     return versionId !== undefined ? { ...artifact, versionId } : artifact;
   }
 
@@ -93,7 +93,7 @@ export class ArtifactResolver implements IArtifactResolver {
     const data = this.resolvedData[packageName];
     if (!data) throw new Error(`No resolved data for package '${packageName}'`);
     const resolved = resolveArtifact(data, objectPath);
-    const region = this._regionMap[packageName]!;
+    const region = this.regionMap[packageName]!;
     return buildArtifactUrl(data.bucket, region, resolved.key, data.versionId);
   }
 
@@ -105,7 +105,7 @@ export class ArtifactResolver implements IArtifactResolver {
   }
 
   getVersion(packageName: string): string {
-    const v = this._versionMap[packageName];
+    const v = this.versionMap[packageName];
     if (v === undefined) throw new Error(`No resolved data for package '${packageName}'`);
     return v;
   }
@@ -117,7 +117,7 @@ export class ArtifactResolver implements IArtifactResolver {
   }
 
   getBucketBase(): string {
-    return this._bucketBase;
+    return this.bucketBase;
   }
 }
 
