@@ -1,15 +1,18 @@
 import { buildArtifactKey } from './artifact-key';
-import type { ArtifactType } from './types';
+import type { ArtifactType } from './artifact';
 
+/** An exact release, by semver `version`. */
 export interface ReleaseTarget { readonly kind: 'release'; readonly version: string; }
+/** A mutable channel, by `channel` name. */
 export interface ChannelTarget  { readonly kind: 'channel'; readonly channel: string; }
+/** A release track (e.g. `v1`, `v1.2`); the version is whatever the track's release pointer names. */
 export interface TrackTarget    { readonly kind: 'track';   readonly track: string;   }
+/** What an artifact is resolved against: an exact release, a mutable channel, or a release track. */
 export type ArtifactTarget = ReleaseTarget | ChannelTarget | TrackTarget;
 
 /**
- * S3 prefix for a versioned release artifact — routes through `buildArtifactKey`'s
- * 'release' spec with an empty objectName, so it stays in lockstep with the schema every writer
- * uses:
+ * S3 prefix for a versioned release artifact, without a trailing slash. Built from `buildArtifactKey`'s
+ * 'release' spec with an empty objectName, so it follows that key layout:
  *   {project}/packages/{packageName}/releases/v{version}  or  {project}/templates/{packageName}/releases/v{version}
  */
 export function buildReleasePrefix(
@@ -20,7 +23,7 @@ export function buildReleasePrefix(
 ): string {
   const key = buildArtifactKey(artifactType, packageName, {
     type: 'release',
-    version: { version } as any,
+    version: { version },
     objectName: '',
     project,
   });

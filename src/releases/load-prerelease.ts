@@ -1,8 +1,8 @@
 import { ListObjectVersionsCommand } from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { parse as parseSemver } from 'semver';
-import type { ArtifactType } from './artifact';
-import { buildArtifactKey } from './artifact-key';
+import type { ArtifactType } from '../artifacts/artifact';
+import { buildArtifactKey } from '../artifacts/artifact-key';
 import { loadReleasePointer } from './release-pointer';
 import type { TrackVersionsResult } from './load-track';
 

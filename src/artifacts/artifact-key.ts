@@ -1,18 +1,76 @@
 import type { SemVer } from 'semver';
-import type { ArtifactType, S3ArtifactEntry, S3WorkspaceConfig } from './types';
+import type { ArtifactType } from './artifact';
+import type { S3ArtifactEntry, S3WorkspaceConfig } from './workspace-config';
 
 export type { ArtifactType };
+
+/** Optional parts of a release pointer key: the track scope, the release line and the leading key segment. */
+interface ReleasePointerKeyOptions {
+  track?: string;
+  distTag?: string;
+  project?: string;
+}
+
+interface ReleaseKeySpec {
+  type: 'release';
+  version: Pick<SemVer, 'version'>;
+  objectName: string;
+  project?: string;
+}
+
+interface ChannelKeySpec {
+  type: 'channel';
+  channel: string;
+  objectName: string;
+  project?: string;
+}
+
+interface ChannelPrefixKeySpec {
+  type: 'channel-prefix';
+  channel: string;
+  project?: string;
+}
+
+// distTag-named pointer. With `track` it is track-scoped:
+// `{project}/{typePrefix}/{name}/releases/{track}/{distTag}.json`. Without `track` it is the global
+// untracked pointer: `{project}/{typePrefix}/{name}/releases/{distTag}.json`.
+// `distTag` names the release line (the npm dist-tag / GitVersion prerelease label, e.g. stable,
+// beta, calendar); `track` is the major or major.minor line; `channel` is a separate, mutable path.
+interface ReleasePointerKeySpec extends ReleasePointerKeyOptions {
+  type: 'release-pointer';
+}
+
+interface ReleaseTrackKeySpec {
+  type: 'release-track';
+  track: string;
+  objectName: string;
+  project?: string;
+}
+
+// A release key with the literal `{version}` / `{objectName}` tokens instead of concrete values.
+interface ReleaseTemplateKeySpec {
+  type: 'release-template';
+  project?: string;
+}
+
+/**
+ * Which kind of S3 key `buildArtifactKey` builds. Each variant takes an optional `project` that
+ * replaces the default leading key segment.
+ */
+export type ArtifactKeySpec =
+  | ReleaseKeySpec
+  | ChannelKeySpec
+  | ChannelPrefixKeySpec
+  | ReleasePointerKeySpec
+  | ReleaseTrackKeySpec
+  | ReleaseTemplateKeySpec;
 
 const ARTIFACT_TYPE_PREFIX: Record<ArtifactType, string> = {
   package: 'packages',
   template: 'templates',
 };
-// Not exported — all key construction goes through buildArtifactKey.
 
-export const CONFIG_FILENAME = 'artifact-registry.cjs';
-
-/** Placeholder tokens for templated release keys. A runtime consumer substitutes these literal
- *  strings with the concrete version / object name (e.g. read from a release pointer). */
+/** Literal tokens that the 'release-template' key spec emits in place of the version and the object name. */
 export const VERSION_PLACEHOLDER = '{version}';
 export const OBJECT_NAME_PLACEHOLDER = '{objectName}';
 
@@ -29,7 +87,7 @@ export const DEFAULT_DIST_TAG = 'stable';
 export function buildReleasePointerKey(
   artifactType: ArtifactType,
   name: string,
-  opts?: { track?: string; distTag?: string; project?: string },
+  opts?: ReleasePointerKeyOptions,
 ): string {
   const typePrefix = ARTIFACT_TYPE_PREFIX[artifactType];
   const base = `${typePrefix}/${name}`;
@@ -43,22 +101,11 @@ export function buildReleasePointerKey(
   return `${project}/${base}/releases/${distTag}.json`;
 }
 
-export type ArtifactKeySpec =
-  | { type: 'release'; version: SemVer; objectName: string; project?: string }
-  | { type: 'channel'; channel: string; objectName: string; project?: string }
-  | { type: 'channel-prefix'; channel: string; project?: string }
-  // Unified, track-scoped and global, distTag-named pointer. When `track` is present,
-  // the pointer is track-scoped: `{project}/packages/{name}/releases/{track}/{distTag}.json`.
-  // When `track` is absent, it is the global untracked pointer: `{project}/packages/{name}/releases/{distTag}.json`.
-  // `distTag` is the npm dist-tag / GitVersion prerelease label (stable/beta/calendar) --
-  // distinct from `channel` (the dev|release mutable-publish axis) and from `track` (major /
-  // major.minor drift line).
-  | { type: 'release-pointer'; track?: string; distTag?: string; project?: string }
-  | { type: 'release-track'; track: string; objectName: string; project?: string }
-  // Builds a release key with literal `{version}` / `{objectName}` placeholders instead of
-  // concrete values, for callers that resolve the actual version/object at runtime.
-  | { type: 'release-template'; project?: string };
-
+/**
+ * Build the S3 key for an artifact of the given type and name, in the layout the `spec` selects.
+ * Every writer and reader of these objects builds keys here, so a change to a layout changes where
+ * existing objects are looked up.
+ */
 export function buildArtifactKey(
   artifactType: ArtifactType,
   name: string,
@@ -97,11 +144,7 @@ export function buildArtifactKey(
   }
 }
 
-export function loadConfig(cwd: string): S3WorkspaceConfig {
-  const path = require('path') as any;
-  return require(path.join(cwd, CONFIG_FILENAME));
-}
-
+/** The artifact entry of the workspace config whose `objectName` matches, or undefined when none does. */
 export function selectArtifact(
   config: S3WorkspaceConfig,
   objectName: string,

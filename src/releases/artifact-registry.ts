@@ -1,10 +1,10 @@
 import type { S3Client } from '@aws-sdk/client-s3';
-import { buildArtifactKey } from './artifact-key';
-import { buildArtifactBucketName } from './artifact-target';
+import { buildArtifactKey } from '../artifacts/artifact-key';
+import { buildArtifactBucketName } from '../artifacts/artifact-target';
 import { loadChannelVersions } from './load-channel';
 import { loadReleasePointer } from './release-pointer';
-import type { ArtifactType } from './artifact';
-import type { ArtifactTarget } from './artifact-target';
+import type { ArtifactType } from '../artifacts/artifact';
+import type { ArtifactTarget } from '../artifacts/artifact-target';
 import type { ChannelVersionsOptions } from './load-channel';
 
 /**

@@ -1,5 +1,5 @@
 import type { S3Client } from '@aws-sdk/client-s3';
-import { buildReleasePointerKey, DEFAULT_PROJECT } from './artifact-key';
+import { buildReleasePointerKey, DEFAULT_PROJECT } from '../artifacts/artifact-key';
 import { loadReleasePointer } from './release-pointer';
 import type { ReleasePointer } from './release-pointer';
 

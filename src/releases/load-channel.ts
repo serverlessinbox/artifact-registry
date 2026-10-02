@@ -1,7 +1,7 @@
 import { ListObjectVersionsCommand } from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
-import type { ArtifactType } from './artifact';
-import { buildArtifactKey } from './artifact-key';
+import type { ArtifactType } from '../artifacts/artifact';
+import { buildArtifactKey } from '../artifacts/artifact-key';
 
 export interface ChannelVersionsOptions {
   /** Artifact type — determines the S3 key prefix ('packages' or 'templates'). */

@@ -3,8 +3,17 @@ import * as fssync from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as esbuild from 'esbuild';
-import { run } from './common';
-import type { ArtifactType, S3ArtifactEntry, S3WorkspaceConfig, ArtifactBuildResult } from './types';
+import { run } from '../utils/common';
+import { hasErrorCode } from '../utils/error-code';
+import { loadWorkspaceConfig } from './workspace-config';
+import type { S3ArtifactEntry, S3WorkspaceConfig } from './workspace-config';
+import type { ArtifactBuildResult, ArtifactRouting } from './artifact';
+
+/** An artifact file written to the output folder, with where it is published. */
+interface BuiltEntry {
+  basename: string;
+  routing: ArtifactRouting;
+}
 
 async function bundleJsZip(entryPoint: string, outZip: string): Promise<void> {
   const tmpDir = fssync.mkdtempSync(path.join(os.tmpdir(), 'artifact-tools-bundle-'));
@@ -36,7 +45,7 @@ async function buildEntry(
   workspaceCwd: string,
   outputFolder: string,
   config: S3WorkspaceConfig,
-): Promise<{ basename: string; routing: { bucketName: string; artifactType: ArtifactType; name: string; region?: string; objectName: string } }> {
+): Promise<BuiltEntry> {
   const resolved = path.isAbsolute(entry.source)
     ? entry.source
     : path.join(workspaceCwd, entry.source);
@@ -64,15 +73,22 @@ async function buildEntry(
   return {
     basename: outputBasename,
     routing: {
-      bucketName: entry.bucketName ?? config.bucketName,
-      artifactType: config.type,
-      name: entry.name ?? config.name,
+      package: {
+        bucketName: entry.bucketName ?? config.bucketName,
+        artifactType: config.type,
+        name: entry.name ?? config.name,
+      },
       region: entry.region,
       objectName: entry.objectName,
     },
   };
 }
 
+/**
+ * Builds every artifact of a workspace into `outputFolder`: a `js-zip` entry is bundled with esbuild,
+ * a directory is zipped, and a file is copied. The config comes from `configOverride` or, when that
+ * is absent, from `artifacts.cjs` in `workspaceCwd`; a workspace without that file yields no outputs.
+ */
 export async function buildArtifacts(
   workspaceCwd: string,
   outputFolder: string,
@@ -86,11 +102,9 @@ export async function buildArtifacts(
     config = configOverride;
   } else {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      config = require(path.join(workspaceCwd, 'artifacts.cjs')) as S3WorkspaceConfig;
+      config = loadWorkspaceConfig(workspaceCwd, 'artifacts.cjs');
     } catch (err: unknown) {
-      const nodeErr = err as NodeJS.ErrnoException;
-      if (nodeErr.code === 'MODULE_NOT_FOUND') {
+      if (hasErrorCode(err, 'MODULE_NOT_FOUND')) {
         return empty;
       }
       throw err;
@@ -105,7 +119,7 @@ export async function buildArtifacts(
     config.artifacts.map(entry => buildEntry(entry, workspaceCwd, outputFolder, config)),
   );
 
-  const routingMap = new Map<string, { bucketName: string; artifactType: ArtifactType; name: string; region?: string; objectName: string }>();
+  const routingMap = new Map<string, ArtifactRouting>();
   const outputFiles: string[] = [];
 
   for (const result of results) {

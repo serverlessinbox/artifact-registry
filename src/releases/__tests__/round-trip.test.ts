@@ -10,8 +10,8 @@ import semver from 'semver';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 import { S3Uploader } from '../uploader';
-import { buildArtifactKey } from '../artifact-key';
-import { buildReleasePrefix, buildChannelPrefix } from '../artifact-target';
+import { buildArtifactKey } from '../../artifacts/artifact-key';
+import { buildReleasePrefix, buildChannelPrefix } from '../../artifacts/artifact-target';
 
 const s3Mock = mockClient(S3Client);
 

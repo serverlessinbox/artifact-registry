@@ -1,8 +1,8 @@
 import * as fs from 'fs/promises';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { buildArtifactKey } from './artifact-key';
+import { buildArtifactKey } from '../artifacts/artifact-key';
 import type { ReleasePointer } from './release-pointer';
-import type { ArtifactPackage } from './artifact';
+import type { ArtifactPackage } from '../artifacts/artifact';
 import type { PackageRelease, ReleaseTrackCopy } from './release';
 import type { SemVer } from 'semver';
 

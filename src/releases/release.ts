@@ -1,4 +1,4 @@
-import type { ArtifactPackage } from './artifact';
+import type { ArtifactPackage } from '../artifacts/artifact';
 import type { ReleasePointerObject } from './release-pointer';
 
 /** An artifact file to copy to a release track: the object name it is published under and its local path. */

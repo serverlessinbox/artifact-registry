@@ -1,16 +1,9 @@
 /**
- * Unit tests for `buildArtifactKey` (project prefix, distTag pointers, no `latest-`).
- *
- * Covers:
- * - 'release' spec: default project prefix, explicit project override.
- * - 'release-pointer' spec (unified, track-scoped, distTag-named): default project/distTag,
- *   explicit distTag (beta/calendar), explicit project, exact key strings matching the spec's
- *   worked examples.
- * - 'channel' / 'channel-prefix' / 'release-track' specs: all emit the same `{project}/` prefix
- *   as 'release'/'release-pointer', defaulting to DEFAULT_PROJECT with an explicit override available.
+ * Pins the exact S3 key string `buildArtifactKey` produces for every spec type, with the default
+ * and an explicit project prefix, and for pointers with and without a track and distTag. These keys
+ * are where objects are written and read, so a changed layout makes existing objects unfindable.
  */
 
-import type { SemVer } from 'semver';
 import {
   buildArtifactKey,
   DEFAULT_PROJECT,
@@ -18,10 +11,6 @@ import {
   VERSION_PLACEHOLDER,
   OBJECT_NAME_PLACEHOLDER,
 } from '../artifact-key';
-
-function fakeVersion(version: string): SemVer {
-  return { version } as unknown as SemVer;
-}
 
 describe('buildArtifactKey', () => {
   describe('defaults', () => {
@@ -38,7 +27,7 @@ describe('buildArtifactKey', () => {
     it('defaults the project prefix to serverlessinbox', () => {
       const key = buildArtifactKey('package', 'admin-api', {
         type: 'release',
-        version: fakeVersion('1.2.3'),
+        version: { version: '1.2.3' },
         objectName: 'lambdas/admin-api.zip',
       });
       expect(key).toBe('serverlessinbox/packages/admin-api/releases/v1.2.3/lambdas/admin-api.zip');
@@ -47,7 +36,7 @@ describe('buildArtifactKey', () => {
     it('honors an explicit project override', () => {
       const key = buildArtifactKey('package', 'admin-api', {
         type: 'release',
-        version: fakeVersion('1.2.3'),
+        version: { version: '1.2.3' },
         objectName: 'lambdas/admin-api.zip',
         project: 'acme',
       });
@@ -57,7 +46,7 @@ describe('buildArtifactKey', () => {
     it('applies the project prefix to template artifacts too', () => {
       const key = buildArtifactKey('template', 'mailbox-cdk', {
         type: 'release',
-        version: fakeVersion('2.0.0'),
+        version: { version: '2.0.0' },
         objectName: 'template.json',
       });
       expect(key).toBe('serverlessinbox/templates/mailbox-cdk/releases/v2.0.0/template.json');
