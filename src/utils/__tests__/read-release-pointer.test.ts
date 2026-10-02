@@ -1,10 +1,7 @@
 /**
- * Unit tests for `readReleasePointer` (stack-self-update, Phase B).
- *
- * Uses aws-sdk-client-mock to assert S3 client behavior, specifically:
- * - the Bucket and Key passed to GetObjectCommand
- * - that key construction via buildReleasePointerKey matches the request
- * - error handling for NoSuchKey vs. other errors
+ * Pins the Bucket and Key `readReleasePointer` requests from S3 (global and track-scoped, default
+ * and custom bucket base and project), and that a missing or unreadable pointer is an error. A
+ * changed Bucket or Key reads a different object than the one the pointer writer produced.
  */
 
 import { readReleasePointer } from '../read-release-pointer';
@@ -12,8 +9,8 @@ import { NoSuchKey, S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 
 const s3Mock = mockClient(S3Client);
+const client = new S3Client({ region: 'us-east-1' });
 
-// Helper to create a mock stream
 function createMockStream(text: string) {
   return {
     transformToString: jest.fn().mockResolvedValue(text),
@@ -31,7 +28,7 @@ describe('readReleasePointer', () => {
         version: '1.2.3',
         publishedAt: '2026-07-08T10:00:00Z',
         objects: [
-          { name: 'lambdas/mailbox-go.zip', kind: 'lambda-zip' as const },
+          { name: 'lambdas/mailbox-go.zip' },
         ],
       };
 
@@ -39,11 +36,10 @@ describe('readReleasePointer', () => {
         Body: createMockStream(JSON.stringify(pointer)),
       });
 
-      const result = await readReleasePointer('mailbox-go', 'stable', 'us-east-1');
+      const result = await readReleasePointer(client, 'mailbox-go', 'stable', 'us-east-1');
 
       expect(result).toEqual(pointer);
 
-      // Assert the S3 request: bucket should be '{bucketBase}-{region}', key should be global
       const calls = s3Mock.commandCalls(GetObjectCommand);
       expect(calls).toHaveLength(1);
       const command = calls[0].args[0];
@@ -57,32 +53,32 @@ describe('readReleasePointer', () => {
       const pointer = {
         version: '1.5.2',
         publishedAt: '2026-07-08T14:00:00Z',
+        objects: [{ name: 'a.zip' }],
       };
 
       s3Mock.on(GetObjectCommand).resolves({
         Body: createMockStream(JSON.stringify(pointer)),
       });
 
-      const result = await readReleasePointer('mailbox-go', 'stable', 'us-east-1', {
+      const result = await readReleasePointer(client, 'mailbox-go', 'stable', 'us-east-1', {
         track: 'v1',
       });
 
       expect(result).toEqual(pointer);
 
-      // Assert key includes track segment
       const calls = s3Mock.commandCalls(GetObjectCommand);
       const command = calls[0].args[0];
       expect(command.input.Key).toBe('serverlessinbox/packages/mailbox-go/releases/v1/stable.json');
     });
 
     it('handles major.minor track correctly', async () => {
-      const pointer = { version: '2.3.5', publishedAt: '2026-07-08T14:00:00Z' };
+      const pointer = { version: '2.3.5', publishedAt: '2026-07-08T14:00:00Z', objects: [{ name: 'a.zip' }] };
 
       s3Mock.on(GetObjectCommand).resolves({
         Body: createMockStream(JSON.stringify(pointer)),
       });
 
-      await readReleasePointer('mailbox-cdk', 'stable', 'us-east-1', {
+      await readReleasePointer(client, 'mailbox-cdk', 'stable', 'us-east-1', {
         track: 'v2.3',
       });
 
@@ -94,30 +90,28 @@ describe('readReleasePointer', () => {
 
   describe('default values (bucketBase, project)', () => {
     it('reflects default bucketBase and project in Bucket and Key', async () => {
-      const pointer = { version: '1.0.0', publishedAt: '2026-07-08T00:00:00Z' };
+      const pointer = { version: '1.0.0', publishedAt: '2026-07-08T00:00:00Z', objects: [{ name: 'a.zip' }] };
 
       s3Mock.on(GetObjectCommand).resolves({
         Body: createMockStream(JSON.stringify(pointer)),
       });
 
-      await readReleasePointer('mailbox-go', 'stable', 'us-east-1');
+      await readReleasePointer(client, 'mailbox-go', 'stable', 'us-east-1');
 
       const calls = s3Mock.commandCalls(GetObjectCommand);
       const command = calls[0].args[0];
-      // Default bucketBase is 'mailbox-artifacts'
       expect(command.input.Bucket).toBe('mailbox-artifacts-us-east-1');
-      // Default project is 'serverlessinbox'
       expect(command.input.Key).toMatch(/^serverlessinbox\/packages/);
     });
 
     it('uses custom bucketBase and project when provided', async () => {
-      const pointer = { version: '1.0.0', publishedAt: '2026-07-08T00:00:00Z' };
+      const pointer = { version: '1.0.0', publishedAt: '2026-07-08T00:00:00Z', objects: [{ name: 'a.zip' }] };
 
       s3Mock.on(GetObjectCommand).resolves({
         Body: createMockStream(JSON.stringify(pointer)),
       });
 
-      await readReleasePointer('mailbox-go', 'stable', 'us-east-1', {
+      await readReleasePointer(client, 'mailbox-go', 'stable', 'us-east-1', {
         bucketBase: 'custom-bucket',
         project: 'acme',
       });
@@ -129,43 +123,23 @@ describe('readReleasePointer', () => {
     });
   });
 
-  describe('NoSuchKey handling - returns undefined', () => {
-    it('returns undefined when NoSuchKey is thrown', async () => {
-      s3Mock.on(GetObjectCommand).rejects(new NoSuchKey({ message: 'Not Found' } as any));
+  describe('missing pointer', () => {
+    it('throws "object not found" when NoSuchKey is thrown', async () => {
+      s3Mock.on(GetObjectCommand).rejects(new NoSuchKey({ message: 'Not Found', $metadata: {} }));
 
-      const result = await readReleasePointer('mailbox-go', 'stable', 'us-east-1');
-
-      expect(result).toBeUndefined();
-    });
-
-    it('returns undefined when error with name=NoSuchKey is thrown', async () => {
-      const error = new Error('NoSuchKey');
-      (error as any).name = 'NoSuchKey';
-      s3Mock.on(GetObjectCommand).rejects(error);
-
-      const result = await readReleasePointer('mailbox-go', 'stable', 'us-east-1');
-
-      expect(result).toBeUndefined();
-    });
-
-    it('returns undefined when response Body is null', async () => {
-      s3Mock.on(GetObjectCommand).resolves({
-        Body: null,
-      });
-
-      const result = await readReleasePointer('mailbox-go', 'stable', 'us-east-1');
-
-      expect(result).toBeUndefined();
+      await expect(readReleasePointer(client, 'mailbox-go', 'stable', 'us-east-1')).rejects.toThrow(
+        'release pointer s3://mailbox-artifacts-us-east-1/serverlessinbox/packages/mailbox-go/releases/stable.json: object not found',
+      );
     });
   });
 
-  describe('error handling - rethrows non-NoSuchKey errors', () => {
+  describe('error handling - rethrows other errors', () => {
     it('throws on access denied error', async () => {
       const error = new Error('AccessDenied');
       s3Mock.on(GetObjectCommand).rejects(error);
 
       await expect(
-        readReleasePointer('mailbox-go', 'stable', 'us-east-1')
+        readReleasePointer(client, 'mailbox-go', 'stable', 'us-east-1')
       ).rejects.toThrow('AccessDenied');
     });
 
@@ -175,8 +149,8 @@ describe('readReleasePointer', () => {
       });
 
       await expect(
-        readReleasePointer('mailbox-go', 'stable', 'us-east-1')
-      ).rejects.toThrow();
+        readReleasePointer(client, 'mailbox-go', 'stable', 'us-east-1')
+      ).rejects.toThrow(/release pointer s3:\/\/mailbox-artifacts-us-east-1\/.*: not valid JSON/);
     });
   });
 });

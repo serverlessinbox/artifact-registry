@@ -1,15 +1,18 @@
-import { S3Client, ListObjectVersionsCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { ListObjectVersionsCommand } from '@aws-sdk/client-s3';
+import type { S3Client } from '@aws-sdk/client-s3';
 import { parse as parseSemver } from 'semver';
-import type { ArtifactType } from './types';
+import type { ArtifactType } from './artifact';
 import { buildArtifactKey } from './artifact-key';
+import { loadReleasePointer } from './release-pointer';
 
 export interface TrackVersionsOptions {
   /**
-   * Track name, e.g. 'v1', 'v1.2'. When omitted, the GLOBAL untracked latest-stable
-   * pointer is used (`{project}/packages/{name}/releases/stable.json`); when present,
-   * the track-scoped pointer (`{project}/packages/{name}/releases/{track}/stable.json`).
+   * Track name, e.g. 'v1', 'v1.2'. When omitted, the GLOBAL untracked 'stable'
+   * pointer is used (`{project}/{typePrefix}/{name}/releases/stable.json`); when present,
+   * the track-scoped pointer (`{project}/{typePrefix}/{name}/releases/{track}/stable.json`).
    */
   track?: string;
+  /** Bucket name without region suffix; each package's bucket is `{bucketBase}-{region}`. */
   bucketBase: string;
   artifactType: ArtifactType;
   /** Map of packageName → region. */
@@ -17,26 +20,27 @@ export interface TrackVersionsOptions {
 }
 
 export interface TrackVersionsResult {
-  /** S3 key → versionId map — passed as `artifactVersions` CDK context. */
+  /** S3 key → versionId, for the latest version of every object found under the resolved versions' release prefixes. */
   versionMap: Record<string, string>;
-  /** packageName → resolved semver string — used to build `artifacts.packages` context. */
+  /** packageName → resolved semver string. */
   resolvedVersions: Record<string, string>;
 }
 
 /**
- * Loads the S3 version map for all objects under a release track.
- * Reads the (track-scoped, 'stable' distTag) release pointer to determine the pinned version,
- * then lists all objects under {project}/packages/{name}/releases/v{version}/ — the same
- * buildArtifactKey type:'release' schema that buildReleasePrefix (artifact-target.ts) now also
- * routes through, so the CDK-side resolver's prefix agrees with this listing.
+ * Loads the S3 version map for all objects of the version a 'stable' release pointer names.
+ * Reads each package's pointer (track-scoped, or global when no track is given) to determine the
+ * pinned version, then lists all objects under the release prefix of that version (the
+ * `buildArtifactKey` 'release' layout).
+ * Throws when a pointer is missing or malformed, or names a version that is not valid semver.
+ * `client` must reach the bucket of every region in `options.packages`: construct it with
+ * `followRegionRedirects: true`.
  */
-export async function loadTrackVersions(options: TrackVersionsOptions): Promise<TrackVersionsResult> {
+export async function loadTrackVersions(client: S3Client, options: TrackVersionsOptions): Promise<TrackVersionsResult> {
   const entries = Object.entries(options.packages);
 
   const results = await Promise.all(
     entries.map(async ([packageName, region]) => {
       const bucket = `${options.bucketBase}-${region}`;
-      const client = new S3Client({ region });
 
       // 1. Build pointer key
       const pointerKey = buildArtifactKey(options.artifactType, packageName, {
@@ -45,21 +49,14 @@ export async function loadTrackVersions(options: TrackVersionsOptions): Promise<
       });
 
       // 2. Fetch and parse the pointer file
-      const pointerRes = await client.send(new GetObjectCommand({ Bucket: bucket, Key: pointerKey }));
-      if (!pointerRes.Body) {
-        throw new Error(`Pointer file body is undefined for key: ${pointerKey} in bucket: ${bucket}`);
-      }
-      const pointerBody = await pointerRes.Body.transformToString('utf-8');
-      const pointer = JSON.parse(pointerBody) as { version: string; publishedAt: string };
+      const pointer = await loadReleasePointer(client, bucket, pointerKey);
       const parsed = parseSemver(pointer.version);
       if (!parsed) {
         throw new Error(`Invalid semver in pointer file ${pointerKey}: "${pointer.version}"`);
       }
       const resolvedVersion = parsed.version;
 
-      // 3. Build listing prefix using buildArtifactKey 'release' schema: {project}/packages/{name}/releases/v{version}/
-      //    This is the schema written by uploader.ts; buildReleasePrefix (artifact-target.ts, used by the
-      //    CDK-side resolver) now routes through the same buildArtifactKey spec, so both sides agree.
+      // 3. Build the listing prefix with the buildArtifactKey 'release' layout: {project}/{typePrefix}/{name}/releases/v{version}/
       const listingPrefix = buildArtifactKey(options.artifactType, packageName, {
         type: 'release',
         version: parsed,

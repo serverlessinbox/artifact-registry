@@ -1,5 +1,6 @@
-import { S3Client, ListObjectVersionsCommand } from '@aws-sdk/client-s3';
-import type { ArtifactType } from './types';
+import { ListObjectVersionsCommand } from '@aws-sdk/client-s3';
+import type { S3Client } from '@aws-sdk/client-s3';
+import type { ArtifactType } from './artifact';
 import { buildArtifactKey } from './artifact-key';
 
 export interface ChannelVersionsOptions {
@@ -19,15 +20,16 @@ export interface ChannelVersionsOptions {
  * Returns a flat map of s3Key → versionId for all latest-version objects.
  *
  * Uses ListObjectVersionsCommand with pagination to gather VersionIds needed for CloudFormation.
+ * `client` must reach the bucket of every region in `options.packages`: construct it with
+ * `followRegionRedirects: true`.
  */
-export async function loadChannelVersions(options: ChannelVersionsOptions): Promise<Record<string, string>> {
+export async function loadChannelVersions(client: S3Client, options: ChannelVersionsOptions): Promise<Record<string, string>> {
   const entries = Object.entries(options.packages);
 
   const results = await Promise.all(
     entries.map(async ([packageName, region]) => {
       const bucket = `${options.bucketBase}-${region}`;
       const prefix = buildArtifactKey(options.artifactType, packageName, { type: 'channel-prefix', channel: options.channel });
-      const client = new S3Client({ region });
       const versionMap: Record<string, string> = {};
 
       let keyMarker: string | undefined;
