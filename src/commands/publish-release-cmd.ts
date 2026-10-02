@@ -1,10 +1,22 @@
 import { Command, Option } from 'clipanion';
 import * as path from 'path';
 import semver from 'semver';
-import type { ArtifactType, LatestStableObject } from '../utils/types';
-import { S3Uploader } from '../utils/uploader';
-import { loadConfig, selectArtifact, buildArtifactKey } from '../utils/artifact-key';
+import { S3Client } from '@aws-sdk/client-s3';
+import { toArtifactPackageMapKey } from '../artifacts/artifact';
+import type { ArtifactPackage } from '../artifacts/artifact';
+import { S3Uploader } from '../releases/uploader';
+import type { PackageRelease, ReleaseTrackCopy } from '../releases/release';
+import { selectArtifact, buildArtifactKey } from '../artifacts/artifact-key';
+import { loadWorkspaceConfig } from '../artifacts/workspace-config';
+import { hasErrorCode } from '../utils/error-code';
 
+const DEFAULT_REGION_KEY = '';
+
+/**
+ * Uploads a workspace's artifacts to the versioned release path, then writes the version pointers
+ * for each bucket/type/name and, for template artifacts, the release-track copies. Does not write
+ * channel objects.
+ */
 export class PublishReleaseCommand extends Command {
   static override paths = [['publish', 'release']];
 
@@ -48,27 +60,23 @@ export class PublishReleaseCommand extends Command {
 
     let config;
     try {
-      config = loadConfig(cwd);
+      config = loadWorkspaceConfig(cwd);
     } catch (err: unknown) {
-      if ((err as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
+      if (hasErrorCode(err, 'MODULE_NOT_FOUND')) {
         this.context.stderr.write(`Error: gitversion-s3.cjs not found in ${cwd}\n`);
         return 1;
       }
       throw err;
     }
 
-    const writtenPointers = new Set<string>();
-    let lastUploader: S3Uploader | undefined;
-    let lastBucketName: string | undefined;
-    let lastArtifactType: ArtifactType | undefined;
-    let lastName: string | undefined;
+    const uploaders = new Map<string, S3Uploader>();
+
+    // Per comboKey (bucket, type, name): the pointer to write, with every published objectName for
+    // its `objects[]`, for all artifact types.
+    const releases = new Map<string, PackageRelease>();
 
     // Tracks artifact entries per comboKey for release-track writes (template type only).
-    const trackEntries = new Map<string, { uploader: S3Uploader; bucketName: string; artifactType: ArtifactType; name: string; entries: Array<{ objectName: string; filePath: string }> }>();
-
-    // Tracks every published objectName + kind per comboKey, for the pointer's `objects[]` (all
-    // artifact types, not just template) -- this is what the TrackResolver custom resource reads.
-    const pointerObjects = new Map<string, LatestStableObject[]>();
+    const trackCopies = new Map<string, ReleaseTrackCopy>();
 
     let artifacts = config.artifacts;
     if (this.object) {
@@ -81,60 +89,67 @@ export class PublishReleaseCommand extends Command {
     }
 
     for (const entry of artifacts) {
-      const bucketName = entry.bucketName ?? config.bucketName;
-      const artifactType = config.type;
-      const name = entry.name ?? config.name;
+      const pkg: ArtifactPackage = {
+        bucketName: entry.bucketName ?? config.bucketName,
+        artifactType: config.type,
+        name: entry.name ?? config.name,
+      };
       const filePath = path.isAbsolute(entry.source) ? entry.source : path.join(cwd, entry.source);
-      const key = buildArtifactKey(artifactType, name, { type: 'release', version, objectName: entry.objectName });
-      const uploader = new S3Uploader({ region: entry.region });
+      const key = buildArtifactKey(pkg.artifactType, pkg.name, { type: 'release', version, objectName: entry.objectName });
       this.context.stdout.write(`Uploading ${entry.objectName} to ${key}...\n`);
-      await uploader.upload(bucketName, key, filePath);
+      await this.uploaderForRegion(uploaders, entry.region).upload(pkg.bucketName, key, filePath);
 
-      const comboKey = `${bucketName}::${artifactType}::${name}`;
-      if (!writtenPointers.has(comboKey)) {
-        writtenPointers.add(comboKey);
-        lastUploader = uploader;
-        lastBucketName = bucketName;
-        lastArtifactType = artifactType;
-        lastName = name;
+      const comboKey = toArtifactPackageMapKey(pkg);
+      let release = releases.get(comboKey);
+      if (release === undefined) {
+        release = { package: pkg, region: entry.region, objects: [] };
+        releases.set(comboKey, release);
       }
 
-      if (!pointerObjects.has(comboKey)) {
-        pointerObjects.set(comboKey, []);
-      }
-      pointerObjects.get(comboKey)!.push({ name: entry.objectName, kind: entry.kind });
+      release.objects.push({ name: entry.objectName });
 
-      if (artifactType === 'template') {
-        if (!trackEntries.has(comboKey)) {
-          trackEntries.set(comboKey, { uploader, bucketName, artifactType, name, entries: [] });
+      if (pkg.artifactType === 'template') {
+        let trackCopy = trackCopies.get(comboKey);
+        if (trackCopy === undefined) {
+          trackCopy = { package: pkg, region: entry.region, entries: [] };
+          trackCopies.set(comboKey, trackCopy);
         }
-        trackEntries.get(comboKey)!.entries.push({ objectName: entry.objectName, filePath });
+        trackCopy.entries.push({ objectName: entry.objectName, filePath });
       }
     }
 
-    for (const comboKey of writtenPointers) {
-      const [bucketName, artifactType, name] = comboKey.split('::') as [string, ArtifactType, string];
-      const uploader = (lastBucketName === bucketName && lastArtifactType === artifactType && lastName === name && lastUploader)
-        ? lastUploader
-        : new S3Uploader({});
-      this.context.stdout.write(`Writing version pointers for ${bucketName}/${artifactType}/${name}...\n`);
-      await uploader.writeVersionPointers(bucketName, artifactType, name, version, pointerObjects.get(comboKey) ?? []);
+    for (const release of releases.values()) {
+      const pkg = release.package;
+      this.context.stdout.write(`Writing version pointers for ${pkg.bucketName}/${pkg.artifactType}/${pkg.name}...\n`);
+      await this.uploaderForRegion(uploaders, release.region).writeVersionPointers(release, version);
     }
 
-    for (const { uploader, bucketName, artifactType, name, entries } of trackEntries.values()) {
+    for (const trackCopy of trackCopies.values()) {
+      const pkg = trackCopy.package;
+      const uploader = this.uploaderForRegion(uploaders, trackCopy.region);
       if (version.prerelease.length > 0) {
         const prereleaseTag = String(version.prerelease[0]);
-        this.context.stdout.write(`Writing release track '${prereleaseTag}' for ${bucketName}/${artifactType}/${name}...\n`);
-        await uploader.uploadReleaseTrack(bucketName, artifactType, name, prereleaseTag, entries);
+        this.context.stdout.write(`Writing release track '${prereleaseTag}' for ${pkg.bucketName}/${pkg.artifactType}/${pkg.name}...\n`);
+        await uploader.uploadReleaseTrack(trackCopy, prereleaseTag);
       } else {
         const { major } = version;
-        this.context.stdout.write(`Writing release tracks 'latest' and '${major}.x' for ${bucketName}/${artifactType}/${name}...\n`);
-        await uploader.uploadReleaseTrack(bucketName, artifactType, name, 'latest', entries);
-        await uploader.uploadReleaseTrack(bucketName, artifactType, name, `${major}.x`, entries);
+        this.context.stdout.write(`Writing release tracks 'latest' and '${major}.x' for ${pkg.bucketName}/${pkg.artifactType}/${pkg.name}...\n`);
+        await uploader.uploadReleaseTrack(trackCopy, 'latest');
+        await uploader.uploadReleaseTrack(trackCopy, `${major}.x`);
       }
     }
 
     this.context.stdout.write('Done.\n');
     return 0;
+  }
+
+  private uploaderForRegion(uploaders: Map<string, S3Uploader>, region: string | undefined): S3Uploader {
+    const regionKey = region ?? DEFAULT_REGION_KEY;
+    let uploader = uploaders.get(regionKey);
+    if (uploader === undefined) {
+      uploader = new S3Uploader(new S3Client({ region }));
+      uploaders.set(regionKey, uploader);
+    }
+    return uploader;
   }
 }

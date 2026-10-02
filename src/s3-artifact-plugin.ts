@@ -3,11 +3,24 @@ import * as fssync from 'fs';
 import * as path from 'path';
 import semver from 'semver';
 import type { IPlugin, IPackManager, IWorkspace, PackedPackage, PackResult, PackFileResult } from '@jwpkg/gitversion';
-import { S3Uploader } from './utils/uploader';
+import { S3Client } from '@aws-sdk/client-s3';
+import { S3Uploader } from './releases/uploader';
 import { run } from './utils/common';
-import { loadConfig, buildArtifactKey } from './utils/artifact-key';
-import type { S3ArtifactEntry, S3WorkspaceConfig, ArtifactMapEntry, LatestStableObject } from './utils/types';
+import { hasErrorCode } from './utils/error-code';
+import { readArtifactMap } from './artifacts/artifact-map';
+import { buildArtifactKey } from './artifacts/artifact-key';
+import { loadWorkspaceConfig } from './artifacts/workspace-config';
+import type { S3ArtifactEntry, S3WorkspaceConfig } from './artifacts/workspace-config';
+import type { ReleasePointerObject } from './releases/release-pointer';
+import { toArtifactPackageMapKey } from './artifacts/artifact';
+import type { ArtifactPackage } from './artifacts/artifact';
 
+/**
+ * gitversion plugin that packs the artifacts a workspace declares in its config file and publishes
+ * them to S3 at the versioned release path, followed by the version pointers. `pack` records each
+ * file's routing in the package's plugin data; `publish` uploads from that record and does no
+ * config lookup of its own.
+ */
 class S3ArtifactPlugin implements IPlugin, IPackManager {
   readonly ident = 's3-artifact';
   readonly name = 'S3 artifact plugin';
@@ -21,10 +34,9 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
   async pack(workspace: IWorkspace, outputFolder: string): Promise<PackResult | null> {
     let config: S3WorkspaceConfig | undefined;
     try {
-      config = loadConfig(workspace.cwd) as S3WorkspaceConfig;
+      config = loadWorkspaceConfig(workspace.cwd);
     } catch (err: unknown) {
-      const nodeErr = err as NodeJS.ErrnoException;
-      if (nodeErr.code !== 'MODULE_NOT_FOUND') {
+      if (!hasErrorCode(err, 'MODULE_NOT_FOUND')) {
         throw err;
       }
       // No config file for this workspace — skip silently
@@ -58,22 +70,22 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
         await fs.copyFile(resolved, outPath);
       }
 
-      const artifactType = config.type;
-      const name = entry.name ?? config.name;
+      const pkg: ArtifactPackage = {
+        bucketName: entry.bucketName ?? config.bucketName,
+        artifactType: config.type,
+        name: entry.name ?? config.name,
+      };
       const parsedVersion = semver.parse(workspace.version);
       if (!parsedVersion) throw new Error(`Invalid semver version from workspace: ${workspace.version}`);
-      const key = buildArtifactKey(artifactType, name, { type: 'release', version: parsedVersion, objectName: entry.objectName });
+      const key = buildArtifactKey(pkg.artifactType, pkg.name, { type: 'release', version: parsedVersion, objectName: entry.objectName });
 
       files.push({
         name: outputBasename,
         metadata: {
-          bucketName: entry.bucketName ?? config.bucketName,
-          artifactType,
-          name,
+          package: pkg,
           key,
           region: entry.region,
           objectName: entry.objectName,
-          kind: entry.kind,
         },
       });
 
@@ -87,7 +99,10 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
   async publish(packedPackage: PackedPackage, fileName: string, releaseTag: string, dryRun: boolean): Promise<void> {
     const basename = path.basename(fileName);
 
-    const pluginData = packedPackage.pluginData?.['s3-artifact'] as Record<string, ArtifactMapEntry> | undefined;
+    const rawPluginData = packedPackage.pluginData?.['s3-artifact'];
+    const pluginData = rawPluginData === undefined
+      ? undefined
+      : readArtifactMap(rawPluginData);
     const mapEntry = pluginData?.[basename];
 
     if (mapEntry === undefined) {
@@ -95,8 +110,9 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
       return;
     }
 
-    const { bucketName, key, region } = mapEntry;
-    const uploader = new S3Uploader({ region });
+    const { key, region } = mapEntry;
+    const { bucketName } = mapEntry.package;
+    const uploader = new S3Uploader(new S3Client({ region }));
 
     if (dryRun) {
       console.log(`[s3-artifact] [dry-run] Would upload ${basename} → s3://${bucketName}/${key}`);
@@ -110,21 +126,21 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     const versionStr = packedPackage.version;
     const version = semver.parse(versionStr);
     if (!version) throw new Error(`Invalid semver version from packed package: ${versionStr}`);
-    const { artifactType, name } = mapEntry;
+    const pkg = mapEntry.package;
+    const pkgMapKey = toArtifactPackageMapKey(pkg);
 
-    // `pluginData` holds every file's metadata for this package (populated at pack time), not just
-    // the one file this publish() call is currently uploading -- so the pointer's `objects[]` is
-    // built from the full sibling set every time, and stays identical (and complete) regardless of
-    // publish order or which file's call happens to trigger the write.
-    const objects: LatestStableObject[] = pluginData
+    // `pluginData` holds the routing of every file of this package, not just the one being uploaded,
+    // so `objects[]` is built from all siblings sharing bucket, type and name. The pointer is then
+    // the same whichever file's publish() call writes it.
+    const objects: ReleasePointerObject[] = pluginData
       ? Object.values(pluginData)
-          .filter(e => e.bucketName === bucketName && e.artifactType === artifactType && e.name === name)
-          .map(e => ({ name: e.objectName, kind: e.kind }))
-      : [{ name: mapEntry.objectName, kind: mapEntry.kind }];
+          .filter(e => toArtifactPackageMapKey(e.package) === pkgMapKey)
+          .map(e => ({ name: e.objectName }))
+      : [{ name: mapEntry.objectName }];
 
-    await uploader.writeVersionPointers(bucketName, artifactType, name, version, objects);
+    await uploader.writeVersionPointers({ package: pkg, region, objects }, version);
   }
 }
 
 export { S3ArtifactPlugin };
-export type { S3ArtifactEntry, S3WorkspaceConfig } from './utils/types';
+export type { S3ArtifactEntry, S3WorkspaceConfig } from './artifacts/workspace-config';

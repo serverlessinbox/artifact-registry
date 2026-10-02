@@ -1,11 +1,18 @@
 import { Command, Option } from 'clipanion';
-import * as fs from 'fs';
 import * as path from 'path';
 import semver from 'semver';
-import type { ArtifactType } from '../utils/types';
-import { S3Uploader } from '../utils/uploader';
-import { buildArtifactKey } from '../utils/artifact-key';
+import { S3Client } from '@aws-sdk/client-s3';
+import { isArtifactType } from '../artifacts/artifact';
+import { readComponentVersions } from '../releases/component-versions';
+import { readPackageJson } from '../utils/package-json';
+import { S3Uploader } from '../releases/uploader';
+import { buildArtifactKey } from '../artifacts/artifact-key';
 
+/**
+ * Builds a release manifest (version, publish time and a component → version map) and uploads it as
+ * `manifest.json` under the release path of the named artifact. Uploads the manifest only, not the
+ * artifacts themselves.
+ */
 export class PublishManifestCommand extends Command {
   static override paths = [['publish', 'manifest']];
 
@@ -34,6 +41,7 @@ export class PublishManifestCommand extends Command {
 
   artifactType = Option.String('--type', {
     required: true,
+    validator: isArtifactType,
     description: 'Artifact type (e.g. package, template).',
   });
 
@@ -69,8 +77,8 @@ export class PublishManifestCommand extends Command {
       const pkgPath = path.isAbsolute(this.versionFromPackage)
         ? this.versionFromPackage
         : path.join(process.cwd(), this.versionFromPackage);
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as { version?: string };
-      version = pkg.version;
+      const packageJson = readPackageJson(pkgPath);
+      version = packageJson.version;
     }
 
     if (!version) {
@@ -86,9 +94,9 @@ export class PublishManifestCommand extends Command {
     const versionsPath = path.isAbsolute(this.versionsFile)
       ? this.versionsFile
       : path.join(process.cwd(), this.versionsFile);
-    const artifactVersions: Record<string, string> = JSON.parse(fs.readFileSync(versionsPath, 'utf8'));
+    const componentVersions = readComponentVersions(versionsPath);
 
-    const components: Record<string, string> = { ...artifactVersions };
+    const components: Record<string, string> = { ...componentVersions };
     for (const extra of this.extraComponents) {
       const colonIdx = extra.indexOf(':');
       if (colonIdx === -1) {
@@ -108,8 +116,8 @@ export class PublishManifestCommand extends Command {
 
     const parsedVersion = semver.parse(version);
     if (!parsedVersion) throw new Error(`Invalid semver version: ${version}`);
-    const key = buildArtifactKey(this.artifactType as ArtifactType, this.name, { type: 'release', version: parsedVersion, objectName: 'manifest.json' });
-    const uploader = new S3Uploader({ region: this.region });
+    const key = buildArtifactKey(this.artifactType, this.name, { type: 'release', version: parsedVersion, objectName: 'manifest.json' });
+    const uploader = new S3Uploader(new S3Client({ region: this.region }));
 
     this.context.stdout.write(`Publishing manifest to s3://${this.bucket}/${key}\n`);
     this.context.stdout.write(JSON.stringify(manifest, null, 2) + '\n');

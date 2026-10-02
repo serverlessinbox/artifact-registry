@@ -1,8 +1,16 @@
 import { Command, Option } from 'clipanion';
 import * as path from 'path';
-import { S3Uploader } from '../utils/uploader';
-import { loadConfig, selectArtifact } from '../utils/artifact-key';
+import { S3Client } from '@aws-sdk/client-s3';
+import { S3Uploader } from '../releases/uploader';
+import type { ArtifactPackage } from '../artifacts/artifact';
+import { selectArtifact } from '../artifacts/artifact-key';
+import { loadWorkspaceConfig } from '../artifacts/workspace-config';
+import { hasErrorCode } from '../utils/error-code';
 
+/**
+ * Uploads a workspace's artifacts to a mutable S3 channel path. Writes only the channel objects:
+ * no version pointers and no release tracks.
+ */
 export class PublishChannelCommand extends Command {
   static override paths = [['publish', 'channel']];
 
@@ -39,9 +47,9 @@ export class PublishChannelCommand extends Command {
 
     let config;
     try {
-      config = loadConfig(cwd);
+      config = loadWorkspaceConfig(cwd);
     } catch (err: unknown) {
-      if ((err as NodeJS.ErrnoException).code === 'MODULE_NOT_FOUND') {
+      if (hasErrorCode(err, 'MODULE_NOT_FOUND')) {
         this.context.stderr.write(`Error: gitversion-s3.cjs not found in ${cwd}\n`);
         return 1;
       }
@@ -55,13 +63,15 @@ export class PublishChannelCommand extends Command {
         return 1;
       }
 
-      const bucketName = entry.bucketName ?? config.bucketName;
-      const artifactType = config.type;
-      const name = entry.name ?? config.name;
+      const pkg: ArtifactPackage = {
+        bucketName: entry.bucketName ?? config.bucketName,
+        artifactType: config.type,
+        name: entry.name ?? config.name,
+      };
       const filePath = path.isAbsolute(entry.source) ? entry.source : path.join(cwd, entry.source);
-      const uploader = new S3Uploader({ region: entry.region });
+      const uploader = new S3Uploader(new S3Client({ region: entry.region }));
       this.context.stdout.write(`Uploading ${entry.objectName} to channel ${this.channel}...\n`);
-      await uploader.uploadChannel(bucketName, artifactType, name, this.channel, entry.objectName, filePath);
+      await uploader.uploadChannel(pkg, this.channel, entry.objectName, filePath);
     } else {
       if (config.artifacts.length === 0) {
         this.context.stderr.write(`Error: no artifacts found\n`);
@@ -69,13 +79,15 @@ export class PublishChannelCommand extends Command {
       }
 
       for (const entry of config.artifacts) {
-        const bucketName = entry.bucketName ?? config.bucketName;
-        const artifactType = config.type;
-        const name = entry.name ?? config.name;
+        const pkg: ArtifactPackage = {
+          bucketName: entry.bucketName ?? config.bucketName,
+          artifactType: config.type,
+          name: entry.name ?? config.name,
+        };
         const filePath = path.isAbsolute(entry.source) ? entry.source : path.join(cwd, entry.source);
-        const uploader = new S3Uploader({ region: entry.region });
+        const uploader = new S3Uploader(new S3Client({ region: entry.region }));
         this.context.stdout.write(`Uploading ${entry.objectName} to channel ${this.channel}...\n`);
-        await uploader.uploadChannel(bucketName, artifactType, name, this.channel, entry.objectName, filePath);
+        await uploader.uploadChannel(pkg, this.channel, entry.objectName, filePath);
       }
     }
 
