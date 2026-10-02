@@ -43,6 +43,7 @@ const RAW_RUNTIME_STATE =
           ["jest-util", "npm:29.7.0"],\
           ["semver", "npm:7.8.1"],\
           ["ts-jest", "virtual:106832e7321ae4911079d085f872732c9b5120f43dc4c6f0dac609c8186c54119ac6905ffa47dc059e9c2345f6e0792bc7a2fc6beb49c63379e5ce04689faf48#npm:29.4.11"],\
+          ["typanion", "npm:3.14.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
           ["typescript-eslint", "virtual:106832e7321ae4911079d085f872732c9b5120f43dc4c6f0dac609c8186c54119ac6905ffa47dc059e9c2345f6e0792bc7a2fc6beb49c63379e5ce04689faf48#npm:8.71.0"]\
         ],\
@@ -2382,6 +2383,7 @@ const RAW_RUNTIME_STATE =
           ["jest-util", "npm:29.7.0"],\
           ["semver", "npm:7.8.1"],\
           ["ts-jest", "virtual:106832e7321ae4911079d085f872732c9b5120f43dc4c6f0dac609c8186c54119ac6905ffa47dc059e9c2345f6e0792bc7a2fc6beb49c63379e5ce04689faf48#npm:29.4.11"],\
+          ["typanion", "npm:3.14.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
           ["typescript-eslint", "virtual:106832e7321ae4911079d085f872732c9b5120f43dc4c6f0dac609c8186c54119ac6905ffa47dc059e9c2345f6e0792bc7a2fc6beb49c63379e5ce04689faf48#npm:8.71.0"]\
         ],\
@@ -4958,7 +4960,8 @@ const RAW_RUNTIME_STATE =
           ["typanion", "npm:3.14.0"]\
         ],\
         "packagePeers": [\
-          "@types/typanion"\
+          "@types/typanion",\
+          "typanion"\
         ],\
         "linkType": "HARD"\
       }],\

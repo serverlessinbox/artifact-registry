@@ -9,7 +9,7 @@
     "dist"
   ],
   "scripts": {
-    "lint": "true",
+    "lint": "eslint src",
     "lint:all": "eslint src --max-warnings=-1",
     "build": "tsc --noEmit false",
     "test": "jest",
@@ -24,7 +24,8 @@
     "@aws-sdk/client-s3": "^3",
     "clipanion": "^3.2.1",
     "esbuild": "^0.27.1",
-    "semver": "^7.8.1"
+    "semver": "^7.8.1",
+    "typanion": "^3.14.0"
   },
   "devDependencies": {
     "@jwpkg/gitversion": "1.4.0-pack-order.2",

@@ -1695,6 +1695,7 @@ __metadata:
     jest-util: "npm:^29"
     semver: "npm:^7.8.1"
     ts-jest: "npm:^29"
+    typanion: "npm:^3.14.0"
     typescript: "npm:^5"
     typescript-eslint: "npm:^8"
   peerDependencies:

@@ -45,7 +45,8 @@ export default [
     languageOptions: {
       parser: ts.parser,
       parserOptions: {
-        projectService: true,
+        project: ['./tsconfig.eslint.json'],
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     linterOptions: {
@@ -69,6 +70,7 @@ export default [
       '@typescript-eslint/no-unsafe-argument': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/ban-ts-comment': 'error',
+      '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
       '@typescript-eslint/use-unknown-in-catch-callback-variable': 'error',
       'custom/plan-labels': 'error',
     },
