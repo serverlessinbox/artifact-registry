@@ -1,15 +1,17 @@
 import * as fs from 'fs/promises';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { buildArtifactKey } from './artifact-key';
-import type { ArtifactType, LatestStableObject, LatestStablePointer } from './types';
+import type { ReleasePointer } from './release-pointer';
+import type { ArtifactPackage } from './artifact';
+import type { PackageRelease, ReleaseTrackCopy } from './release';
 import type { SemVer } from 'semver';
 
+/**
+ * Writes artifact files, JSON documents and release pointers to S3 under the key layouts of
+ * `buildArtifactKey`. It uploads what it is given and never lists or deletes objects.
+ */
 export class S3Uploader {
-  private readonly client: S3Client;
-
-  constructor(config?: { region?: string }) {
-    this.client = new S3Client({ region: config?.region });
-  }
+  constructor(private readonly client: S3Client) {}
 
   async upload(bucket: string, key: string, filePath: string): Promise<void> {
     const body = await fs.readFile(filePath);
@@ -20,9 +22,9 @@ export class S3Uploader {
     }));
   }
 
-  async uploadChannel(bucket: string, artifactType: ArtifactType, name: string, channel: string, objectName: string, filePath: string): Promise<void> {
-    const key = buildArtifactKey(artifactType, name, { type: 'channel', channel, objectName });
-    await this.upload(bucket, key, filePath);
+  async uploadChannel(pkg: ArtifactPackage, channel: string, objectName: string, filePath: string): Promise<void> {
+    const key = buildArtifactKey(pkg.artifactType, pkg.name, { type: 'channel', channel, objectName });
+    await this.upload(pkg.bucketName, key, filePath);
   }
 
   async uploadJson(bucket: string, key: string, data: unknown): Promise<void> {
@@ -34,22 +36,11 @@ export class S3Uploader {
     }));
   }
 
-  async readJson(bucket: string, key: string): Promise<unknown> {
-    const response = await this.client.send(new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    }));
-    const body = await response.Body?.transformToString();
-    if (body === undefined) {
-      throw new Error(`S3 object s3://${bucket}/${key} has no body`);
-    }
-    return JSON.parse(body);
-  }
-
-  async uploadReleaseTrack(bucket: string, artifactType: ArtifactType, name: string, track: string, entries: Array<{ objectName: string; filePath: string }>): Promise<void> {
-    for (const entry of entries) {
-      const key = buildArtifactKey(artifactType, name, { type: 'release-track', track, objectName: entry.objectName });
-      await this.upload(bucket, key, entry.filePath);
+  async uploadReleaseTrack(copy: ReleaseTrackCopy, track: string): Promise<void> {
+    const pkg = copy.package;
+    for (const entry of copy.entries) {
+      const key = buildArtifactKey(pkg.artifactType, pkg.name, { type: 'release-track', track, objectName: entry.objectName });
+      await this.upload(pkg.bucketName, key, entry.filePath);
     }
   }
 
@@ -58,19 +49,17 @@ export class S3Uploader {
    * one at v{major} granularity, one at v{major}.{minor}. `distTag` is 'stable' for a normal
    * release, or the GitVersion prerelease label (e.g. 'beta', 'calendar') for a prerelease.
    *
-   * `objects` declares every artifact published in this release, self-describing for the
-   * TrackResolver custom resource (`track-resolver-handler.ts`) to route without hardcoding names --
-   * omitting it (or passing an empty array) writes a pointer with no `objects[]`, from which the
-   * resolver can resolve a version but zero per-object S3 keys.
+   * `release.objects` declares every artifact published in this release (at least one), so a reader
+   * of the pointer learns the object names from it.
    */
-  async writeVersionPointers(bucket: string, artifactType: ArtifactType, name: string, version: SemVer, objects: LatestStableObject[] = []): Promise<void> {
-    const pointer: LatestStablePointer = { version: version.version, publishedAt: new Date().toISOString(), objects };
+  async writeVersionPointers(release: PackageRelease, version: SemVer): Promise<void> {
+    const pkg = release.package;
+    const pointer: ReleasePointer = { version: version.version, publishedAt: new Date().toISOString(), objects: release.objects };
     const distTag = version.prerelease.length > 0 ? String(version.prerelease[0]) : undefined;
     const { major, minor } = version;
-    // Global (untracked) pointer
-    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', distTag }), pointer);
-    // Track-scoped pointers
-    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}`, distTag }), pointer);
-    await this.uploadJson(bucket, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}.${minor}`, distTag }), pointer);
+    const { bucketName, artifactType, name } = pkg;
+    await this.uploadJson(bucketName, buildArtifactKey(artifactType, name, { type: 'release-pointer', distTag }), pointer);
+    await this.uploadJson(bucketName, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}`, distTag }), pointer);
+    await this.uploadJson(bucketName, buildArtifactKey(artifactType, name, { type: 'release-pointer', track: `v${major}.${minor}`, distTag }), pointer);
   }
 }
