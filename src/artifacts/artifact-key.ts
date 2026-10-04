@@ -5,7 +5,7 @@ import type { S3ArtifactEntry, S3WorkspaceConfig } from './workspace-config';
 export type { ArtifactType };
 
 /** Optional parts of a release pointer key: the track scope, the release line and the leading key segment. */
-interface ReleasePointerKeyOptions {
+export interface ReleasePointerKeyOptions {
   track?: string;
   distTag?: string;
   project?: string;

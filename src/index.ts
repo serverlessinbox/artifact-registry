@@ -1,31 +1,4 @@
+// Public surface of the package: the artifacts and releases folder APIs plus the gitversion plugin.
+export * from './artifacts';
+export * from './releases';
 export { S3ArtifactPlugin } from './s3-artifact-plugin';
-export { S3Uploader } from './utils/uploader';
-export type { S3WorkspaceConfig, S3ArtifactEntry } from './utils/types';
-export { buildArtifacts } from './utils/build-artifacts';
-export type { ArtifactBuildResult } from './utils/types';
-export { loadChannelVersions } from './utils/load-channel';
-export type { ChannelVersionsOptions } from './utils/load-channel';
-export { loadTrackVersions } from './utils/load-track';
-export type { TrackVersionsOptions, TrackVersionsResult } from './utils/load-track';
-export { loadPrereleaseVersions } from './utils/load-prerelease';
-export type { PrereleaseVersionsOptions } from './utils/load-prerelease';
-export type { ArtifactType } from './utils/types';
-export type { ArtifactTarget, ReleaseTarget, ChannelTarget, TrackTarget } from './utils/artifact-target';
-export { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from './utils/artifact-target';
-export type { ResolvedArtifact, IArtifactRegistry } from './utils/artifact-registry';
-export { S3ArtifactRegistry } from './utils/artifact-registry';
-export { readArtifactVersions } from './utils/artifact-versions';
-export type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from './utils/artifact-versions';
-export { ArtifactResolver, createPackageRegionMap, resolveArtifact } from './utils/artifact-resolver-factory';
-export type { IArtifactResolver, ResolvedArtifactData, ArtifactResolverFactoryOptions } from './utils/artifact-resolver-factory';
-
-// Track resolver: pure version→track math only. The CFN custom-resource handler,
-// buildTrackResolverProperties, TRACK_RESOLVER_VERSION_ATTR, and the inline-handler bundle moved to
-// @serverlessinbox/mailbox-cdk-shared (stack-self-update, phase A cleanup) -- this package stays pure.
-export { deriveTrack } from './track-resolver';
-export { buildArtifactKey, buildReleasePointerKey } from './utils/artifact-key';
-export type { LatestStablePointer, LatestStableObject } from './utils/types';
-
-// Scheduled updater runtime utilities: read track-scoped pointers.
-export { readReleasePointer } from './utils/read-release-pointer';
-export type { ReadReleasePointerOptions } from './utils/read-release-pointer';
