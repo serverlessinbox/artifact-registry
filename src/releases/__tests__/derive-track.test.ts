@@ -1,11 +1,7 @@
 /**
- * Unit tests for `deriveTrack` (plan-a, stack-self-update, Phase B).
- *
- * Pure version→track math -- no S3, no CDK. Covers exact `v{major}`/`v{major}.{minor}` outputs
- * from a semver version + granularity, both bare (`1.4.2`) and `v`-prefixed (`v1.4.2`) inputs, and
- * throwing on garbage. Split out of the former `build-properties.test.ts` when the CFN-specific
- * `buildTrackResolverProperties` tests moved to `@serverlessinbox/mailbox-cdk-shared` along with the
- * builder itself.
+ * Pins the exact `v{major}` / `v{major}.{minor}` strings `deriveTrack` returns, for bare and
+ * `v`-prefixed versions and with prerelease suffixes, and that malformed input throws. The result
+ * is used as a track segment of S3 keys, so a changed format points at different objects.
  */
 
 import { deriveTrack } from '../derive-track';

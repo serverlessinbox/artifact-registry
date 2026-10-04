@@ -1,11 +1,11 @@
 import type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from './artifact-versions';
-import { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from './artifact-target';
-import type { ArtifactType } from './types';
+import { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from '../artifacts/artifact-target';
+import type { ArtifactType } from '../artifacts/artifact';
 import type { ResolvedArtifact } from './artifact-registry';
 
 /**
- * Pre-computed artifact resolution data for a single package.
- * Contains the resolved bucket name and S3 key prefix for that artifact.
+ * Resolved location of a single package: the bucket, the S3 key prefix its objects live under and,
+ * when pinned, the S3 object version ID.
  */
 export interface ResolvedArtifactData {
   readonly bucket: string;
@@ -28,13 +28,15 @@ export function resolveArtifact(data: ResolvedArtifactData, objectPath: string):
 }
 
 /**
- * Pure interface for artifact resolution — no CDK, no AWS SDK.
+ * Synchronous lookup, per package name, of an object's S3 location, URL and ARN, the package's
+ * pinned version and S3 version ID, and the bucket base shared by all packages. Every
+ * package-specific method throws for a package the resolver does not know.
  */
 export interface IArtifactResolver {
   resolve(packageName: string, objectPath: string): ResolvedArtifact;
   getUrl(packageName: string, objectPath: string): string;
   getArn(packageName: string, objectPath: string): string;
-  /** Raw version string for the given package (e.g. "0.0.21" or "dev"). */
+  /** Version string of the package's entry in the versions file, as written there. */
   getVersion(packageName: string): string;
   /** S3 version ID for the given package, or undefined if not pinned. */
   getVersionId(packageName: string): string | undefined;
@@ -43,8 +45,9 @@ export interface IArtifactResolver {
 }
 
 /**
- * Pure TypeScript artifact resolver. No CDK, no AWS SDK.
- * Holds pre-computed resolution data for all packages in the versions file.
+ * {@link IArtifactResolver} over the packages of one artifact-versions file. Resolves every package
+ * to its bucket and key prefix in the constructor, so an unusable configuration (no bucket base)
+ * fails at construction rather than on first use. It does not read S3.
  */
 export class ArtifactResolver implements IArtifactResolver {
   private readonly resolvedData: Record<string, ResolvedArtifactData>;
@@ -93,7 +96,7 @@ export class ArtifactResolver implements IArtifactResolver {
     const data = this.resolvedData[packageName];
     if (!data) throw new Error(`No resolved data for package '${packageName}'`);
     const resolved = resolveArtifact(data, objectPath);
-    const region = this.regionMap[packageName]!;
+    const region = this.regionMap[packageName];
     return buildArtifactUrl(data.bucket, region, resolved.key, data.versionId);
   }
 
@@ -122,26 +125,26 @@ export class ArtifactResolver implements IArtifactResolver {
 }
 
 /**
- * Factory options for resolving artifacts.
+ * Options for constructing an {@link ArtifactResolver}.
  */
 export interface ArtifactResolverFactoryOptions {
   /** The parsed artifact-versions data (packages + optional bucketBase). */
   readonly versions: ParsedArtifactVersions;
-  /** Optional override for bucketBase (e.g. from CDK context). Takes precedence over versions.bucketBase. */
+  /** Bucket name without region suffix. Takes precedence over `versions.bucketBase`; construction throws when neither is set. */
   readonly bucketBaseOverride?: string;
   /** The deployment region (e.g. 'eu-west-1'). Used for 'regional' zone artifacts. */
   readonly deploymentRegion: string;
   /** The artifact type (default: 'package'). */
   readonly artifactType?: ArtifactType;
-  /** Optional map of S3 keys to version IDs for pinning artifacts to specific S3 object versions. */
+  /** S3 key to S3 object version ID. `resolve()` adds the matching version ID to a resolved artifact whose key is listed. */
   readonly s3VersionMap?: Record<string, string>;
   /** Optional override for the `{project}/` key prefix. Defaults to DEFAULT_PROJECT. */
   readonly project?: string;
 }
 
 /**
- * Resolves a single artifact entry to bucket and prefix.
- * Called internally by the factory for each package.
+ * Resolves a single artifact entry to bucket and prefix: the channel prefix when the entry names a
+ * channel, otherwise the release prefix of its version.
  */
 function resolveArtifactData(
   packageName: string,
@@ -151,7 +154,6 @@ function resolveArtifactData(
   artifactType: ArtifactType,
   project?: string,
 ): ResolvedArtifactData {
-  // Determine the region based on zone
   const region = entry.zone === 'edge' ? 'us-east-1' : deploymentRegion;
   const bucket = buildArtifactBucketName(bucketBase, region);
   const prefix = entry.channel
@@ -165,11 +167,8 @@ function resolveArtifactData(
 }
 
 /**
- * Helper function: derives a region map from parsed artifact versions.
- * Maps each package name to the region where its artifact resolves.
- * This is used by pre-synth callers like loadChannelVersions.
- *
- * Returns: packageName → region string (either deployment region or us-east-1 for edge).
+ * Maps each package name of the versions to the region its artifact resolves in: us-east-1 for an
+ * 'edge' zone entry, the deployment region otherwise.
  */
 export function createPackageRegionMap(
   versions: ParsedArtifactVersions,
