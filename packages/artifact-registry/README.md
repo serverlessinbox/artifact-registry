@@ -6,26 +6,27 @@ Built for [ServerlessInbox](https://github.com/serverlessinbox/serverlessinbox).
 
 ## Why this package exists
 
-Infrastructure-as-code deployments usually upload their own assets (function code, static files, nested templates) at deploy time, into a staging location that must first exist in the target account. That ties a deployment to a prepared account and a build machine. `artifact-registry` separates publishing from deploying: assets are published ahead of time to versioned S3 locations per region, in a fixed layout, and templates reference those locations directly. A deployment then needs no staging, no upload and no preparation, so it works in any AWS account. (With CDK, for example, this removes the need for `cdk bootstrap`.)
+Infrastructure-as-code deployments usually upload their own assets (function code, static files, nested templates) at deploy time, into a staging location that must first exist in the target account. That ties a deployment to a prepared account and a build machine. `artifact-registry` separates publishing from deploying: assets are published ahead of time to versioned S3 locations per region, in a fixed layout, and templates reference those locations directly. A deployment then needs no staging, so it works in any AWS account.
 
 The package defines that layout and provides both sides:
 
-- **Publishing**: a CLI and a programmatic API put each artifact in the right place, as an immutable release, on a channel, and behind track pointers.
+- **Publishing**: a CLI and a programmatic API put each artifact in the right place, as an immutable release or on a mutable channel, and write pointers to the current version of a release line.
 - **Reading**: loaders, a resolver and key builders find where an artifact for a given version, channel or track lives, so no consumer hand-writes an S3 key.
 
-Publishing as part of a [`@jwpkg/gitversion`](https://github.com/jwpkg/gitversion) release is done by the separate `@serverlessinbox/artifact-registry-gitversion` package, which builds on this one.
+Publishing as part of a [`@jwpkg/gitversion`](https://github.com/jwpkg/gitversion) release is done by the separate `@serverlessinbox/artifact-registry-gitversion` package.
 
 ## Concepts
 
 | Concept | Meaning |
 |---|---|
-| Artifact type | `package` (keys under `packages/`) or `template` (keys under `templates/`). Together with a name it identifies one published unit, for example `package` + `my-lambdas`. |
+| Artifact type | `package` (keys under `packages/`) or `template` (keys under `templates/`). With a name it identifies one published unit, for example `package` + `example-api`. |
 | Release | An immutable, versioned set of objects at `releases/v{version}/`. The version never carries a `v`; the path adds it. |
-| Channel | A mutable path, `channels/{channel}/` (for example `dev`). Each publish overwrites the same keys; the history is the S3 object versions of those keys. |
+| Channel | A mutable path, `channels/{channel}/` (for example `dev`). Each publish overwrites the same keys. |
 | Track | A version line: `v{major}` (for example `v1`) or `v{major}.{minor}` (for example `v1.4`). Track names always carry a `v`. |
-| Pointer file | `{distTag}.json`, written globally and once per track. It names the current version of a release line and the objects in it: `{ version, publishedAt, objects: [{ name }] }`. A consumer following track `v1` reads `releases/v1/stable.json`. `distTag` is `stable` for a normal release, or the prerelease label (for example `beta` from `1.2.0-beta.0`) for a prerelease. |
-| `latest` template copy | For `template` artifacts, `publish release` also uploads each template to a version-less key, `releases/latest/{objectName}` for a stable release or `releases/{prereleaseLabel}/{objectName}` for a prerelease. |
-| Regional bucket | One bucket per region, named `{bucketBase}-{region}`, for example `my-artifacts-eu-west-1`. Lambda code must live in the region of the function that uses it, so every region in use has its own bucket. |
+| Pointer | `{distTag}.json`, written once globally and once per track of a release. Its body is `{ version, publishedAt, objects: [{ name }] }`. `distTag` is `stable` for a normal release, or the first prerelease identifier (`beta` for `1.2.0-beta.0`) for a prerelease. |
+| Track copy | For `template` artifacts, a release also uploads each object to `releases/latest/{objectName}`, or `releases/{prereleaseLabel}/{objectName}` for a prerelease. |
+| Regional bucket | One bucket per region, named `{bucketBase}-{region}` unless overridden, for example `example-artifacts-eu-west-1`. |
+| Zone | `regional` or `edge`. At publish time `edge` means `us-east-1`; `regional` means the registry's `regions`. When reading, `regional` resolves in the deployment region. |
 
 ## Installation
 
@@ -37,100 +38,117 @@ yarn add --dev @serverlessinbox/artifact-registry
 
 ### Workspace config
 
-Each workspace that publishes artifacts has an `artifact-registry.json` at its root. The CLI and `buildArtifacts` read it; the field reference is under [Reference](#artifact-registryjson).
+A workspace that publishes artifacts has an `artifact-registry.json` at its root; the fields are in [Reference](#artifact-registryjson).
 
 ```json
 {
-  "bucketName": "my-artifacts-eu-west-1",
+  "registry": {
+    "bucketBase": "example-artifacts",
+    "project": "example",
+    "regions": ["eu-west-1", "eu-central-1"],
+    "bucketOverrides": { "us-east-1": "example-artifacts-use1-7f3a" }
+  },
   "type": "package",
-  "name": "my-lambdas",
+  "name": "example-api",
   "artifacts": [
-    { "source": "dist/admin-api", "objectName": "lambdas/admin-api.zip" },
-    { "source": "dist/manifest.json", "objectName": "manifest.json" }
+    { "source": "dist/handler", "objectName": "lambdas/handler.zip" },
+    { "source": "src/hook.ts", "objectName": "lambdas/hook.zip", "bundleType": "js-zip" },
+    { "source": "dist/edge.zip", "objectName": "lambdas/edge.zip", "zone": "edge" },
+    { "source": "dist/eu-only.zip", "objectName": "lambdas/eu-only.zip", "regions": ["eu-west-1"] }
   ]
 }
 ```
 
-To publish to buckets in more than one region, an entry can override the bucket, the package name and the region of the S3 client:
-
-```json
-{
-  "bucketName": "my-artifacts-eu-west-1",
-  "type": "package",
-  "name": "my-lambdas",
-  "artifacts": [
-    { "source": "dist/api", "objectName": "lambdas/api.zip", "region": "eu-west-1" },
-    { "source": "dist/edge", "objectName": "lambdas/edge.zip", "bucketName": "my-artifacts-us-east-1", "region": "us-east-1" },
-    { "source": "src/hook.ts", "objectName": "lambdas/hook.zip", "bundleType": "js-zip" }
-  ]
-}
-```
+The regions an artifact is published to are its own `regions`, else `us-east-1` when its `zone` is `edge`, else the registry's `regions`.
 
 ### CLI
 
-The package installs the `artifact-registry` binary. The `publish` and `resolve-artifacts` commands accept `--profile` to set `AWS_PROFILE` for the run.
+The package installs the `artifact-registry` binary.
 
 | Command | What it does | Options |
 |---|---|---|
-| `build` | Builds the artifacts of `artifact-registry.json` into an output folder without uploading: a `js-zip` entry is bundled with esbuild into a zip holding `index.js`, a directory is zipped, a file is copied. Prints the written file names. | `--cwd` workspace directory (default: current directory); `--output` output folder (required) |
-| `publish channel` | Uploads artifacts to `channels/{channel}/{objectName}`. Writes no pointers and no tracks. | `--cwd`; `--channel` (default: `dev`); `--profile`; `--object` publish only the artifact with this `objectName` |
-| `publish release` | Uploads artifacts to `releases/v{version}/{objectName}`, writes the pointer files, and for `template` artifacts also writes the `latest` copy (or the prerelease-labelled copy). | `--version` (required, semver); `--cwd`; `--profile`; `--object` |
-| `resolve-artifacts` | Reads the `stable` pointer of each component and writes a flat JSON object of component to version to every `--output`. Reads only. | `--bucket` (required); `--region`; `--profile`; `--component` (required, `key:type:name`, repeatable); `--track` (for example `v1`; without it the global pointer is read); `--output` (required, repeatable) |
+| `build` | Builds the artifacts into an output folder without uploading, and prints the written file names. | `--output` output folder, must exist (required); `--cwd` workspace directory (default: current directory) |
+| `publish channel` | Builds the artifacts and uploads each to `channels/{channel}/{objectName}` in every target region. Writes no pointers. | `--channel` (default `dev`); `--cwd`; `--profile`; `--object`; `--region` |
+| `publish release` | Builds the artifacts, uploads each to `releases/v{version}/{objectName}` in every target region, then writes the pointers of each package and, for `template` packages, the track copies. | `--version` semver (required); `--cwd`; `--profile`; `--object`; `--region` |
+| `resolve-artifacts` | Reads the `stable` pointer of each component and writes a JSON object of component key to version to every `--output`. Reads only. | `--bucket-base` (required); `--project` (required); `--region` the region whose bucket is read (required); `--component` as `key:type:name` (required, repeatable); `--output` (required, repeatable); `--track` (without it the global pointer is read); `--bucket-override` as `region=bucket` (repeatable); `--profile` |
 
-`publish channel` and `publish release` upload the file at each `source` as it is. They neither zip a directory nor apply `bundleType`, so `source` must name a file, for example the output of `build`.
+Building is the same in `build`, `publish channel` and `publish release`: a directory is zipped (file paths and modes kept), a file is copied, and an entry with `bundleType: "js-zip"` is bundled with esbuild into a zip holding `index.js`. A built file is named after the basename of its `objectName`, so basenames must be unique within a workspace.
+
+On the publish commands:
+
+- `--object` publishes only the artifact with that `objectName`; the command fails when none matches.
+- `--region` (repeatable) restricts publishing to a subset of the targets. The command fails when a given region is a target of none of the selected artifacts.
+- `--profile` sets `AWS_PROFILE` for the run.
 
 ```bash
-yarn artifact-registry build --cwd packages/my-lambdas --output dist/artifacts
-
-yarn artifact-registry publish channel --channel dev --object lambdas/admin-api.zip
-
-yarn artifact-registry publish release --version 1.2.3
-
+yarn artifact-registry build --output dist/artifacts
+yarn artifact-registry publish channel --channel dev --object lambdas/handler.zip
+yarn artifact-registry publish release --version 1.2.3 --region eu-west-1
 yarn artifact-registry resolve-artifacts \
-  --bucket my-artifacts-eu-west-1 --region eu-west-1 --track v1 \
-  --component my-lambdas:package:my-lambdas --output artifact-versions.json
+  --bucket-base example-artifacts --project example --region eu-west-1 --track v1 \
+  --component api:package:example-api --output artifact-versions.json
 ```
+
+### Publish order and failure handling
+
+`publish release` first uploads every object of every package to all of that package's regions. Only when all of those uploads succeeded are the pointers and track copies written. A pointer found in a region therefore names objects that exist there. A failure in one region never stops the others; afterwards a `RegionPublishError` names each failed bucket and no pointers are written. Running the same publish again completes the failed regions.
 
 ### From code
 
-`buildArtifacts(workspaceCwd, outputFolder, configOverride?)` does what the `build` command does and returns `{ outputFiles, routingMap }`: the basenames of the files written to `outputFolder`, and for each basename where it is published (`package`, `objectName` and `region`). The config comes from `configOverride` when given, otherwise from `artifact-registry.json` in `workspaceCwd`; a workspace without that file yields no outputs. `outputFolder` must already exist. The output file is named after the basename of the `objectName`, so basenames must be unique within a workspace.
+`buildArtifacts(workspaceCwd, outputFolder, configOverride?)` does what `build` does and returns `{ outputFiles, routingMap }`: the basenames written to `outputFolder`, and for each basename its package, `objectName` and targets. The config comes from `configOverride`, else from `artifact-registry.json` in `workspaceCwd`; a workspace without that file yields no outputs. `outputFolder` must already exist.
 
-`S3Uploader` writes to S3 under the key layouts of `buildArtifactKey`. It uploads what it is given and never lists or deletes objects.
+`RegionalPublisher` publishes through one `S3Uploader` per region:
 
 ```ts
-import { S3Client } from '@aws-sdk/client-s3';
 import { SemVer } from 'semver';
-import { S3Uploader, buildArtifactKey, buildArtifacts } from '@serverlessinbox/artifact-registry';
-import type { ArtifactPackage } from '@serverlessinbox/artifact-registry';
+import { S3Client } from '@aws-sdk/client-s3';
+import { RegionalPublisher, RegionPublishError, S3Uploader, buildArtifacts } from '@serverlessinbox/artifact-registry';
+import type { ReleaseTrackCopy } from '@serverlessinbox/artifact-registry';
 
-const built = await buildArtifacts('packages/my-lambdas', 'dist/artifacts');
+const built = await buildArtifacts('packages/example-api', 'dist/artifacts');
 
-const uploader = new S3Uploader(new S3Client({ region: 'eu-west-1' }));
-const version = new SemVer('1.2.3');
-
+const uploaders = new Map<string, S3Uploader>();
+const packages = new Map<string, ReleaseTrackCopy>();
 for (const [basename, routing] of built.routingMap) {
-  const pkg: ArtifactPackage = routing.package;
-  const file = `dist/artifacts/${basename}`;
-
-  await uploader.uploadChannel(pkg, 'dev', routing.objectName, file);
-
-  const key = buildArtifactKey(pkg.artifactType, pkg.name, { type: 'release', version, objectName: routing.objectName });
-  await uploader.upload(pkg.bucketName, key, file);
+  for (const target of routing.targets) {
+    if (!uploaders.has(target.region)) {
+      uploaders.set(target.region, new S3Uploader(new S3Client({ region: target.region })));
+    }
+  }
+  const { project, artifactType, name } = routing.package;
+  const key = `${project}::${artifactType}::${name}`;
+  const copy = packages.get(key) ?? { package: routing.package, targets: routing.targets, entries: [] };
+  copy.entries.push({ objectName: routing.objectName, filePath: `dist/artifacts/${basename}` });
+  packages.set(key, copy);
 }
 
-const pkg: ArtifactPackage = { bucketName: 'my-artifacts-eu-west-1', artifactType: 'package', name: 'my-lambdas' };
-await uploader.writeVersionPointers({ package: pkg, objects: built.outputFiles.map((name) => ({ name })) }, version);
+try {
+  await new RegionalPublisher(uploaders).uploadRelease({
+    version: new SemVer('1.2.3'),
+    packages: [...packages.values()],
+  });
+} catch (err) {
+  if (err instanceof RegionPublishError) {
+    console.error(err.failed.map((f) => `${f.target.bucketName}: ${f.cause.message}`));
+  }
+  throw err;
+}
 ```
 
-- `upload(bucket, key, filePath)`: uploads one file.
-- `uploadChannel(pkg, channel, objectName, filePath)`: uploads one file to the channel path.
-- `uploadJson(bucket, key, data)`: uploads a JSON document with content type `application/json`.
-- `writeVersionPointers(release, version)`: writes the pointer file of `release.package`: one global, one for `v{major}` and one for `v{major}.{minor}`, named after the dist tag (`stable`, or the first prerelease label of `version`). `release.objects` lists every object of the release and must not be empty for a reader to accept the pointer.
-- `uploadReleaseTrack(copy, track)`: uploads each entry of a release track copy to `releases/{track}/{objectName}`.
+`RegionalPublisher` methods:
+
+- `uploadRelease(upload)`: uploads all objects of all packages, then, if every upload succeeded, writes each package's pointers and the track copies of template packages.
+- `uploadChannel(routing, channel, filePath)`: uploads one file to the channel path of every target.
+- `uploadObject(targets, key, filePath)`: uploads one file to the same key in every target.
+- `uploadJson(targets, key, data)`: uploads one JSON document to the same key in every target.
+- `writeVersionPointers(release, version)`: writes the global, `v{major}` and `v{major}.{minor}` pointers of one package to its targets. `release.objects` lists the object names the pointer names.
+- `uploadReleaseTrack(copy, track)`: uploads each entry of `copy` to `releases/{track}/{objectName}` in every target.
+
+`RegionPublishError` carries `succeeded: RegionBucket[]` and `failed: RegionFailure[]` (`{ target, cause }`).
 
 ## Reading
 
-Packages live in buckets in different regions, so construct the `S3Client` with `followRegionRedirects: true`.
+Packages may live in buckets of other regions than the client's, so construct the `S3Client` with `followRegionRedirects: true`.
 
 ```ts
 import { S3Client } from '@aws-sdk/client-s3';
@@ -146,142 +164,144 @@ import {
   loadTrackVersions,
   readReleasePointer,
 } from '@serverlessinbox/artifact-registry';
-import type { IArtifactResolver } from '@serverlessinbox/artifact-registry';
+import type { IArtifactResolver, RegistryLocation } from '@serverlessinbox/artifact-registry';
 
 const client = new S3Client({ region: 'eu-west-1', followRegionRedirects: true });
+const location: RegistryLocation = { bucketBase: 'example-artifacts', project: 'example' };
 ```
 
 ### Loaders
 
-`loadChannelVersions(client, options)` lists every object under the channel of each package and returns a flat map of S3 key to the S3 version ID of its latest version.
+`loadChannelVersions(client, options)` lists the objects under the channel of each package and returns a flat map of S3 key to the S3 version ID of its latest version. `packages` maps package name to region.
 
 ```ts
 const channelVersionIds: Record<string, string> = await loadChannelVersions(client, {
+  location,
   artifactType: 'package',
   channel: 'dev',
-  bucketBase: 'my-artifacts',
-  packages: { 'my-lambdas': 'eu-west-1', 'my-edge-lambdas': 'us-east-1' },
+  packages: { 'example-api': 'eu-west-1', 'example-edge': 'us-east-1' },
 });
 ```
 
-`loadTrackVersions(client, options)` reads the `stable` pointer of each package (the track-scoped one, or the global one when `track` is omitted), then lists the objects of the version it names. It returns `versionMap` (S3 key to version ID) and `resolvedVersions` (package name to semver). It throws when a pointer is missing or malformed.
+`loadTrackVersions(client, options)` reads the `stable` pointer of each package (track-scoped, or the global one when `track` is omitted), then lists the objects of the version it names. It returns `versionMap` (S3 key to version ID) and `resolvedVersions` (package name to version), and throws when a pointer is missing, malformed or names an invalid semver.
 
 ```ts
 const { versionMap, resolvedVersions } = await loadTrackVersions(client, {
+  location,
   track: 'v1',
   artifactType: 'package',
-  bucketBase: 'my-artifacts',
-  packages: { 'my-lambdas': 'eu-west-1' },
+  packages: { 'example-api': 'eu-west-1' },
 });
 ```
 
-Both take `packages` as a map of package name to region; the bucket of each is `{bucketBase}-{region}`.
-
-`readReleasePointer(client, packageName, distTag, region, options?)` reads and validates one `package` pointer. `options` takes `bucketBase`, `project` and `track`; without `track` it reads the global pointer. It throws when the pointer is missing, empty, not valid JSON or malformed. The client must be configured for `region`.
+`readReleasePointer(client, location, packageName, distTag, region, track?)` reads and validates the pointer of a `package`; without `track` it reads the global pointer. It throws when the pointer is missing, empty, not valid JSON or malformed.
 
 ```ts
-const pointer = await readReleasePointer(client, 'my-lambdas', 'stable', 'eu-west-1', {
-  bucketBase: 'my-artifacts',
-  track: 'v1',
-});
+const pointer = await readReleasePointer(client, location, 'example-api', 'stable', 'eu-west-1', 'v1');
 console.log(pointer.version, pointer.publishedAt, pointer.objects.map((o) => o.name));
 ```
 
 ### Resolver
 
-`ArtifactResolver` implements `IArtifactResolver`: a synchronous lookup, per package name, of where an object lives. It reads nothing from S3. Each package has a pinned `version`, a `zone` (`regional` resolves in `deploymentRegion`, `edge` always in `us-east-1`) and optionally a `channel`, which makes it resolve under the channel path instead of the release path of its version. Construction throws when no bucket base is given, either as `versions.bucketBase` or as `bucketBaseOverride`.
+`ArtifactResolver` implements `IArtifactResolver`: a synchronous, per-package lookup of where an object lives. It reads nothing from S3. Each package entry has a pinned `version` and a `zone`: `regional` resolves in `deploymentRegion`, `edge` in `us-east-1`. An entry may also set `region`, which wins over `zone`, and `channel`, which resolves under the channel path instead of the release path of its version. `artifactType` defaults to `package`.
 
 ```ts
 const resolver: IArtifactResolver = new ArtifactResolver({
   versions: {
-    bucketBase: 'my-artifacts',
     packages: {
-      'my-lambdas': { version: '1.4.2', zone: 'regional' },
-      'my-edge-lambdas': { version: '1.4.2', zone: 'edge' },
-      'my-dev-lambdas': { version: '1.4.2', zone: 'regional', channel: 'dev' },
+      'example-api': { version: '1.4.2', zone: 'regional' },
+      'example-edge': { version: '1.4.2', zone: 'edge' },
+      'example-dev': { version: '1.4.2', zone: 'regional', channel: 'dev' },
     },
   },
+  location,
   deploymentRegion: 'eu-west-1',
   s3VersionMap: channelVersionIds,
 });
-const { bucket, key, versionId } = resolver.resolve('my-lambdas', 'lambdas/admin-api.zip');
-console.log(bucket, key, versionId, resolver.getUrl('my-lambdas', 'lambdas/admin-api.zip'), resolver.getArn('my-lambdas', 'lambdas/admin-api.zip'));
-console.log(resolver.getVersion('my-lambdas'), resolver.getBucketBase());
+const { bucket, key, versionId } = resolver.resolve('example-api', 'lambdas/handler.zip');
+const url = resolver.getUrl('example-api', 'lambdas/handler.zip');
+const arn = resolver.getArn('example-api', 'lambdas/handler.zip');
 ```
 
-`resolve` returns `{ bucket, key, versionId? }`; `versionId` is present when the key is listed in `s3VersionMap`. `getUrl`, `getArn` and `getVersion` take the same package name and throw for a package the resolver does not know. The options also accept `artifactType` (default `package`) and `project`.
+`resolve` returns `{ bucket, key, versionId? }`; `versionId` is set when the key is listed in `s3VersionMap`. `getUrl`, `getArn`, `resolve` and `getVersion` throw for a package the resolver does not know. `getLocation()` returns the registry location.
 
 ### Keys, URLs and ARNs
 
 ```ts
-const releaseKey: string = buildArtifactKey('package', 'my-lambdas', {
+const releaseKey: string = buildArtifactKey('package', 'example-api', {
   type: 'release',
   version: { version: '1.4.2' },
-  objectName: 'lambdas/admin-api.zip',
+  objectName: 'lambdas/handler.zip',
+  project: 'example',
 });
-const channelKey: string = buildArtifactKey('package', 'my-lambdas', {
-  type: 'channel',
-  channel: 'dev',
-  objectName: 'lambdas/admin-api.zip',
-});
-const pointerKey: string = buildReleasePointerKey('package', 'my-lambdas', { track: 'v1', distTag: 'beta' });
-const bucketName: string = buildArtifactBucketName('my-artifacts', 'eu-west-1');
+const pointerKey: string = buildReleasePointerKey('package', 'example-api', { project: 'example', track: 'v1', distTag: 'beta' });
+const bucketName: string = buildArtifactBucketName(location, 'eu-west-1');
 const url: string = buildArtifactUrl(bucketName, 'eu-west-1', releaseKey, 'abc123');
 const arn: string = buildArtifactArn(bucketName, releaseKey);
 const track: string = deriveTrack('1.4.2', 'minor');
 ```
 
-- `buildArtifactKey(artifactType, name, spec)`: the S3 key for the layout `spec.type` selects (see the key layout below). Every spec takes an optional `project` that replaces the leading key segment.
-- `buildReleasePointerKey(artifactType, name, { track?, distTag?, project? })`: the pointer key. `distTag` defaults to `stable`; without `track` it is the global pointer.
-- `buildArtifactBucketName(bucketBase, region)`: `{bucketBase}-{region}`.
+- `buildArtifactKey(artifactType, name, spec)`: the S3 key for the layout `spec.type` selects (see the key table below).
+- `buildReleasePointerKey(artifactType, name, { project, track?, distTag? })`: the pointer key. `distTag` defaults to `stable`; without `track` it is the global pointer.
+- `buildArtifactBucketName(location, region)`: `location.bucketOverrides?.[region]`, else `{bucketBase}-{region}`.
 - `buildArtifactUrl(bucket, region, key, versionId?)`: `https://{bucket}.s3.{region}.amazonaws.com/{key}`, with `?versionId=` appended when given.
 - `buildArtifactArn(bucket, key)`: `arn:aws:s3:::{bucket}/{key}`.
-- `deriveTrack(version, granularity)`: `'major'` gives `v1`, `'minor'` gives `v1.4`. Pass a version without a `v`; it throws on anything that is not `major.minor.patch` with an optional prerelease or build suffix, including a `v`-prefixed version.
+- `deriveTrack(version, granularity)`: `'major'` gives `v1`, `'minor'` gives `v1.4`. It throws on anything that is not `major.minor.patch` with an optional prerelease or build suffix, including a `v`-prefixed version.
 
 ## Reference
 
 ### `artifact-registry.json`
 
+`loadWorkspaceConfig(cwd, fileName?)` loads and validates it.
+
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `bucketName` | string | yes | Default S3 bucket for the workspace's artifacts. The full bucket name, region suffix included. |
+| `registry.bucketBase` | string | yes | Base name of the buckets: `{bucketBase}-{region}`. |
+| `registry.project` | string | yes | Leading segment of every object key. |
+| `registry.regions` | string[] | yes | Regions an artifact is published to when it sets neither `regions` nor `zone: "edge"`. Non-empty, no duplicates. |
+| `registry.bucketOverrides` | object | no | Region to bucket name, replacing `{bucketBase}-{region}` for that region. Each name must be 3 to 63 lowercase letters, digits, dots or hyphens, starting and ending with a letter or digit. Every overridden region must be a target of at least one artifact. |
 | `type` | `"package"` or `"template"` | yes | Artifact type; selects the `packages` or `templates` key prefix. |
-| `name` | string | yes | Artifact name in the key, for example `my-lambdas`. |
+| `name` | string | yes | Package name in the key. |
 | `artifacts` | array | yes | The artifacts to build and publish. |
-| `artifacts[].source` | string | yes | Path to a file or a directory, absolute or relative to the workspace directory. A directory is zipped; a file is copied. |
-| `artifacts[].objectName` | string | yes | Object name in S3, for example `lambdas/admin-api.zip`. Its basename names the built file, so basenames must be unique within a workspace. |
-| `artifacts[].bucketName` | string | no | Overrides `bucketName` for this artifact. |
-| `artifacts[].name` | string | no | Overrides `name` for this artifact. |
-| `artifacts[].region` | string | no | Region of the S3 client used to upload this artifact. Defaults to the SDK default. |
-| `artifacts[].bundleType` | `"js-zip"` | no | Used by `build`: bundles a TypeScript or JavaScript entry point with esbuild into a zip holding `index.js`. |
+| `artifacts[].source` | string | yes | Path to a file or directory, absolute or relative to the workspace directory. |
+| `artifacts[].objectName` | string | yes | Object name in S3, for example `lambdas/handler.zip`. |
+| `artifacts[].name` | string | no | Package name for this artifact instead of `name`. |
+| `artifacts[].zone` | `"regional"` or `"edge"` | no | `edge` publishes to `us-east-1` only; `regional` is the registry's `regions`. |
+| `artifacts[].regions` | string[] | no | Explicit regions for this artifact; wins over `zone`. Non-empty, no duplicates. |
+| `artifacts[].bundleType` | `"js-zip"` | no | Bundles a TypeScript or JavaScript entry point with esbuild (Node 18, CommonJS, `aws-sdk` external) into a zip holding `index.js`. |
+
+All artifacts of one package name must be published to the same set of regions; the config is rejected otherwise, because a region's pointer would name objects absent from it.
 
 ### S3 key layout
 
-`{project}` defaults to `serverlessinbox`. `{prefix}` is `packages` for `package` and `templates` for `template`. The CLI always uses the default `{project}`.
+`{prefix}` is `packages` for `package` and `templates` for `template`.
 
 | Kind | Key |
 |---|---|
 | Release object | `{project}/{prefix}/{name}/releases/v{version}/{objectName}` |
 | Channel object | `{project}/{prefix}/{name}/channels/{channel}/{objectName}` |
-| Channel prefix | `{project}/{prefix}/{name}/channels/{channel}/` |
-| Pointer, track | `{project}/{prefix}/{name}/releases/{track}/{distTag}.json` |
 | Pointer, global | `{project}/{prefix}/{name}/releases/{distTag}.json` |
-| Track copy, for example `latest` | `{project}/{prefix}/{name}/releases/{track}/{objectName}` |
-| Release with placeholders | `{project}/{prefix}/{name}/releases/v{version}/{objectName}`, with the literal text `{version}` and `{objectName}` |
+| Pointer, track | `{project}/{prefix}/{name}/releases/{track}/{distTag}.json` |
+| Track copy | `{project}/{prefix}/{name}/releases/{track}/{objectName}` |
 
-For version `1.2.3` of package `my-lambdas`, object `lambdas/admin-api.zip`:
+Release `1.2.3` of package `example-api` with object `lambdas/handler.zip` in project `example` produces:
 
 ```
-serverlessinbox/packages/my-lambdas/releases/v1.2.3/lambdas/admin-api.zip
-serverlessinbox/packages/my-lambdas/releases/stable.json
-serverlessinbox/packages/my-lambdas/releases/v1/stable.json
-serverlessinbox/packages/my-lambdas/releases/v1.2/stable.json
+example/packages/example-api/releases/v1.2.3/lambdas/handler.zip
+example/packages/example-api/releases/stable.json
+example/packages/example-api/releases/v1/stable.json
+example/packages/example-api/releases/v1.2/stable.json
 ```
 
-### Requirements
+### Exports
 
-- AWS credentials through the default AWS SDK credential chain: environment variables, a shared profile or SSO profile (`AWS_PROFILE`, or `--profile` on the CLI), or a role. Publishing needs write access to the target buckets. Reading pointers needs read access to them; `loadChannelVersions` and `loadTrackVersions` also list object versions, and so need permission to do that.
-- The package does not declare a Node.js version range.
+- Publishing: `buildArtifacts`, `loadWorkspaceConfig`, `RegionalPublisher`, `RegionPublishError`, `S3Uploader`; types `S3WorkspaceConfig`, `S3ArtifactEntry`, `ArtifactBuildResult`, `ArtifactRouting`, `ArtifactPackage`, `ArtifactType`, `RegionFailure`, `ReleaseUpload`, `PackageRelease`, `ReleaseTrackCopy`, `ReleaseTrackEntry`.
+- Keys and locations: `buildArtifactKey`, `buildReleasePointerKey`, `buildArtifactBucketName`, `buildArtifactUrl`, `buildArtifactArn`, `deriveTrack`, `toArtifactPackageMapKey`, `isRegistryLocation`, `isRegistryConfig`, `isRegionBucket`, `isArtifactRouting`; types `ArtifactKeySpec`, `ReleasePointerKeyOptions`, `RegistryLocation`, `RegistryConfig`, `RegionBucket`.
+- Reading: `loadChannelVersions`, `loadTrackVersions`, `readReleasePointer`, `ArtifactResolver`; types `ChannelVersionsOptions`, `TrackVersionsOptions`, `TrackVersionsResult`, `IArtifactResolver`, `ArtifactResolverFactoryOptions`, `ResolvedArtifact`, `ArtifactZone`, `ArtifactVersionsEntry`, `ParsedArtifactVersions`, `ReleasePointer`, `ReleasePointerObject`.
+
+## Requirements
+
+AWS credentials through the default AWS SDK credential chain: environment variables, a shared or SSO profile (`AWS_PROFILE`, or `--profile` on the CLI), or a role. Publishing needs write access to the target buckets. Reading pointers needs read access; `loadChannelVersions` and `loadTrackVersions` also need permission to list object versions.
 
 ## License
 
