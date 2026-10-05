@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.1.1](https://github.com/serverlessinbox/artifact-registry/compare/v0.1.0...v0.1.1) (Mon Oct 05 2026)
+
+### chore
+
+* Main repo readme ([23f174e](https://github.com/serverlessinbox/artifact-registry/commit/23f174e8721ca0200e7574db70f7c662259811ff))
+
 ## [0.1.0](https://github.com/serverlessinbox/artifact-registry/compare/v0.0.37...v0.1.0) (Mon Oct 05 2026)
 
 ### chore
