@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as esbuild from 'esbuild';
 import { zipDirectory, zipFile } from '../utils/zip';
 import { hasErrorCode } from '../utils/error-code';
+import { resolveTargets } from './resolve-targets';
 import { loadWorkspaceConfig } from './workspace-config';
 import type { S3ArtifactEntry, S3WorkspaceConfig } from './workspace-config';
 import type { ArtifactBuildResult, ArtifactRouting } from './artifact';
@@ -72,12 +73,12 @@ async function buildEntry(
     basename: outputBasename,
     routing: {
       package: {
-        bucketName: entry.bucketName ?? config.bucketName,
+        project: config.registry.project,
         artifactType: config.type,
         name: entry.name ?? config.name,
       },
-      region: entry.region,
       objectName: entry.objectName,
+      targets: resolveTargets(config, entry),
     },
   };
 }

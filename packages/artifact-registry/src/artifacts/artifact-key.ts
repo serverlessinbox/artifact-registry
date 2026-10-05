@@ -4,31 +4,31 @@ import type { S3ArtifactEntry, S3WorkspaceConfig } from './workspace-config';
 
 export type { ArtifactType };
 
-/** Optional parts of a release pointer key: the track scope, the release line and the leading key segment. */
+/** Parts of a release pointer key: the leading key segment, and optionally the track scope and the release line. */
 export interface ReleasePointerKeyOptions {
+  project: string;
   track?: string;
   distTag?: string;
-  project?: string;
 }
 
 interface ReleaseKeySpec {
   type: 'release';
   version: Pick<SemVer, 'version'>;
   objectName: string;
-  project?: string;
+  project: string;
 }
 
 interface ChannelKeySpec {
   type: 'channel';
   channel: string;
   objectName: string;
-  project?: string;
+  project: string;
 }
 
 interface ChannelPrefixKeySpec {
   type: 'channel-prefix';
   channel: string;
-  project?: string;
+  project: string;
 }
 
 // distTag-named pointer. With `track` it is track-scoped:
@@ -44,18 +44,17 @@ interface ReleaseTrackKeySpec {
   type: 'release-track';
   track: string;
   objectName: string;
-  project?: string;
+  project: string;
 }
 
 // A release key with the literal `{version}` / `{objectName}` tokens instead of concrete values.
 interface ReleaseTemplateKeySpec {
   type: 'release-template';
-  project?: string;
+  project: string;
 }
 
 /**
- * Which kind of S3 key `buildArtifactKey` builds. Each variant takes an optional `project` that
- * replaces the default leading key segment.
+ * Which kind of S3 key `buildArtifactKey` builds. Each variant carries the `project` that leads the key.
  */
 export type ArtifactKeySpec =
   | ReleaseKeySpec
@@ -74,8 +73,6 @@ const ARTIFACT_TYPE_PREFIX: Record<ArtifactType, string> = {
 export const VERSION_PLACEHOLDER = '{version}';
 export const OBJECT_NAME_PLACEHOLDER = '{objectName}';
 
-/** Default leading key segment for release/pointer specs. */
-export const DEFAULT_PROJECT = 'serverlessinbox';
 /** Default distTag (release line) for the unified pointer spec. */
 export const DEFAULT_DIST_TAG = 'stable';
 
@@ -87,13 +84,12 @@ export const DEFAULT_DIST_TAG = 'stable';
 export function buildReleasePointerKey(
   artifactType: ArtifactType,
   name: string,
-  opts?: ReleasePointerKeyOptions,
+  opts: ReleasePointerKeyOptions,
 ): string {
   const typePrefix = ARTIFACT_TYPE_PREFIX[artifactType];
   const base = `${typePrefix}/${name}`;
-  const project = opts?.project ?? DEFAULT_PROJECT;
-  const distTag = opts?.distTag ?? DEFAULT_DIST_TAG;
-  const track = opts?.track;
+  const { project, track } = opts;
+  const distTag = opts.distTag ?? DEFAULT_DIST_TAG;
 
   if (track) {
     return `${project}/${base}/releases/${track}/${distTag}.json`;
@@ -115,16 +111,13 @@ export function buildArtifactKey(
   const base = `${prefix}/${name}`;
   switch (spec.type) {
     case 'release': {
-      const project = spec.project ?? DEFAULT_PROJECT;
-      return `${project}/${base}/releases/v${spec.version.version}/${spec.objectName}`;
+      return `${spec.project}/${base}/releases/v${spec.version.version}/${spec.objectName}`;
     }
     case 'channel': {
-      const project = spec.project ?? DEFAULT_PROJECT;
-      return `${project}/${base}/channels/${spec.channel}/${spec.objectName}`;
+      return `${spec.project}/${base}/channels/${spec.channel}/${spec.objectName}`;
     }
     case 'channel-prefix': {
-      const project = spec.project ?? DEFAULT_PROJECT;
-      return `${project}/${base}/channels/${spec.channel}/`;
+      return `${spec.project}/${base}/channels/${spec.channel}/`;
     }
     case 'release-pointer': {
       return buildReleasePointerKey(artifactType, name, {
@@ -134,12 +127,10 @@ export function buildArtifactKey(
       });
     }
     case 'release-track': {
-      const project = spec.project ?? DEFAULT_PROJECT;
-      return `${project}/${base}/releases/${spec.track}/${spec.objectName}`;
+      return `${spec.project}/${base}/releases/${spec.track}/${spec.objectName}`;
     }
     case 'release-template': {
-      const project = spec.project ?? DEFAULT_PROJECT;
-      return `${project}/${base}/releases/v${VERSION_PLACEHOLDER}/${OBJECT_NAME_PLACEHOLDER}`;
+      return `${spec.project}/${base}/releases/v${VERSION_PLACEHOLDER}/${OBJECT_NAME_PLACEHOLDER}`;
     }
   }
 }
