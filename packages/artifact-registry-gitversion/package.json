@@ -15,9 +15,12 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc --noEmit false",
+    "build": "rm -rf dist && tsc --noEmit false",
     "test": "jest",
     "prepublishOnly": "yarn build"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "publishConfig": {
     "main": "dist/index.js",

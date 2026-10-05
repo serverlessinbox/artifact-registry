@@ -16,9 +16,17 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc --noEmit false",
+    "build": "rm -rf dist && tsc --noEmit false",
     "test": "jest",
     "prepublishOnly": "yarn build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serverlessinbox/artifact-registry.git",
+    "directory": "packages/artifact-registry"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "publishConfig": {
     "main": "dist/index.js",
