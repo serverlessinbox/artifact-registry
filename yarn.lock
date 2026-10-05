@@ -1677,9 +1677,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@serverlessinbox/artifact-registry@workspace:.":
+"@serverlessinbox/artifact-registry@workspace:packages/artifact-registry":
   version: 0.0.0-use.local
-  resolution: "@serverlessinbox/artifact-registry@workspace:."
+  resolution: "@serverlessinbox/artifact-registry@workspace:packages/artifact-registry"
   dependencies:
     "@aws-sdk/client-s3": "npm:^3"
     "@jwpkg/gitversion": "npm:1.4.0-pack-order.2"
@@ -1690,7 +1690,6 @@ __metadata:
     aws-sdk-client-mock: "npm:^4"
     clipanion: "npm:^3.2.1"
     esbuild: "npm:^0.27.1"
-    eslint: "npm:^9"
     fflate: "npm:^0.8.3"
     jest: "npm:^29"
     jest-util: "npm:^29"
@@ -1698,7 +1697,6 @@ __metadata:
     ts-jest: "npm:^29"
     typanion: "npm:^3.14.0"
     typescript: "npm:^5"
-    typescript-eslint: "npm:^8"
   peerDependencies:
     "@jwpkg/gitversion": 1.4.0-pack-order.2
   bin:
@@ -3065,6 +3063,17 @@ __metadata:
   checksum: 10c0/c5640c2d89045371c7cedd6a70212a04e360fd34d6edeae32f6952c63949e3525ea77dbec0289d8213a99bbaeab5abfa860b5c12cf88a2e6cf8106e90dd27a7e
   languageName: node
   linkType: hard
+
+"artifact-registry-workspace@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "artifact-registry-workspace@workspace:."
+  dependencies:
+    "@jwpkg/gitversion": "npm:1.4.0-pack-order.2"
+    eslint: "npm:^9"
+    typescript: "npm:^5"
+    typescript-eslint: "npm:^8"
+  languageName: unknown
+  linkType: soft
 
 "astral-regex@npm:^2.0.0":
   version: 2.0.0

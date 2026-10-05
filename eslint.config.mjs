@@ -29,7 +29,7 @@ const planLabelRule = {
 export default [
   {
     ignores: [
-      'dist/',
+      '**/dist/',
       '**/*.d.ts',
       '**/*.js',
       '.yarn/',
@@ -45,7 +45,7 @@ export default [
     languageOptions: {
       parser: ts.parser,
       parserOptions: {
-        project: ['./tsconfig.eslint.json'],
+        project: ['./packages/*/tsconfig.eslint.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
