@@ -1,11 +1,10 @@
 import * as fs from 'fs/promises';
-import * as fssync from 'fs';
 import * as path from 'path';
 import semver from 'semver';
 import type { IPlugin, IPackManager, IWorkspace, PackedPackage, PackResult, PackFileResult } from '@jwpkg/gitversion';
 import { S3Client } from '@aws-sdk/client-s3';
 import { S3Uploader } from './releases/uploader';
-import { run } from './utils/common';
+import { zipDirectory } from './utils/zip';
 import { hasErrorCode } from './utils/error-code';
 import { readArtifactMap } from './artifacts/artifact-map';
 import { buildArtifactKey } from './artifacts/artifact-key';
@@ -34,7 +33,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
   async pack(workspace: IWorkspace, outputFolder: string): Promise<PackResult | null> {
     let config: S3WorkspaceConfig | undefined;
     try {
-      config = loadWorkspaceConfig(workspace.cwd);
+      config = await loadWorkspaceConfig(workspace.cwd);
     } catch (err: unknown) {
       if (!hasErrorCode(err, 'MODULE_NOT_FOUND')) {
         throw err;
@@ -59,13 +58,13 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
 
       let isDirectory = false;
       try {
-        isDirectory = fssync.statSync(resolved).isDirectory();
+        isDirectory = (await fs.stat(resolved)).isDirectory();
       } catch {
         throw new Error(`[s3-artifact] Source not found: ${resolved}`);
       }
 
       if (isDirectory) {
-        run('zip', ['-r', outPath, '.'], { cwd: resolved });
+        await zipDirectory(resolved, outPath);
       } else {
         await fs.copyFile(resolved, outPath);
       }

@@ -1,9 +1,8 @@
 import * as fs from 'fs/promises';
-import * as fssync from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as esbuild from 'esbuild';
-import { run } from '../utils/common';
+import { zipDirectory, zipFile } from '../utils/zip';
 import { hasErrorCode } from '../utils/error-code';
 import { loadWorkspaceConfig } from './workspace-config';
 import type { S3ArtifactEntry, S3WorkspaceConfig } from './workspace-config';
@@ -16,7 +15,7 @@ interface BuiltEntry {
 }
 
 async function bundleJsZip(entryPoint: string, outZip: string): Promise<void> {
-  const tmpDir = fssync.mkdtempSync(path.join(os.tmpdir(), 'artifact-tools-bundle-'));
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'artifact-tools-bundle-'));
   try {
     const outJs = path.join(tmpDir, 'index.js');
 
@@ -33,10 +32,9 @@ async function bundleJsZip(entryPoint: string, outZip: string): Promise<void> {
     });
 
     // Zip contains a single file `index.js` at the archive root.
-    // `-j` strips directory paths, ensuring the root layout.
-    run('zip', ['-j', outZip, outJs]);
+    await zipFile(outJs, outZip);
   } finally {
-    fssync.rmSync(tmpDir, { recursive: true, force: true });
+    await fs.rm(tmpDir, { recursive: true, force: true });
   }
 }
 
@@ -58,13 +56,13 @@ async function buildEntry(
   } else {
     let isDirectory = false;
     try {
-      isDirectory = fssync.statSync(resolved).isDirectory();
+      isDirectory = (await fs.stat(resolved)).isDirectory();
     } catch {
       throw new Error(`[s3-artifact] Source not found: ${resolved}`);
     }
 
     if (isDirectory) {
-      run('zip', ['-j', '-r', outPath, resolved]);
+      await zipDirectory(resolved, outPath);
     } else {
       await fs.copyFile(resolved, outPath);
     }
@@ -102,7 +100,7 @@ export async function buildArtifacts(
     config = configOverride;
   } else {
     try {
-      config = loadWorkspaceConfig(workspaceCwd, 'artifacts.cjs');
+      config = await loadWorkspaceConfig(workspaceCwd, 'artifacts.cjs');
     } catch (err: unknown) {
       if (hasErrorCode(err, 'MODULE_NOT_FOUND')) {
         return empty;
