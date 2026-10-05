@@ -33,6 +33,20 @@ export interface ArtifactBuildResult {
   routingMap: Map<string, ArtifactRouting>;
 }
 
+/** A built artifact file in a staging folder with where it is published; `routing.targets` is already restricted to the selected regions. */
+export interface StagedFile {
+  filePath: string;
+  routing: ArtifactRouting;
+}
+
+/** A selection of artifacts that cannot be staged: no workspace config, an `objectName` no entry has, or a region no selected entry targets. The message states which. */
+export class ArtifactSelectionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ArtifactSelectionError';
+  }
+}
+
 /** Identifies a package across projects and artifact types: `{project}::{artifactType}::{name}`. */
 export function toArtifactPackageMapKey(pkg: ArtifactPackage): string {
   return `${pkg.project}::${pkg.artifactType}::${pkg.name}`;

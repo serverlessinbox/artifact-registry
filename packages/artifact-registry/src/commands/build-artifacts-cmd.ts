@@ -9,7 +9,7 @@ export class BuildArtifactsCommand extends Command {
     description: 'Build artifacts defined in artifact-registry.json and place them in the output folder.',
     examples: [
       ['Build artifacts in current directory', '$0 build'],
-      ['Build artifacts from a specific workspace', '$0 build --cwd packages/mailbox --output dist/artifacts'],
+      ['Build artifacts from a specific workspace', '$0 build --cwd packages/app --output dist/artifacts'],
     ],
   });
 

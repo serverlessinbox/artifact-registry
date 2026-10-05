@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import semver from 'semver';
+import { unzipSync } from 'fflate';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 import { PublishReleaseCommand } from '../publish-release-cmd';
@@ -26,12 +27,12 @@ describe('PublishReleaseCommand writes each package through a client for its own
     fs.writeFileSync(path.join(dir, 'alpha.yaml'), 'alpha');
     fs.writeFileSync(path.join(dir, 'beta.yaml'), 'beta');
     const config = {
-      bucketName: 'release-bucket',
+      registry: { bucketBase: 'release-bucket', project: 'example', regions: ['eu-west-1'] },
       type: 'template',
       name: 'default-name',
       artifacts: [
-        { source: 'alpha.yaml', objectName: 'alpha.yaml', name: 'alpha', region: 'eu-west-1' },
-        { source: 'beta.yaml', objectName: 'beta.yaml', name: 'beta', region: 'us-east-1' },
+        { source: 'alpha.yaml', objectName: 'alpha.yaml', name: 'alpha', regions: ['eu-west-1'] },
+        { source: 'beta.yaml', objectName: 'beta.yaml', name: 'beta', regions: ['us-east-1'] },
       ],
     };
     fs.writeFileSync(path.join(dir, 'artifact-registry.json'), JSON.stringify(config));
@@ -60,11 +61,11 @@ describe('PublishReleaseCommand writes each package through a client for its own
   function keysOf(name: string): string[] {
     const objectName = `${name}.yaml`;
     return [
-      buildArtifactKey('template', name, { type: 'release', version: new semver.SemVer('1.2.3'), objectName }),
-      buildArtifactKey('template', name, { type: 'release-pointer' }),
-      buildArtifactKey('template', name, { type: 'release-pointer', track: 'v1' }),
-      buildArtifactKey('template', name, { type: 'release-pointer', track: 'v1.2' }),
-      buildArtifactKey('template', name, { type: 'release-track', track: 'latest', objectName }),
+      buildArtifactKey('template', name, { type: 'release', version: new semver.SemVer('1.2.3'), objectName, project: 'example' }),
+      buildArtifactKey('template', name, { type: 'release-pointer', project: 'example' }),
+      buildArtifactKey('template', name, { type: 'release-pointer', track: 'v1', project: 'example' }),
+      buildArtifactKey('template', name, { type: 'release-pointer', track: 'v1.2', project: 'example' }),
+      buildArtifactKey('template', name, { type: 'release-track', track: 'latest', objectName, project: 'example' }),
     ];
   }
 
@@ -77,5 +78,57 @@ describe('PublishReleaseCommand writes each package through a client for its own
       ...keysOf('beta').map((key): [string, string] => [key, 'us-east-1']),
     ]);
     expect(await putRegionsByKey()).toEqual(expected);
+  });
+});
+
+/**
+ * Pins that `publish release` stages a directory source into a zip, restricts every write
+ * (objects, pointers, track copies) to the `--region` subset, and addresses an overridden region by
+ * its override bucket. A pointer written to a region the restriction excluded, or to the convention
+ * bucket of an overridden region, names objects that are absent there.
+ */
+describe('PublishReleaseCommand with directory sources, overrides and a region restriction', () => {
+  let dir: string;
+
+  beforeEach(() => {
+    s3Mock.reset();
+    s3Mock.on(PutObjectCommand).resolves({});
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'publish-release-regions-'));
+    fs.mkdirSync(path.join(dir, 'dist'));
+    fs.writeFileSync(path.join(dir, 'dist', 'index.html'), 'index');
+    const config = {
+      registry: {
+        bucketBase: 'example-artifacts',
+        project: 'example',
+        regions: ['eu-west-1', 'eu-central-1'],
+        bucketOverrides: { 'eu-central-1': 'example-artifacts-fra-7f3a' },
+      },
+      type: 'package',
+      name: 'example-ui',
+      artifacts: [{ source: 'dist', objectName: 'ui.zip' }],
+    };
+    fs.writeFileSync(path.join(dir, 'artifact-registry.json'), JSON.stringify(config));
+  });
+
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  function putBuckets(): string[] {
+    return s3Mock.commandCalls(PutObjectCommand).map(call => call.args[0].input.Bucket ?? '');
+  }
+
+  it('writes the zipped object and the pointers to the override bucket only when --region selects that region', async () => {
+    const run = await runCommand(PublishReleaseCommand, ['publish', 'release', '--version', '1.2.3', '--cwd', dir, '--region', 'eu-central-1']);
+
+    expect(run.exitCode).toBe(0);
+    const calls = s3Mock.commandCalls(PutObjectCommand).map(call => call.args[0].input);
+    expect(new Set(putBuckets())).toEqual(new Set(['example-artifacts-fra-7f3a']));
+    const object = calls.find(input => input.Key === 'example/packages/example-ui/releases/v1.2.3/ui.zip');
+    if (!(object?.Body instanceof Uint8Array)) {
+      throw new Error('the zipped object was not uploaded as binary');
+    }
+    expect(Object.keys(unzipSync(object.Body))).toEqual(['index.html']);
+    expect(calls.filter(input => input.Key?.endsWith('stable.json'))).toHaveLength(3);
   });
 });

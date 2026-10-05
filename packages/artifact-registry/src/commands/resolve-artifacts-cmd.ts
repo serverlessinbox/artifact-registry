@@ -5,6 +5,10 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { buildArtifactKey } from '../artifacts/artifact-key';
 import { loadReleasePointer } from '../releases/release-pointer';
 import { isArtifactType } from '../artifacts/artifact';
+import { buildArtifactBucketName } from '../artifacts/artifact-target';
+import type { RegistryLocation } from '../artifacts/registry-location';
+import { CommandInputError } from './command-input-error';
+import { parseRegistryLocation } from './registry-location-flags';
 
 /**
  * Reads the release pointer of each requested component from S3 and writes a flat
@@ -18,18 +22,28 @@ export class ResolveArtifactsCommand extends Command {
     examples: [
       [
         'Resolve three components from the global latest-stable pointer',
-        '$0 resolve-artifacts --bucket mailbox-artifacts-eu-west-1 --region eu-west-1 --component mailbox-go:package:mailbox-go --component mailbox-admin-ui:package:mailbox-admin-ui --output artifact-versions.json --output packages/mailbox/artifact-versions.json',
+        '$0 resolve-artifacts --bucket-base example-artifacts --project example --region eu-west-1 --component api:package:example-api --component ui:package:example-ui --output artifact-versions.json --output packages/app/artifact-versions.json',
       ],
     ],
   });
 
-  bucket = Option.String('--bucket', {
+  bucketBase = Option.String('--bucket-base', {
     required: true,
-    description: 'S3 bucket name.',
+    description: 'Bucket name prefix: the bucket of the region is {bucket-base}-{region} unless overridden.',
+  });
+
+  bucketOverrides = Option.Array('--bucket-override', [], {
+    description: 'Bucket name for one region, in the form region=bucket, replacing {bucket-base}-{region}. Repeatable.',
+  });
+
+  project = Option.String('--project', {
+    required: true,
+    description: 'Project prefix that leads every object key.',
   });
 
   region = Option.String('--region', {
-    description: 'AWS region for the S3 client.',
+    required: true,
+    description: 'Region whose bucket is read; also the region of the S3 client.',
   });
 
   profile = Option.String('--profile', {
@@ -38,7 +52,7 @@ export class ResolveArtifactsCommand extends Command {
 
   components = Option.Array('--component', {
     required: true,
-    description: 'Component in the form key:type:name (e.g. mailbox-go:package:mailbox-go). Repeatable.',
+    description: 'Component in the form key:type:name (e.g. api:package:example-api). Repeatable.',
   });
 
   track = Option.String('--track', {
@@ -55,6 +69,18 @@ export class ResolveArtifactsCommand extends Command {
       process.env.AWS_PROFILE = this.profile;
     }
 
+    let location: RegistryLocation;
+    try {
+      location = parseRegistryLocation(this.bucketBase, this.project, this.bucketOverrides);
+    } catch (err: unknown) {
+      if (err instanceof CommandInputError) {
+        this.context.stderr.write(`Error: ${err.message}\n`);
+        return 1;
+      }
+      throw err;
+    }
+    const bucket = buildArtifactBucketName(location, this.region);
+
     const client = new S3Client({ region: this.region, followRegionRedirects: true });
     const result: Record<string, string> = {};
 
@@ -69,10 +95,10 @@ export class ResolveArtifactsCommand extends Command {
         this.context.stderr.write(`Error: --component type must be 'package' or 'template', got: ${artifactType}\n`);
         return 1;
       }
-      const s3Key = buildArtifactKey(artifactType, name, { type: 'release-pointer', track: this.track });
+      const s3Key = buildArtifactKey(artifactType, name, { type: 'release-pointer', track: this.track, project: this.project });
 
-      this.context.stdout.write(`Resolving ${key} from s3://${this.bucket}/${s3Key} ... `);
-      const pointer = await loadReleasePointer(client, this.bucket, s3Key);
+      this.context.stdout.write(`Resolving ${key} from s3://${bucket}/${s3Key} ... `);
+      const pointer = await loadReleasePointer(client, bucket, s3Key);
       result[key] = pointer.version;
       this.context.stdout.write(`${pointer.version}\n`);
     }
