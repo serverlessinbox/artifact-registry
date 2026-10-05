@@ -10,10 +10,17 @@ import semver from 'semver';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 import { S3Uploader } from '../uploader';
+import { RegionalPublisher } from '../regional-publisher';
 import { buildArtifactKey } from '../../artifacts/artifact-key';
 import { buildReleasePrefix, buildChannelPrefix } from '../../artifacts/artifact-target';
+import type { ArtifactPackage } from '../../artifacts/artifact';
+import type { RegionBucket } from '../../artifacts/registry-location';
 
 const s3Mock = mockClient(S3Client);
+
+const pkg: ArtifactPackage = { project: 'serverlessinbox', artifactType: 'package', name: 'mailbox-go' };
+const target: RegionBucket = { region: 'us-east-1', bucketName: 'some-bucket' };
+const publisher = new RegionalPublisher(new Map([[target.region, new S3Uploader(new S3Client({ region: target.region }))]]));
 
 describe('writer/reader round trips', () => {
   beforeEach(() => {
@@ -22,39 +29,36 @@ describe('writer/reader round trips', () => {
 
   describe('pointer key: writer key == reader key', () => {
     it('writeVersionPointers writes the exact key buildArtifactKey/handleRequest read for (major track)', async () => {
-      const uploader = new S3Uploader(new S3Client({ region: 'us-east-1' }));
       const version = new semver.SemVer('2.5.0');
 
-      await uploader.writeVersionPointers({ package: { bucketName: 'some-bucket', artifactType: 'package', name: 'mailbox-go' }, objects: [{ name: 'a.zip' }] }, version);
+      await publisher.writeVersionPointers({ package: pkg, targets: [target], objects: [{ name: 'a.zip' }] }, version);
 
       const writerKeys = s3Mock.commandCalls(PutObjectCommand).map(c => c.args[0].input.Key);
-      const readerKey = buildArtifactKey('package', 'mailbox-go', { type: 'release-pointer', track: 'v2' });
+      const readerKey = buildArtifactKey('package', 'mailbox-go', { type: 'release-pointer', track: 'v2', project: 'serverlessinbox' });
       expect(writerKeys).toContain(readerKey);
     });
 
     it('writeVersionPointers writes the exact key buildArtifactKey/handleRequest read for (major.minor track)', async () => {
-      const uploader = new S3Uploader(new S3Client({ region: 'us-east-1' }));
       const version = new semver.SemVer('2.5.0');
 
-      await uploader.writeVersionPointers({ package: { bucketName: 'some-bucket', artifactType: 'package', name: 'mailbox-go' }, objects: [{ name: 'a.zip' }] }, version);
+      await publisher.writeVersionPointers({ package: pkg, targets: [target], objects: [{ name: 'a.zip' }] }, version);
 
       const writerKeys = s3Mock.commandCalls(PutObjectCommand).map(c => c.args[0].input.Key);
-      const readerKey = buildArtifactKey('package', 'mailbox-go', { type: 'release-pointer', track: 'v2.5' });
+      const readerKey = buildArtifactKey('package', 'mailbox-go', { type: 'release-pointer', track: 'v2.5', project: 'serverlessinbox' });
       expect(writerKeys).toContain(readerKey);
     });
   });
 
   describe('channel: uploadChannel key falls under loadChannelVersions prefix', () => {
     it('the key uploadChannel writes starts with buildChannelPrefix (the prefix loadChannelVersions lists)', async () => {
-      const uploader = new S3Uploader(new S3Client({ region: 'us-east-1' }));
       // uploadChannel -> upload() reads a real file from disk; use this test file itself.
-      await uploader.uploadChannel({ bucketName: 'some-bucket', artifactType: 'package', name: 'mailbox-go' }, 'dev', 'lambdas/admin-api.zip', __filename);
+      await publisher.uploadChannel({ package: pkg, objectName: 'lambdas/admin-api.zip', targets: [target] }, 'dev', __filename);
 
       const key = s3Mock.commandCalls(PutObjectCommand)[0].args[0].input.Key;
       if (key === undefined) {
         throw new Error('PutObjectCommand was sent without a Key');
       }
-      const prefix = buildChannelPrefix('package', 'mailbox-go', 'dev');
+      const prefix = buildChannelPrefix('package', 'mailbox-go', 'dev', 'serverlessinbox');
 
       expect(key.startsWith(`${prefix}/`)).toBe(true);
       expect(key).toBe(`${prefix}/lambdas/admin-api.zip`);
@@ -68,8 +72,9 @@ describe('writer/reader round trips', () => {
         type: 'release',
         version,
         objectName: 'lambdas/admin-api.zip',
+        project: 'serverlessinbox',
       });
-      const readerPrefix = buildReleasePrefix('package', 'mailbox-go', '3.1.4');
+      const readerPrefix = buildReleasePrefix('package', 'mailbox-go', '3.1.4', 'serverlessinbox');
 
       expect(writerKey.startsWith(`${readerPrefix}/`)).toBe(true);
       expect(writerKey).toBe(`${readerPrefix}/lambdas/admin-api.zip`);
