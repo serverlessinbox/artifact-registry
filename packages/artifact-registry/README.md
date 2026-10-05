@@ -71,6 +71,8 @@ The package installs the `artifact-registry` binary.
 | `publish channel` | Builds the artifacts and uploads each to `channels/{channel}/{objectName}` in every target region. Writes no pointers. | `--channel` (default `dev`); `--cwd`; `--profile`; `--object`; `--region` |
 | `publish release` | Builds the artifacts, uploads each to `releases/v{version}/{objectName}` in every target region, then writes the pointers of each package and, for `template` packages, the track copies. | `--version` semver (required); `--cwd`; `--profile`; `--object`; `--region` |
 | `resolve-artifacts` | Reads the `stable` pointer of each component and writes a JSON object of component key to version to every `--output`. Reads only. | `--bucket-base` (required); `--project` (required); `--region` the region whose bucket is read (required); `--component` as `key:type:name` (required, repeatable); `--output` (required, repeatable); `--track` (without it the global pointer is read); `--bucket-override` as `region=bucket` (repeatable); `--profile` |
+| `registry-record fetch` | Fetches the registry record from a published location and writes it as formatted JSON. | `--bucket-base` (required); `--project` (required); `--region` (required); `--output` (required); `--bucket-override` as `region=bucket` (repeatable) |
+| `registry-record check` | Checks if a local registry record file matches the live record in S3. | file path (positional, required) |
 
 Building is the same in `build`, `publish channel` and `publish release`: a directory is zipped (file paths and modes kept), a file is copied, and an entry with `bundleType: "js-zip"` is bundled with esbuild into a zip holding `index.js`. A built file is named after the basename of its `objectName`, so basenames must be unique within a workspace.
 
@@ -166,6 +168,19 @@ import type { IArtifactResolver, RegistryLocation } from '@serverlessinbox/artif
 const client = new S3Client({ region: 'eu-west-1', followRegionRedirects: true });
 const location: RegistryLocation = { bucketBase: 'example-artifacts', project: 'example' };
 ```
+
+### Registry record
+
+The registry record (`{project}/registry.json`, written to every region bucket) holds the configuration of where artifacts are published: the bucket base, project, list of regions, any bucket overrides, the schema version (currently `1`), and the AWS account ID that owns the buckets. It is fetched and validated to verify the record is complete and readable.
+
+`loadRegistryRecord(client, location, region)` reads and validates the record from the bucket of `region`. It throws when the record is missing or not readable (both NoSuchKey and AccessDenied are reported as "missing or not readable"). `parseRegistryRecord(text, source)` parses and validates a record from JSON text, naming the source (path, URL, or bucket/key) in errors.
+
+```ts
+const record = await loadRegistryRecord(client, location, 'eu-west-1');
+console.log(record.bucketBase, record.project, record.regions, record.ownerAccountId);
+```
+
+`registryRecordKey(project)` builds the S3 key for the record: `{project}/registry.json`.
 
 ### Loaders
 
@@ -294,6 +309,7 @@ example/packages/example-api/releases/v1.2/stable.json
 
 - Publishing: `buildArtifacts`, `loadWorkspaceConfig`, `RegionalPublisher`, `RegionPublishError`, `S3Uploader`; types `S3WorkspaceConfig`, `S3ArtifactEntry`, `ArtifactBuildResult`, `ArtifactRouting`, `ArtifactPackage`, `ArtifactType`, `RegionFailure`, `ReleaseUpload`, `PackageRelease`, `ReleaseTrackCopy`, `ReleaseTrackEntry`.
 - Keys and locations: `buildArtifactKey`, `buildReleasePointerKey`, `buildArtifactBucketName`, `buildArtifactUrl`, `buildArtifactArn`, `deriveTrack`, `toArtifactPackageMapKey`, `isArtifactRouting`; types `ArtifactKeySpec`, `ReleasePointerKeyOptions`, `RegistryLocation`, `RegistryConfig`, `RegionBucket`.
+- Registry record: `registryRecordKey`, `parseRegistryRecord`, `loadRegistryRecord`; type `RegistryRecord`.
 - Reading: `loadChannelVersions`, `loadTrackVersions`, `readReleasePointer`, `ArtifactResolver`; types `ChannelVersionsOptions`, `TrackVersionsOptions`, `TrackVersionsResult`, `IArtifactResolver`, `ArtifactResolverFactoryOptions`, `ResolvedArtifact`, `ArtifactZone`, `ArtifactVersionsEntry`, `ParsedArtifactVersions`, `ReleasePointer`, `ReleasePointerObject`.
 
 ## Requirements
