@@ -1,8 +1,9 @@
+import { readFile } from 'fs/promises';
 import * as path from 'path';
 import * as t from 'typanion';
 import { isArtifactType } from './artifact';
 
-export const CONFIG_FILENAME = 'artifact-registry.cjs';
+export const CONFIG_FILENAME = 'artifact-registry.json';
 
 /**
  * One artifact of a workspace: `source` is a path to a file or directory (absolute or relative to
@@ -35,15 +36,22 @@ export const isS3WorkspaceConfig = t.isObject({
 export type S3WorkspaceConfig = t.InferType<typeof isS3WorkspaceConfig>;
 
 /**
- * Loads and validates a workspace's config module (a CommonJS file exporting the config).
- * Throws the module loader's own error (code MODULE_NOT_FOUND) when the file does not exist, and
- * a field-level error naming the file when the config is malformed.
+ * Loads and validates a workspace's JSON config file.
+ * Throws the file system's own error (code ENOENT) when the file does not exist, an error naming
+ * the file when it is not valid JSON, and a field-level error naming the file when the config is
+ * malformed.
  */
-export function loadWorkspaceConfig(cwd: string, fileName: string = CONFIG_FILENAME): S3WorkspaceConfig {
-  const loaded: unknown = require(path.join(cwd, fileName));
+export async function loadWorkspaceConfig(cwd: string, fileName: string = CONFIG_FILENAME): Promise<S3WorkspaceConfig> {
+  const content = await readFile(path.join(cwd, fileName), 'utf8');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (err: unknown) {
+    throw new Error(`${fileName} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`);
+  }
   const errors: string[] = [];
-  if (!isS3WorkspaceConfig(loaded, { errors })) {
+  if (!isS3WorkspaceConfig(parsed, { errors })) {
     throw new Error(`${fileName}: ${errors.join('; ')}`);
   }
-  return loaded;
+  return parsed;
 }

@@ -77,7 +77,7 @@ export class PublishManifestCommand extends Command {
       const pkgPath = path.isAbsolute(this.versionFromPackage)
         ? this.versionFromPackage
         : path.join(process.cwd(), this.versionFromPackage);
-      const packageJson = readPackageJson(pkgPath);
+      const packageJson = await readPackageJson(pkgPath);
       version = packageJson.version;
     }
 
@@ -94,7 +94,7 @@ export class PublishManifestCommand extends Command {
     const versionsPath = path.isAbsolute(this.versionsFile)
       ? this.versionsFile
       : path.join(process.cwd(), this.versionsFile);
-    const componentVersions = readComponentVersions(versionsPath);
+    const componentVersions = await readComponentVersions(versionsPath);
 
     const components: Record<string, string> = { ...componentVersions };
     for (const extra of this.extraComponents) {

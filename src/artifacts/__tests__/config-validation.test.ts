@@ -5,11 +5,12 @@ import { buildArtifacts } from '../build-artifacts';
 import { CONFIG_FILENAME, loadWorkspaceConfig } from '../workspace-config';
 
 /**
- * Config modules are loaded with `require()`, so their content is untyped at runtime. Pins that
+ * Config files are parsed JSON, so their content is untyped at runtime. Pins that
  * `loadWorkspaceConfig` and `buildArtifacts` reject a malformed config with an error naming the
- * file and the field, instead of failing later as an undefined access.
+ * file and the field, instead of failing later as an undefined access, and that a missing config
+ * file surfaces as `ENOENT`, which the commands and the plugin treat as "no config".
  */
-describe('require()d workspace configs are validated', () => {
+describe('workspace config files are validated', () => {
   let dir: string;
 
   beforeEach(() => {
@@ -21,35 +22,45 @@ describe('require()d workspace configs are validated', () => {
   });
 
   function writeConfig(fileName: string, config: unknown): void {
-    fs.writeFileSync(path.join(dir, fileName), `module.exports = ${JSON.stringify(config)};`);
+    fs.writeFileSync(path.join(dir, fileName), JSON.stringify(config));
   }
 
   describe('loadWorkspaceConfig', () => {
-    it('rejects a config whose artifacts is not an array', () => {
+    it('rejects a config whose artifacts is not an array', async () => {
       writeConfig(CONFIG_FILENAME, { bucketName: 'b', type: 'package', name: 'n', artifacts: 'nope' });
 
-      expect(() => loadWorkspaceConfig(dir)).toThrow(/artifact-registry\.cjs.*artifacts/);
+      await expect(loadWorkspaceConfig(dir)).rejects.toThrow(/artifact-registry\.json: \.artifacts/);
     });
 
-    it('rejects a config whose type is unknown', () => {
+    it('rejects a config whose type is unknown', async () => {
       writeConfig(CONFIG_FILENAME, { bucketName: 'b', type: 'bogus', name: 'n', artifacts: [] });
 
-      expect(() => loadWorkspaceConfig(dir)).toThrow(/artifact-registry\.cjs.*type/);
+      await expect(loadWorkspaceConfig(dir)).rejects.toThrow(/artifact-registry\.json: \.type/);
     });
 
-    it('returns a well-formed config', () => {
+    it('returns a well-formed config', async () => {
       const config = { bucketName: 'b', type: 'package', name: 'n', artifacts: [{ source: 's', objectName: 'o.zip' }] };
       writeConfig(CONFIG_FILENAME, config);
 
-      expect(loadWorkspaceConfig(dir)).toEqual(config);
+      expect(await loadWorkspaceConfig(dir)).toEqual(config);
+    });
+
+    it('rejects a missing config file with the ENOENT code that callers skip on', async () => {
+      await expect(loadWorkspaceConfig(dir)).rejects.toMatchObject({ code: 'ENOENT' });
+    });
+
+    it('rejects a config file that is not valid JSON, naming the file', async () => {
+      fs.writeFileSync(path.join(dir, CONFIG_FILENAME), '{ not json');
+
+      await expect(loadWorkspaceConfig(dir)).rejects.toThrow(/artifact-registry\.json is not valid JSON/);
     });
   });
 
   describe('buildArtifacts', () => {
-    it('rejects an artifacts.cjs entry without a source', async () => {
-      writeConfig('artifacts.cjs', { bucketName: 'b', type: 'package', name: 'n', artifacts: [{ objectName: 'o.zip' }] });
+    it('rejects an artifacts.json entry without a source', async () => {
+      writeConfig('artifacts.json', { bucketName: 'b', type: 'package', name: 'n', artifacts: [{ objectName: 'o.zip' }] });
 
-      await expect(buildArtifacts(dir, path.join(dir, 'out'))).rejects.toThrow(/artifacts\.cjs.*source/);
+      await expect(buildArtifacts(dir, path.join(dir, 'out'))).rejects.toThrow(/artifacts\.json: \.artifacts\[0\]\.source/);
     });
   });
 });

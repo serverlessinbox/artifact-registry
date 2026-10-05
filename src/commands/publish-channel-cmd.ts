@@ -23,7 +23,7 @@ export class PublishChannelCommand extends Command {
   });
 
   cwd = Option.String('--cwd', {
-    description: 'Directory containing gitversion-s3.cjs. Defaults to process.cwd().',
+    description: 'Directory containing artifact-registry.json. Defaults to process.cwd().',
   });
 
   channel = Option.String('--channel', 'dev', {
@@ -47,10 +47,10 @@ export class PublishChannelCommand extends Command {
 
     let config;
     try {
-      config = loadWorkspaceConfig(cwd);
+      config = await loadWorkspaceConfig(cwd);
     } catch (err: unknown) {
-      if (hasErrorCode(err, 'MODULE_NOT_FOUND')) {
-        this.context.stderr.write(`Error: gitversion-s3.cjs not found in ${cwd}\n`);
+      if (hasErrorCode(err, 'ENOENT')) {
+        this.context.stderr.write(`Error: artifact-registry.json not found in ${cwd}\n`);
         return 1;
       }
       throw err;

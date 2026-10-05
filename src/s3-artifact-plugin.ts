@@ -35,7 +35,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     try {
       config = await loadWorkspaceConfig(workspace.cwd);
     } catch (err: unknown) {
-      if (!hasErrorCode(err, 'MODULE_NOT_FOUND')) {
+      if (!hasErrorCode(err, 'ENOENT')) {
         throw err;
       }
       // No config file for this workspace — skip silently
@@ -91,7 +91,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
       console.log(`[s3-artifact] Packing: ${entry.objectName} from ${resolved}`);
     }
 
-    console.log(`[s3-artifact] Staged ${files.length} artifact(s) from ${workspace.cwd}/gitversion-s3.cjs`);
+    console.log(`[s3-artifact] Staged ${files.length} artifact(s) from ${workspace.cwd}/artifact-registry.json`);
     return { files };
   }
 

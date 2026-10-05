@@ -1,5 +1,5 @@
 import { Command, Option } from 'clipanion';
-import * as fs from 'fs';
+import * as fs from 'fs/promises';
 import * as path from 'path';
 import { S3Client } from '@aws-sdk/client-s3';
 import { buildArtifactKey } from '../artifacts/artifact-key';
@@ -80,7 +80,7 @@ export class ResolveArtifactsCommand extends Command {
     const json = JSON.stringify(result, null, 2) + '\n';
     for (const output of this.outputs) {
       const outPath = path.isAbsolute(output) ? output : path.join(process.cwd(), output);
-      fs.writeFileSync(outPath, json);
+      await fs.writeFile(outPath, json);
       this.context.stdout.write(`Written: ${outPath}\n`);
     }
 

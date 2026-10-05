@@ -34,7 +34,7 @@ describe('PublishReleaseCommand writes each package through a client for its own
         { source: 'beta.yaml', objectName: 'beta.yaml', name: 'beta', region: 'us-east-1' },
       ],
     };
-    fs.writeFileSync(path.join(dir, 'artifact-registry.cjs'), `module.exports = ${JSON.stringify(config)};`);
+    fs.writeFileSync(path.join(dir, 'artifact-registry.json'), JSON.stringify(config));
   });
 
   afterEach(() => {
