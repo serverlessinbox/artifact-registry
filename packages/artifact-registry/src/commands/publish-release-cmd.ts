@@ -4,7 +4,7 @@ import { ArtifactSelectionError, toArtifactPackageMapKey } from '../artifacts/ar
 import type { StagedFile } from '../artifacts/artifact';
 import { withStagedArtifacts } from '../artifacts/stage-artifacts';
 import { buildArtifactKey } from '../artifacts/artifact-key';
-import { RegionalPublisher, RegionPublishError } from '../releases/regional-publisher';
+import { RegionalPublisher, RegionPublishError } from '../releases';
 import type { ReleaseTrackCopy } from '../releases/release';
 import { createUploaders } from './create-uploaders';
 

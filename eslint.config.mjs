@@ -73,6 +73,7 @@ export default [
       '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
       '@typescript-eslint/use-unknown-in-catch-callback-variable': 'error',
       'custom/plan-labels': 'error',
+      'max-classes-per-file': ['error', 1],
     },
   },
 ];

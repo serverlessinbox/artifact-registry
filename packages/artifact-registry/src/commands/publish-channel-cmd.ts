@@ -1,5 +1,5 @@
 import { Command, Option } from 'clipanion';
-import { RegionalPublisher, RegionPublishError } from '../releases/regional-publisher';
+import { RegionalPublisher, RegionPublishError } from '../releases';
 import { ArtifactSelectionError } from '../artifacts/artifact';
 import { withStagedArtifacts } from '../artifacts/stage-artifacts';
 import { createUploaders } from './create-uploaders';
