@@ -1,6 +1,6 @@
 /**
- * Pins the exact `v{major}` / `v{major}.{minor}` strings `deriveTrack` returns, for bare and
- * `v`-prefixed versions and with prerelease suffixes, and that malformed input throws. The result
+ * Pins the exact `v{major}` / `v{major}.{minor}` strings `deriveTrack` returns, for plain semver
+ * versions and with prerelease suffixes, and that malformed or `v`-prefixed input throws. The result
  * is used as a track segment of S3 keys, so a changed format points at different objects.
  */
 
@@ -15,9 +15,8 @@ describe('deriveTrack', () => {
     expect(deriveTrack('1.4.2', 'minor')).toBe('v1.4');
   });
 
-  it('handles an already-v-prefixed version the same way', () => {
-    expect(deriveTrack('v1.4.2', 'major')).toBe('v1');
-    expect(deriveTrack('v1.4.2', 'minor')).toBe('v1.4');
+  it('rejects a v-prefixed version, because versions never carry a v', () => {
+    expect(() => deriveTrack('v1.2.3', 'major')).toThrow('deriveTrack: not a valid semver version: v1.2.3');
   });
 
   it('handles prerelease/build metadata suffixes', () => {

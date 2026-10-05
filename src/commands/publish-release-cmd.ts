@@ -132,10 +132,8 @@ export class PublishReleaseCommand extends Command {
         this.context.stdout.write(`Writing release track '${prereleaseTag}' for ${pkg.bucketName}/${pkg.artifactType}/${pkg.name}...\n`);
         await uploader.uploadReleaseTrack(trackCopy, prereleaseTag);
       } else {
-        const { major } = version;
-        this.context.stdout.write(`Writing release tracks 'latest' and '${major}.x' for ${pkg.bucketName}/${pkg.artifactType}/${pkg.name}...\n`);
+        this.context.stdout.write(`Writing release track 'latest' for ${pkg.bucketName}/${pkg.artifactType}/${pkg.name}...\n`);
         await uploader.uploadReleaseTrack(trackCopy, 'latest');
-        await uploader.uploadReleaseTrack(trackCopy, `${major}.x`);
       }
     }
 

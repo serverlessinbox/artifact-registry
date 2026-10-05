@@ -65,7 +65,6 @@ describe('PublishReleaseCommand writes each package through a client for its own
       buildArtifactKey('template', name, { type: 'release-pointer', track: 'v1' }),
       buildArtifactKey('template', name, { type: 'release-pointer', track: 'v1.2' }),
       buildArtifactKey('template', name, { type: 'release-track', track: 'latest', objectName }),
-      buildArtifactKey('template', name, { type: 'release-track', track: '1.x', objectName }),
     ];
   }
 

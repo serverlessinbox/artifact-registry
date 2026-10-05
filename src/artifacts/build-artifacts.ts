@@ -85,7 +85,7 @@ async function buildEntry(
 /**
  * Builds every artifact of a workspace into `outputFolder`: a `js-zip` entry is bundled with esbuild,
  * a directory is zipped, and a file is copied. The config comes from `configOverride` or, when that
- * is absent, from `artifacts.json` in `workspaceCwd`; a workspace without that file yields no outputs.
+ * is absent, from `artifact-registry.json` in `workspaceCwd`; a workspace without that file yields no outputs.
  */
 export async function buildArtifacts(
   workspaceCwd: string,
@@ -100,7 +100,7 @@ export async function buildArtifacts(
     config = configOverride;
   } else {
     try {
-      config = await loadWorkspaceConfig(workspaceCwd, 'artifacts.json');
+      config = await loadWorkspaceConfig(workspaceCwd);
     } catch (err: unknown) {
       if (hasErrorCode(err, 'ENOENT')) {
         return empty;

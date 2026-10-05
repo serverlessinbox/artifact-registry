@@ -6,7 +6,7 @@ export class BuildArtifactsCommand extends Command {
   static override paths = [['build']];
 
   static override usage = Command.Usage({
-    description: 'Build artifacts defined in artifacts.json and place them in the output folder.',
+    description: 'Build artifacts defined in artifact-registry.json and place them in the output folder.',
     examples: [
       ['Build artifacts in current directory', '$0 build'],
       ['Build artifacts from a specific workspace', '$0 build --cwd packages/mailbox --output dist/artifacts'],
@@ -14,7 +14,7 @@ export class BuildArtifactsCommand extends Command {
   });
 
   cwd = Option.String('--cwd', {
-    description: 'Workspace directory containing artifacts.json. Defaults to process.cwd().',
+    description: 'Workspace directory containing artifact-registry.json. Defaults to process.cwd().',
   });
 
   output = Option.String('--output', {
@@ -32,7 +32,7 @@ export class BuildArtifactsCommand extends Command {
     const result = await buildArtifacts(workspaceCwd, outputFolder);
 
     if (result.outputFiles.length === 0) {
-      this.context.stdout.write(`No artifacts found (no artifacts.json in ${workspaceCwd})\n`);
+      this.context.stdout.write(`No artifacts found (no artifact-registry.json in ${workspaceCwd})\n`);
     } else {
       for (const file of result.outputFiles) {
         this.context.stdout.write(`${file}\n`);

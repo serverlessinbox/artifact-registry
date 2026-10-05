@@ -57,10 +57,10 @@ describe('workspace config files are validated', () => {
   });
 
   describe('buildArtifacts', () => {
-    it('rejects an artifacts.json entry without a source', async () => {
-      writeConfig('artifacts.json', { bucketName: 'b', type: 'package', name: 'n', artifacts: [{ objectName: 'o.zip' }] });
+    it('rejects an artifact-registry.json entry without a source', async () => {
+      writeConfig(CONFIG_FILENAME, { bucketName: 'b', type: 'package', name: 'n', artifacts: [{ objectName: 'o.zip' }] });
 
-      await expect(buildArtifacts(dir, path.join(dir, 'out'))).rejects.toThrow(/artifacts\.json: \.artifacts\[0\]\.source/);
+      await expect(buildArtifacts(dir, path.join(dir, 'out'))).rejects.toThrow(/artifact-registry\.json: \.artifacts\[0\]\.source/);
     });
   });
 });
