@@ -70,11 +70,22 @@ export async function loadWorkspaceConfig(cwd: string, fileName: string = CONFIG
 
 function validateTargets(config: S3WorkspaceConfig, fileName: string): void {
   const firstByPackage = new Map<string, PackageRegions>();
+  const firstByBasename = new Map<string, string>();
   const targetedRegions = new Set<string>();
 
   for (const entry of config.artifacts) {
     const regions = resolveTargets(config, entry).map(target => target.region);
     regions.forEach(region => targetedRegions.add(region));
+
+    const basename = path.basename(entry.objectName);
+    const firstObjectName = firstByBasename.get(basename);
+    if (firstObjectName === undefined) {
+      firstByBasename.set(basename, entry.objectName);
+    } else {
+      throw new Error(
+        `${fileName}: artifacts '${firstObjectName}' and '${entry.objectName}' share the same basename '${basename}', which would cause overwrites`,
+      );
+    }
 
     const packageName = entry.name ?? config.name;
     const first = firstByPackage.get(packageName);

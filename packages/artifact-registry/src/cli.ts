@@ -1,14 +1,17 @@
+import * as path from 'path';
 import { Builtins, Cli } from 'clipanion';
 import { BuildArtifactsCommand } from './commands/build-artifacts-cmd';
 import { PublishChannelCommand } from './commands/publish-channel-cmd';
 import { PublishReleaseCommand } from './commands/publish-release-cmd';
 import { ResolveArtifactsCommand } from './commands/resolve-artifacts-cmd';
+import { readPackageVersion } from './utils/package-json';
 
 export async function runCli(argv: string[]) {
+  const binaryVersion = await readPackageVersion(path.join(__dirname, '..', 'package.json'));
   const cli = new Cli({
-    binaryLabel: 'artifact-tools',
-    binaryName: 'artifact-tools',
-    binaryVersion: process.env.npm_package_version ?? '0.0.0-local',
+    binaryLabel: 'artifact-registry',
+    binaryName: 'artifact-registry',
+    binaryVersion,
   });
 
   cli.register(Builtins.HelpCommand);

@@ -21,7 +21,7 @@ export class ResolveArtifactsCommand extends Command {
     description: 'Resolve component artifact versions from S3 release pointers and write artifact-versions.json. Pointers can be track-scoped (--track) or global (no --track).',
     examples: [
       [
-        'Resolve three components from the global latest-stable pointer',
+        'Resolve three components from the global stable pointer',
         '$0 resolve-artifacts --bucket-base example-artifacts --project example --region eu-west-1 --component api:package:example-api --component ui:package:example-ui --output artifact-versions.json --output packages/app/artifact-versions.json',
       ],
     ],
@@ -56,7 +56,7 @@ export class ResolveArtifactsCommand extends Command {
   });
 
   track = Option.String('--track', {
-    description: 'Release track to resolve, e.g. v1 or v1.2. When omitted, resolves the global untracked latest-stable pointer.',
+    description: 'Release track to resolve, e.g. v1 or v1.2. When omitted, resolves the global untracked stable pointer.',
   });
 
   outputs = Option.Array('--output', {

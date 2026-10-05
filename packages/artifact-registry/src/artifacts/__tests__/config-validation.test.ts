@@ -177,6 +177,50 @@ describe('workspace config files are validated', () => {
         await expect(loadWorkspaceConfig(dir)).resolves.toBeDefined();
       });
     });
+
+    describe('basename collision', () => {
+      it('rejects two artifacts with the same basename from different directories', async () => {
+        writeConfig(CONFIG_FILENAME, {
+          registry,
+          type: 'package',
+          name: 'n',
+          artifacts: [
+            { source: 's', objectName: 'lambdas/handler.zip' },
+            { source: 's', objectName: 'templates/handler.zip' },
+          ],
+        });
+
+        await expect(loadWorkspaceConfig(dir)).rejects.toThrow(/artifact-registry\.json: artifacts 'lambdas\/handler\.zip' and 'templates\/handler\.zip' share the same basename 'handler\.zip'/);
+      });
+
+      it('rejects the same objectName repeated under two package names', async () => {
+        writeConfig(CONFIG_FILENAME, {
+          registry,
+          type: 'package',
+          name: 'n',
+          artifacts: [
+            { source: 's', objectName: 'lambdas/handler.zip' },
+            { source: 's', objectName: 'lambdas/handler.zip', name: 'other' },
+          ],
+        });
+
+        await expect(loadWorkspaceConfig(dir)).rejects.toThrow(/artifact-registry\.json: artifacts 'lambdas\/handler\.zip' and 'lambdas\/handler\.zip' share the same basename 'handler\.zip'/);
+      });
+
+      it('passes when artifact basenames differ', async () => {
+        writeConfig(CONFIG_FILENAME, {
+          registry,
+          type: 'package',
+          name: 'n',
+          artifacts: [
+            { source: 's', objectName: 'lambdas/handler.zip' },
+            { source: 's', objectName: 'lambdas/ui.zip' },
+          ],
+        });
+
+        await expect(loadWorkspaceConfig(dir)).resolves.toBeDefined();
+      });
+    });
   });
 
   describe('buildArtifacts', () => {

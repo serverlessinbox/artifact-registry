@@ -16,7 +16,7 @@ interface BuiltEntry {
 }
 
 async function bundleJsZip(entryPoint: string, outZip: string): Promise<void> {
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'artifact-tools-bundle-'));
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'artifact-registry-bundle-'));
   try {
     const outJs = path.join(tmpDir, 'index.js');
 

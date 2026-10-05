@@ -28,7 +28,7 @@ describe('writer/reader round trips', () => {
   });
 
   describe('pointer key: writer key == reader key', () => {
-    it('writeVersionPointers writes the exact key buildArtifactKey/handleRequest read for (major track)', async () => {
+    it('writeVersionPointers writes the exact key buildArtifactKey reads for (major track)', async () => {
       const version = new semver.SemVer('2.5.0');
 
       await publisher.writeVersionPointers({ package: pkg, targets: [target], objects: [{ name: 'a.zip' }] }, version);
@@ -38,7 +38,7 @@ describe('writer/reader round trips', () => {
       expect(writerKeys).toContain(readerKey);
     });
 
-    it('writeVersionPointers writes the exact key buildArtifactKey/handleRequest read for (major.minor track)', async () => {
+    it('writeVersionPointers writes the exact key buildArtifactKey reads for (major.minor track)', async () => {
       const version = new semver.SemVer('2.5.0');
 
       await publisher.writeVersionPointers({ package: pkg, targets: [target], objects: [{ name: 'a.zip' }] }, version);

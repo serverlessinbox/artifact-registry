@@ -79,7 +79,7 @@ describe('buildArtifactKey', () => {
       expect(key).toBe('acme/packages/example-go/releases/v3/stable.json');
     });
 
-    it('never emits a latest- prefixed filename', () => {
+    it('uses stable pointer filename for track-scoped release pointers', () => {
       const key = buildArtifactKey('package', 'example-go', {
         type: 'release-pointer',
         track: 'v1',
