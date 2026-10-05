@@ -3,6 +3,8 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import { parse as parseSemver } from 'semver';
 import type { ArtifactType } from '../artifacts/artifact';
 import { buildArtifactKey } from '../artifacts/artifact-key';
+import { buildArtifactBucketName } from '../artifacts/artifact-target';
+import type { RegistryLocation } from '../artifacts/registry-location';
 import { loadReleasePointer } from './release-pointer';
 import type { TrackVersionsResult } from './load-track';
 
@@ -16,8 +18,8 @@ export interface PrereleaseVersionsOptions {
    * the track-scoped pointer (`{project}/{typePrefix}/{name}/releases/{track}/{distTag}.json`).
    */
   track?: string;
-  /** Bucket name without region suffix; each package's bucket is `{bucketBase}-{region}`. */
-  bucketBase: string;
+  /** The registry location that names each package's bucket and the key prefix. */
+  location: RegistryLocation;
   artifactType: ArtifactType;
   /** Map of packageName → region. */
   packages: Record<string, string>;
@@ -36,13 +38,14 @@ export async function loadPrereleaseVersions(client: S3Client, options: Prerelea
 
   const results = await Promise.all(
     entries.map(async ([packageName, region]) => {
-      const bucket = `${options.bucketBase}-${region}`;
+      const bucket = buildArtifactBucketName(options.location, region);
 
       // 1. Build the distTag-named prerelease pointer key
       const pointerKey = buildArtifactKey(options.artifactType, packageName, {
         type: 'release-pointer',
         track: options.track,
         distTag: options.prereleaseTag,
+        project: options.location.project,
       });
 
       // 2. Fetch and parse the pointer file
@@ -58,6 +61,7 @@ export async function loadPrereleaseVersions(client: S3Client, options: Prerelea
         type: 'release',
         version: parsed,
         objectName: '',
+        project: options.location.project,
       });
 
       // 4. Paginate ListObjectVersionsCommand to collect latest versionIds

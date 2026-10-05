@@ -3,8 +3,11 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import { parse as parseSemver } from 'semver';
 import type { ArtifactType } from '../artifacts/artifact';
 import { buildArtifactKey } from '../artifacts/artifact-key';
+import { buildArtifactBucketName } from '../artifacts/artifact-target';
+import type { RegistryLocation } from '../artifacts/registry-location';
 import { loadReleasePointer } from './release-pointer';
 
+/** Which track's 'stable' pointer {@link loadTrackVersions} reads for which packages, and where the packages live. */
 export interface TrackVersionsOptions {
   /**
    * Track name, e.g. 'v1', 'v1.2'. When omitted, the GLOBAL untracked 'stable'
@@ -12,13 +15,14 @@ export interface TrackVersionsOptions {
    * the track-scoped pointer (`{project}/{typePrefix}/{name}/releases/{track}/stable.json`).
    */
   track?: string;
-  /** Bucket name without region suffix; each package's bucket is `{bucketBase}-{region}`. */
-  bucketBase: string;
+  /** The registry location that names each package's bucket and the key prefix. */
+  location: RegistryLocation;
   artifactType: ArtifactType;
   /** Map of packageName → region. */
   packages: Record<string, string>;
 }
 
+/** The pinned versions found for the packages of a track, and the S3 version IDs of their objects. */
 export interface TrackVersionsResult {
   /** S3 key → versionId, for the latest version of every object found under the resolved versions' release prefixes. */
   versionMap: Record<string, string>;
@@ -40,12 +44,13 @@ export async function loadTrackVersions(client: S3Client, options: TrackVersions
 
   const results = await Promise.all(
     entries.map(async ([packageName, region]) => {
-      const bucket = `${options.bucketBase}-${region}`;
+      const bucket = buildArtifactBucketName(options.location, region);
 
       // 1. Build pointer key
       const pointerKey = buildArtifactKey(options.artifactType, packageName, {
         type: 'release-pointer',
         track: options.track,
+        project: options.location.project,
       });
 
       // 2. Fetch and parse the pointer file
@@ -61,6 +66,7 @@ export async function loadTrackVersions(client: S3Client, options: TrackVersions
         type: 'release',
         version: parsed,
         objectName: '',
+        project: options.location.project,
       });
 
       // 4. Paginate ListObjectVersionsCommand to collect latest versionIds

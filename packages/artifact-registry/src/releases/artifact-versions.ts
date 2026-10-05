@@ -1,11 +1,10 @@
-import * as t from 'typanion';
-
-const isArtifactZone = t.isEnum(['regional', 'edge'] as const);
+import type * as t from 'typanion';
+import type { isArtifactZone } from '../artifacts/registry-location';
 
 /**
  * Zone designation for an artifact.
- * - 'regional': Use the deployment region's artifact bucket.
- * - 'edge': Always use us-east-1 for edge deployments.
+ * - 'regional': the deployment region's artifact bucket.
+ * - 'edge': the bucket of the edge zone's fixed region (see `ZONE_REGIONS`).
  */
 export type ArtifactZone = t.InferType<typeof isArtifactZone>;
 
@@ -16,15 +15,15 @@ export type ArtifactZone = t.InferType<typeof isArtifactZone>;
 export interface ArtifactVersionsEntry {
   readonly version: string;
   readonly zone: ArtifactZone;
+  /** When set, the package is read from this region's bucket; it wins over `zone`. */
+  readonly region?: string;
   /** When set, the package resolves under this channel's prefix instead of the release prefix of `version`. */
   readonly channel?: string;
 }
 
 /**
- * The packages of an artifact-versions file, keyed by package name, plus an optional bucket base.
+ * The packages of an artifact-versions file, keyed by package name.
  */
 export interface ParsedArtifactVersions {
   readonly packages: Record<string, ArtifactVersionsEntry>;
-  /** Bucket name without region suffix. A resolver needs one from here or from its own override. */
-  readonly bucketBase?: string;
 }

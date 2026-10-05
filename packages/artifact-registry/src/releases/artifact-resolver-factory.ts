@@ -1,6 +1,8 @@
-import type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from './artifact-versions';
+import type { ArtifactVersionsEntry, ParsedArtifactVersions } from './artifact-versions';
 import { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from '../artifacts/artifact-target';
 import type { ArtifactType } from '../artifacts/artifact';
+import { ZONE_REGIONS } from '../artifacts/registry-location';
+import type { RegistryLocation } from '../artifacts/registry-location';
 import type { ResolvedArtifact } from './artifact-registry';
 
 /**
@@ -14,22 +16,8 @@ export interface ResolvedArtifactData {
 }
 
 /**
- * Resolves a {@link ResolvedArtifact} for a specific object within a resolved
- * artifact. The S3 key is formed by joining `data.prefix` and `objectPath`
- * (any leading slashes on `objectPath` are stripped).
- */
-export function resolveArtifact(data: ResolvedArtifactData, objectPath: string): ResolvedArtifact {
-  const normalizedPath = objectPath.replace(/^\/+/, '');
-  const key = `${data.prefix}/${normalizedPath}`;
-  if (data.versionId !== undefined) {
-    return { key, bucket: data.bucket, versionId: data.versionId };
-  }
-  return { key, bucket: data.bucket };
-}
-
-/**
  * Synchronous lookup, per package name, of an object's S3 location, URL and ARN, the package's
- * pinned version and S3 version ID, and the bucket base shared by all packages. Every
+ * pinned version and S3 version ID, and the registry location shared by all packages. Every
  * package-specific method throws for a package the resolver does not know.
  */
 export interface IArtifactResolver {
@@ -40,47 +28,55 @@ export interface IArtifactResolver {
   getVersion(packageName: string): string;
   /** S3 version ID for the given package, or undefined if not pinned. */
   getVersionId(packageName: string): string | undefined;
-  /** Bucket base (without region suffix), shared across all packages. */
-  getBucketBase(): string;
+  /** Registry location (bucket naming and key prefix), shared across all packages. */
+  getLocation(): RegistryLocation;
+}
+
+/**
+ * Options for constructing an {@link ArtifactResolver}.
+ */
+export interface ArtifactResolverFactoryOptions {
+  /** The parsed artifact-versions data. */
+  readonly versions: ParsedArtifactVersions;
+  /** The registry location that names each package's bucket and the key prefix. */
+  readonly location: RegistryLocation;
+  /** The deployment region. Used for 'regional' zone artifacts that name no region of their own. */
+  readonly deploymentRegion: string;
+  /** The artifact type (default: 'package'). */
+  readonly artifactType?: ArtifactType;
+  /** S3 key to S3 object version ID. `resolve()` adds the matching version ID to a resolved artifact whose key is listed. */
+  readonly s3VersionMap?: Record<string, string>;
 }
 
 /**
  * {@link IArtifactResolver} over the packages of one artifact-versions file. Resolves every package
- * to its bucket and key prefix in the constructor, so an unusable configuration (no bucket base)
- * fails at construction rather than on first use. It does not read S3.
+ * to its bucket and key prefix in the constructor. It does not read S3.
  */
 export class ArtifactResolver implements IArtifactResolver {
   private readonly resolvedData: Record<string, ResolvedArtifactData>;
   private readonly regionMap: Record<string, string>;
   private readonly versionMap: Record<string, string>;
-  private readonly bucketBase: string;
+  private readonly location: RegistryLocation;
   private readonly s3VersionMap: Record<string, string>;
 
   constructor(options: ArtifactResolverFactoryOptions) {
-    const bucketBase = options.bucketBaseOverride ?? options.versions.bucketBase;
-    if (!bucketBase) {
-      throw new Error(
-        'artifact-resolver-factory: bucketBase is required (either in versions file, as override, or both). ' +
-        'Provide bucketBaseOverride or ensure versions.bucketBase is set.',
-      );
-    }
+    const { location } = options;
     const artifactType = options.artifactType ?? 'package';
     const resolved: Record<string, ResolvedArtifactData> = {};
-    const regionMap: Record<string, string> = {};
 
     for (const [packageName, entry] of Object.entries(options.versions.packages)) {
-      resolved[packageName] = resolveArtifactData(packageName, entry, bucketBase, options.deploymentRegion, artifactType, options.project);
-      regionMap[packageName] = entry.zone === 'edge' ? 'us-east-1' : options.deploymentRegion;
+      const region = resolvePackageRegion(entry, options.deploymentRegion);
+      resolved[packageName] = resolveArtifactData(packageName, entry, location, region, artifactType);
     }
 
     this.resolvedData = Object.freeze(resolved);
-    this.regionMap = Object.freeze(regionMap);
+    this.regionMap = createPackageRegionMap(options.versions, options.deploymentRegion);
     this.versionMap = Object.freeze(
       Object.fromEntries(
         Object.entries(options.versions.packages).map(([name, entry]) => [name, entry.version])
       )
     );
-    this.bucketBase = bucketBase;
+    this.location = location;
     this.s3VersionMap = Object.freeze(options.s3VersionMap ?? {});
   }
 
@@ -93,11 +89,8 @@ export class ArtifactResolver implements IArtifactResolver {
   }
 
   getUrl(packageName: string, objectPath: string): string {
-    const data = this.resolvedData[packageName];
-    if (!data) throw new Error(`No resolved data for package '${packageName}'`);
-    const resolved = resolveArtifact(data, objectPath);
-    const region = this.regionMap[packageName];
-    return buildArtifactUrl(data.bucket, region, resolved.key, data.versionId);
+    const artifact = this.resolve(packageName, objectPath);
+    return buildArtifactUrl(artifact.bucket, this.regionMap[packageName], artifact.key, artifact.versionId);
   }
 
   getArn(packageName: string, objectPath: string): string {
@@ -119,27 +112,51 @@ export class ArtifactResolver implements IArtifactResolver {
     return data.versionId;
   }
 
-  getBucketBase(): string {
-    return this.bucketBase;
+  getLocation(): RegistryLocation {
+    return this.location;
   }
 }
 
 /**
- * Options for constructing an {@link ArtifactResolver}.
+ * Resolves a {@link ResolvedArtifact} for a specific object within a resolved
+ * artifact. The S3 key is formed by joining `data.prefix` and `objectPath`
+ * (any leading slashes on `objectPath` are stripped).
  */
-export interface ArtifactResolverFactoryOptions {
-  /** The parsed artifact-versions data (packages + optional bucketBase). */
-  readonly versions: ParsedArtifactVersions;
-  /** Bucket name without region suffix. Takes precedence over `versions.bucketBase`; construction throws when neither is set. */
-  readonly bucketBaseOverride?: string;
-  /** The deployment region (e.g. 'eu-west-1'). Used for 'regional' zone artifacts. */
-  readonly deploymentRegion: string;
-  /** The artifact type (default: 'package'). */
-  readonly artifactType?: ArtifactType;
-  /** S3 key to S3 object version ID. `resolve()` adds the matching version ID to a resolved artifact whose key is listed. */
-  readonly s3VersionMap?: Record<string, string>;
-  /** Optional override for the `{project}/` key prefix. Defaults to DEFAULT_PROJECT. */
-  readonly project?: string;
+export function resolveArtifact(data: ResolvedArtifactData, objectPath: string): ResolvedArtifact {
+  const normalizedPath = objectPath.replace(/^\/+/, '');
+  const key = `${data.prefix}/${normalizedPath}`;
+  if (data.versionId !== undefined) {
+    return { key, bucket: data.bucket, versionId: data.versionId };
+  }
+  return { key, bucket: data.bucket };
+}
+
+/**
+ * Maps each package name of the versions to the region its artifact resolves in (see
+ * `resolvePackageRegion`).
+ */
+export function createPackageRegionMap(
+  versions: ParsedArtifactVersions,
+  deploymentRegion: string,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  for (const [packageName, entry] of Object.entries(versions.packages)) {
+    result[packageName] = resolvePackageRegion(entry, deploymentRegion);
+  }
+
+  return Object.freeze(result);
+}
+
+/**
+ * The region a package's artifact resolves in: the entry's own `region`, else the region of its
+ * fixed-region zone, else the deployment region.
+ */
+function resolvePackageRegion(entry: ArtifactVersionsEntry, deploymentRegion: string): string {
+  if (entry.region !== undefined) {
+    return entry.region;
+  }
+  return entry.zone === 'edge' ? ZONE_REGIONS.edge : deploymentRegion;
 }
 
 /**
@@ -149,37 +166,17 @@ export interface ArtifactResolverFactoryOptions {
 function resolveArtifactData(
   packageName: string,
   entry: ArtifactVersionsEntry,
-  bucketBase: string,
-  deploymentRegion: string,
+  location: RegistryLocation,
+  region: string,
   artifactType: ArtifactType,
-  project?: string,
 ): ResolvedArtifactData {
-  const region = entry.zone === 'edge' ? 'us-east-1' : deploymentRegion;
-  const bucket = buildArtifactBucketName(bucketBase, region);
+  const bucket = buildArtifactBucketName(location, region);
   const prefix = entry.channel
-    ? buildChannelPrefix(artifactType, packageName, entry.channel, project)
-    : buildReleasePrefix(artifactType, packageName, entry.version, project);
+    ? buildChannelPrefix(artifactType, packageName, entry.channel, location.project)
+    : buildReleasePrefix(artifactType, packageName, entry.version, location.project);
 
   return {
     bucket,
     prefix,
   };
-}
-
-/**
- * Maps each package name of the versions to the region its artifact resolves in: us-east-1 for an
- * 'edge' zone entry, the deployment region otherwise.
- */
-export function createPackageRegionMap(
-  versions: ParsedArtifactVersions,
-  deploymentRegion: string,
-): Record<string, string> {
-  const result: Record<string, string> = {};
-
-  for (const [packageName, entry] of Object.entries(versions.packages)) {
-    const region = entry.zone === 'edge' ? 'us-east-1' : deploymentRegion;
-    result[packageName] = region;
-  }
-
-  return Object.freeze(result);
 }

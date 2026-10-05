@@ -5,6 +5,7 @@ import { loadChannelVersions } from './load-channel';
 import { loadReleasePointer } from './release-pointer';
 import type { ArtifactType } from '../artifacts/artifact';
 import type { ArtifactTarget } from '../artifacts/artifact-target';
+import type { RegistryLocation } from '../artifacts/registry-location';
 import type { ChannelVersionsOptions } from './load-channel';
 
 /**
@@ -40,13 +41,13 @@ export interface IArtifactRegistry {
 }
 
 /**
- * {@link IArtifactRegistry} backed by S3. `bucketBase` is the bucket name without its region
- * suffix; `client` must reach the bucket of every region that is resolved or listed: construct it
+ * {@link IArtifactRegistry} backed by S3. `location` names the bucket of every region and the key
+ * prefix; `client` must reach the bucket of every region that is resolved or listed: construct it
  * with `followRegionRedirects: true`.
  */
 export class S3ArtifactRegistry implements IArtifactRegistry {
   constructor(
-    private readonly bucketBase: string,
+    private readonly location: RegistryLocation,
     private readonly client: S3Client,
   ) {}
 
@@ -57,13 +58,15 @@ export class S3ArtifactRegistry implements IArtifactRegistry {
     objectPath: string,
     region: string,
   ): Promise<ResolvedArtifact> {
-    const bucket = buildArtifactBucketName(this.bucketBase, region);
+    const bucket = buildArtifactBucketName(this.location, region);
+    const { project } = this.location;
 
     if (target.kind === 'release') {
       const key = buildArtifactKey(artifactType, name, {
         type: 'release',
         version: { version: target.version },
         objectName: objectPath,
+        project,
       });
       return { key, bucket };
     }
@@ -73,6 +76,7 @@ export class S3ArtifactRegistry implements IArtifactRegistry {
         type: 'channel',
         channel: target.channel,
         objectName: objectPath,
+        project,
       });
       return { key, bucket };
     }
@@ -81,12 +85,14 @@ export class S3ArtifactRegistry implements IArtifactRegistry {
     const pointerKey = buildArtifactKey(artifactType, name, {
       type: 'release-pointer',
       track: target.track,
+      project,
     });
     const pointer = await loadReleasePointer(this.client, bucket, pointerKey);
     const key = buildArtifactKey(artifactType, name, {
       type: 'release',
       version: { version: pointer.version },
       objectName: objectPath,
+      project,
     });
     return { key, bucket };
   }

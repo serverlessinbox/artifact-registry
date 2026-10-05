@@ -2,21 +2,24 @@ import { ListObjectVersionsCommand } from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { ArtifactType } from '../artifacts/artifact';
 import { buildArtifactKey } from '../artifacts/artifact-key';
+import { buildArtifactBucketName } from '../artifacts/artifact-target';
+import type { RegistryLocation } from '../artifacts/registry-location';
 
+/** Which channel of which packages {@link loadChannelVersions} lists, and where the packages live. */
 export interface ChannelVersionsOptions {
   /** Artifact type — determines the S3 key prefix ('packages' or 'templates'). */
   artifactType: ArtifactType;
   /** Channel name, e.g. 'dev'. */
   channel: string;
-  /** Base bucket name without region suffix, e.g. 'mailbox-artifacts'. */
-  bucketBase: string;
+  /** The registry location that names each package's bucket and the key prefix. */
+  location: RegistryLocation;
   /** Map of packageName → region. */
   packages: Record<string, string>;
 }
 
 /**
- * Loads the S3 version map for all objects under {project}/packages/{packageName}/channels/{channel}/
- * (see `buildArtifactKey`'s 'channel-prefix' spec).
+ * Loads the S3 version map for all objects under {project}/{typePrefix}/{packageName}/channels/{channel}/
+ * (see `buildArtifactKey`'s 'channel-prefix' spec; `typePrefix` follows `options.artifactType`).
  * Returns a flat map of s3Key → versionId for all latest-version objects.
  *
  * Uses ListObjectVersionsCommand with pagination to gather VersionIds needed for CloudFormation.
@@ -28,8 +31,12 @@ export async function loadChannelVersions(client: S3Client, options: ChannelVers
 
   const results = await Promise.all(
     entries.map(async ([packageName, region]) => {
-      const bucket = `${options.bucketBase}-${region}`;
-      const prefix = buildArtifactKey(options.artifactType, packageName, { type: 'channel-prefix', channel: options.channel });
+      const bucket = buildArtifactBucketName(options.location, region);
+      const prefix = buildArtifactKey(options.artifactType, packageName, {
+        type: 'channel-prefix',
+        channel: options.channel,
+        project: options.location.project,
+      });
       const versionMap: Record<string, string> = {};
 
       let keyMarker: string | undefined;
