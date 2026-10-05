@@ -85,7 +85,7 @@ export class RegionalPublisher {
   /**
    * Writes the track-scoped, distTag-named pointer files for a release to every target: one global
    * (untracked), one at v{major} granularity, one at v{major}.{minor}. `distTag` is 'stable' for a
-   * normal release, or the GitVersion prerelease label (e.g. 'beta', 'calendar') for a prerelease.
+   * normal release, or the prerelease label (e.g. 'beta', 'calendar') for a prerelease.
    * The pointer body is built once, so every target receives the same `publishedAt`.
    *
    * `release.objects` declares every artifact published in this release (at least one), so a reader

@@ -17,9 +17,9 @@ export interface ArtifactSelection {
 }
 
 /**
- * Stages the selected artifacts the way the gitversion plugin's pack does (`buildArtifacts`: a
- * directory is zipped, a `js-zip` entry is bundled, a file is copied) into a temporary folder, hands
- * the staged files to `use`, and removes the folder afterwards, also when `use` throws.
+ * Stages the selected artifacts (`buildArtifacts`: a directory is zipped, a `js-zip` entry is
+ * bundled, a file is copied) into a temporary folder, hands the staged files to `use`, and removes
+ * the folder afterwards, also when `use` throws.
  * Throws an `ArtifactSelectionError` when the config is missing, `objectName` matches no entry, or a
  * selected region is no target of any selected entry.
  */

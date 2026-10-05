@@ -34,7 +34,7 @@ interface ChannelPrefixKeySpec {
 // distTag-named pointer. With `track` it is track-scoped:
 // `{project}/{typePrefix}/{name}/releases/{track}/{distTag}.json`. Without `track` it is the global
 // untracked pointer: `{project}/{typePrefix}/{name}/releases/{distTag}.json`.
-// `distTag` names the release line (the npm dist-tag / GitVersion prerelease label, e.g. stable,
+// `distTag` names the release line (the npm dist-tag / prerelease label, e.g. stable,
 // beta, calendar); `track` is the major or major.minor line; `channel` is a separate, mutable path.
 interface ReleasePointerKeySpec extends ReleasePointerKeyOptions {
   type: 'release-pointer';
