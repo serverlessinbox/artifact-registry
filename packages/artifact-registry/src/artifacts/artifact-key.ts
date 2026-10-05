@@ -11,6 +11,7 @@ export interface ReleasePointerKeyOptions {
   distTag?: string;
 }
 
+/** A spec for building an S3 key for a release artifact with a specific version and object name. */
 interface ReleaseKeySpec {
   type: 'release';
   version: Pick<SemVer, 'version'>;
@@ -18,6 +19,7 @@ interface ReleaseKeySpec {
   project: string;
 }
 
+/** A spec for building an S3 key for a channel artifact with a specific channel and object name. */
 interface ChannelKeySpec {
   type: 'channel';
   channel: string;
@@ -25,21 +27,23 @@ interface ChannelKeySpec {
   project: string;
 }
 
+/** A spec for building an S3 key prefix for a channel. */
 interface ChannelPrefixKeySpec {
   type: 'channel-prefix';
   channel: string;
   project: string;
 }
 
-// distTag-named pointer. With `track` it is track-scoped:
-// `{project}/{typePrefix}/{name}/releases/{track}/{distTag}.json`. Without `track` it is the global
-// untracked pointer: `{project}/{typePrefix}/{name}/releases/{distTag}.json`.
-// `distTag` names the release line (the npm dist-tag / prerelease label, e.g. stable,
-// beta, calendar); `track` is the major or major.minor line; `channel` is a separate, mutable path.
+/**
+ * A spec for building an S3 key for a release pointer file: track-scoped (e.g. `{project}/{typePrefix}/{name}/releases/{track}/{distTag}.json`)
+ * or global without track (e.g. `{project}/{typePrefix}/{name}/releases/{distTag}.json`).
+ * `distTag` names the release line (`stable`, or a prerelease label such as `beta`); `track` is a `v{major}` or `v{major}.{minor}` line.
+ */
 interface ReleasePointerKeySpec extends ReleasePointerKeyOptions {
   type: 'release-pointer';
 }
 
+/** A spec for building an S3 key for a release track artifact with a specific track and object name. */
 interface ReleaseTrackKeySpec {
   type: 'release-track';
   track: string;
@@ -47,7 +51,7 @@ interface ReleaseTrackKeySpec {
   project: string;
 }
 
-// A release key with the literal `{version}` / `{objectName}` tokens instead of concrete values.
+/** A spec for building an S3 key template with literal `{version}` and `{objectName}` token placeholders instead of concrete values. */
 interface ReleaseTemplateKeySpec {
   type: 'release-template';
   project: string;

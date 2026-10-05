@@ -1,9 +1,9 @@
 import * as t from 'typanion';
 import { isRegionBucket } from './registry-location';
 
-/** Artifact type. Determines the S3 key prefix ('packages', 'templates'). */
 export const isArtifactType = t.isEnum(['package', 'template'] as const);
 
+/** Artifact type: `package` or `template`; selects the `packages` or `templates` key prefix. */
 export type ArtifactType = t.InferType<typeof isArtifactType>;
 
 export const isArtifactPackage = t.isObject({

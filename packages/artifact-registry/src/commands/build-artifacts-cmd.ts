@@ -2,6 +2,7 @@ import { Command, Option } from 'clipanion';
 import * as path from 'path';
 import { buildArtifacts } from '../artifacts/build-artifacts';
 
+/** CLI command that builds artifacts defined in artifact-registry.json and writes them to the output folder. */
 export class BuildArtifactsCommand extends Command {
   static override paths = [['build']];
 

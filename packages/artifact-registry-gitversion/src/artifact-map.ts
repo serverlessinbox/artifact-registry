@@ -1,17 +1,17 @@
 import * as t from 'typanion';
 import { isArtifactRouting } from '@serverlessinbox/artifact-registry';
 
-/** The routing of one packed artifact file plus the S3 key it is uploaded to, recorded at pack time. */
 export const isArtifactMapEntry = t.isObject({
   ...isArtifactRouting.properties,
   key: t.isString(),
 });
 
+/** The routing of one packed artifact file plus the S3 key it is uploaded to, recorded at pack time. */
 export type ArtifactMapEntry = t.InferType<typeof isArtifactMapEntry>;
 
-/** The routing recorded by `pack`, keyed by packed file basename. */
 export const isArtifactMap = t.isDict(isArtifactMapEntry);
 
+/** The artifact routing recorded by `pack`, keyed by packed file basename. */
 export type ArtifactMap = t.InferType<typeof isArtifactMap>;
 
 /**

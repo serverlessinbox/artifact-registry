@@ -2,24 +2,20 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import { GetObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
 import * as t from 'typanion';
 
-/** An artifact published in a release, as listed in the pointer's `objects[]`: its S3 object name (e.g. 'lambdas/admin-api.zip'). */
 export const isReleasePointerObject = t.isObject({
   name: t.isString(),
 });
 
+/** An artifact published in a release: its S3 object name (e.g. 'lambdas/admin-api.zip'). Listed in the release pointer's `objects[]`. */
 export type ReleasePointerObject = t.InferType<typeof isReleasePointerObject>;
 
-/**
- * The track-scoped, distTag-named pointer file, e.g.
- * `{project}/packages/{name}/releases/v1/stable.json`: the resolved version, the ISO 8601
- * timestamp it was published at, and the objects published in the release (at least one).
- */
 export const isReleasePointer = t.isObject({
   version: t.isString(),
   publishedAt: t.isString(),
   objects: t.cascade(t.isArray(isReleasePointerObject), [t.hasMinLength(1)]),
 });
 
+/** A release pointer file (`{distTag}.json`, global or per track): the version it names, when it was published (ISO 8601), and the objects of that release (at least one). */
 export type ReleasePointer = t.InferType<typeof isReleasePointer>;
 
 /**

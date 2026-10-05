@@ -2,6 +2,7 @@ import { Cli } from 'clipanion';
 import type { CommandClass } from 'clipanion';
 import { Writable } from 'stream';
 
+/** The result of running a command: its exit code and captured stdout and stderr output. */
 export interface CommandRun {
   readonly exitCode: number;
   readonly stdout: string;
