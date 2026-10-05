@@ -8,7 +8,7 @@ export class BuildArtifactsCommand extends Command {
   static override usage = Command.Usage({
     description: 'Build artifacts defined in artifact-registry.json and place them in the output folder.',
     examples: [
-      ['Build artifacts in current directory', '$0 build'],
+      ['Build artifacts in current directory', '$0 build --output dist/artifacts'],
       ['Build artifacts from a specific workspace', '$0 build --cwd packages/app --output dist/artifacts'],
     ],
   });
@@ -18,16 +18,15 @@ export class BuildArtifactsCommand extends Command {
   });
 
   output = Option.String('--output', {
-    description: 'Output folder for built artifacts. Defaults to gitversion.out/artifacts.',
+    required: true,
+    description: 'Output folder for built artifacts.',
   });
 
   async execute(): Promise<number> {
     const workspaceCwd = this.cwd ?? process.cwd();
-    const outputFolder = this.output
-      ? path.isAbsolute(this.output)
-        ? this.output
-        : path.join(process.cwd(), this.output)
-      : path.join(process.cwd(), 'gitversion.out', 'artifacts');
+    const outputFolder = path.isAbsolute(this.output)
+      ? this.output
+      : path.join(process.cwd(), this.output);
 
     const result = await buildArtifacts(workspaceCwd, outputFolder);
 

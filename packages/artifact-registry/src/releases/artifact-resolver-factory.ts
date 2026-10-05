@@ -26,8 +26,6 @@ export interface IArtifactResolver {
   getArn(packageName: string, objectPath: string): string;
   /** Version string of the package's entry in the versions file, as written there. */
   getVersion(packageName: string): string;
-  /** S3 version ID for the given package, or undefined if not pinned. */
-  getVersionId(packageName: string): string | undefined;
   /** Registry location (bucket naming and key prefix), shared across all packages. */
   getLocation(): RegistryLocation;
 }
@@ -104,12 +102,6 @@ export class ArtifactResolver implements IArtifactResolver {
     const v = this.versionMap[packageName];
     if (v === undefined) throw new Error(`No resolved data for package '${packageName}'`);
     return v;
-  }
-
-  getVersionId(packageName: string): string | undefined {
-    const data = this.resolvedData[packageName];
-    if (!data) throw new Error(`No resolved data for package '${packageName}'`);
-    return data.versionId;
   }
 
   getLocation(): RegistryLocation {

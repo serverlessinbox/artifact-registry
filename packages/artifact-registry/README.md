@@ -72,10 +72,9 @@ The package installs the `artifact-registry` binary. The `publish` and `resolve-
 
 | Command | What it does | Options |
 |---|---|---|
-| `build` | Builds the artifacts of `artifact-registry.json` into an output folder without uploading: a `js-zip` entry is bundled with esbuild into a zip holding `index.js`, a directory is zipped, a file is copied. Prints the written file names. | `--cwd` workspace directory (default: current directory); `--output` output folder (default: `gitversion.out/artifacts`) |
+| `build` | Builds the artifacts of `artifact-registry.json` into an output folder without uploading: a `js-zip` entry is bundled with esbuild into a zip holding `index.js`, a directory is zipped, a file is copied. Prints the written file names. | `--cwd` workspace directory (default: current directory); `--output` output folder (required) |
 | `publish channel` | Uploads artifacts to `channels/{channel}/{objectName}`. Writes no pointers and no tracks. | `--cwd`; `--channel` (default: `dev`); `--profile`; `--object` publish only the artifact with this `objectName` |
 | `publish release` | Uploads artifacts to `releases/v{version}/{objectName}`, writes the pointer files, and for `template` artifacts also writes the `latest` copy (or the prerelease-labelled copy). | `--version` (required, semver); `--cwd`; `--profile`; `--object` |
-| `publish manifest` | Builds a manifest `{ version, publishedAt, components }` and uploads it as `releases/v{version}/manifest.json` of the named artifact. Uploads the manifest only. | `--bucket` (required); `--region`; `--profile`; `--type` (required, `package` or `template`); `--name` (required); `--version` or `--version-from-package` (path to a `package.json`); `--versions-file` (required, a flat JSON object of component to version); `--extra-component` (`name:{version}` or `name:x.y.z`, repeatable, `{version}` is replaced by `--version`) |
 | `resolve-artifacts` | Reads the `stable` pointer of each component and writes a flat JSON object of component to version to every `--output`. Reads only. | `--bucket` (required); `--region`; `--profile`; `--component` (required, `key:type:name`, repeatable); `--track` (for example `v1`; without it the global pointer is read); `--output` (required, repeatable) |
 
 `publish channel` and `publish release` upload the file at each `source` as it is. They neither zip a directory nor apply `bundleType`, so `source` must name a file, for example the output of `build`.
@@ -86,11 +85,6 @@ yarn artifact-registry build --cwd packages/my-lambdas --output dist/artifacts
 yarn artifact-registry publish channel --channel dev --object lambdas/admin-api.zip
 
 yarn artifact-registry publish release --version 1.2.3
-
-yarn artifact-registry publish manifest \
-  --bucket my-artifacts-eu-west-1 --region eu-west-1 \
-  --type package --name my-lambdas --version 1.2.3 \
-  --versions-file artifact-versions.json --extra-component my-edge-lambdas:{version}
 
 yarn artifact-registry resolve-artifacts \
   --bucket my-artifacts-eu-west-1 --region eu-west-1 --track v1 \
