@@ -1,5 +1,5 @@
 import type { S3Client } from '@aws-sdk/client-s3';
-import { GetObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
+import { AccessDenied, GetObjectCommand, NoSuchKey } from '@aws-sdk/client-s3';
 import * as t from 'typanion';
 
 export const isReleasePointerObject = t.isObject({
@@ -36,7 +36,10 @@ export async function loadReleasePointer(client: S3Client, bucket: string, key: 
     body = await res.Body.transformToString('utf-8');
   } catch (err: unknown) {
     if (err instanceof NoSuchKey || (err instanceof Error && err.name === 'NoSuchKey')) {
-      throw new Error(`${source}: object not found`);
+      throw new Error(`${source}: missing or not readable`);
+    }
+    if (err instanceof AccessDenied || (err instanceof Error && err.name === 'AccessDenied')) {
+      throw new Error(`${source}: missing or not readable`);
     }
     throw err;
   }

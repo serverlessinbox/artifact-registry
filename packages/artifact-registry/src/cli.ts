@@ -4,6 +4,8 @@ import { BuildArtifactsCommand } from './commands/build-artifacts-cmd';
 import { PublishChannelCommand } from './commands/publish-channel-cmd';
 import { PublishReleaseCommand } from './commands/publish-release-cmd';
 import { ResolveArtifactsCommand } from './commands/resolve-artifacts-cmd';
+import { FetchRegistryRecordCommand } from './commands/fetch-registry-record-cmd';
+import { CheckRegistryRecordCommand } from './commands/check-registry-record-cmd';
 import { readPackageVersion } from './utils/package-json';
 
 export async function runCli(argv: string[]) {
@@ -21,6 +23,8 @@ export async function runCli(argv: string[]) {
   cli.register(PublishChannelCommand);
   cli.register(PublishReleaseCommand);
   cli.register(ResolveArtifactsCommand);
+  cli.register(FetchRegistryRecordCommand);
+  cli.register(CheckRegistryRecordCommand);
 
   // Yarn scripts may inject a standalone `--` when forwarding args.
   const normalizedArgv = argv.filter((a) => a !== '--');
