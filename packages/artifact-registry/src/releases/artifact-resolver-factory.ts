@@ -3,13 +3,22 @@ import { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildA
 import type { ArtifactType } from '../artifacts/artifact';
 import { ZONE_REGIONS } from '../artifacts/registry-location';
 import type { RegistryLocation } from '../artifacts/registry-location';
-import type { ResolvedArtifact } from './artifact-registry';
+
+/**
+ * The S3 location of one artifact object: the bucket, the object key and, when the object is
+ * pinned to a specific S3 object version, that version ID.
+ */
+export interface ResolvedArtifact {
+  readonly key: string;
+  readonly bucket: string;
+  readonly versionId?: string;
+}
 
 /**
  * Resolved location of a single package: the bucket, the S3 key prefix its objects live under and,
  * when pinned, the S3 object version ID.
  */
-export interface ResolvedArtifactData {
+interface ResolvedArtifactData {
   readonly bucket: string;
   readonly prefix: string;
   readonly versionId?: string;
@@ -114,7 +123,7 @@ export class ArtifactResolver implements IArtifactResolver {
  * artifact. The S3 key is formed by joining `data.prefix` and `objectPath`
  * (any leading slashes on `objectPath` are stripped).
  */
-export function resolveArtifact(data: ResolvedArtifactData, objectPath: string): ResolvedArtifact {
+function resolveArtifact(data: ResolvedArtifactData, objectPath: string): ResolvedArtifact {
   const normalizedPath = objectPath.replace(/^\/+/, '');
   const key = `${data.prefix}/${normalizedPath}`;
   if (data.versionId !== undefined) {
@@ -127,7 +136,7 @@ export function resolveArtifact(data: ResolvedArtifactData, objectPath: string):
  * Maps each package name of the versions to the region its artifact resolves in (see
  * `resolvePackageRegion`).
  */
-export function createPackageRegionMap(
+function createPackageRegionMap(
   versions: ParsedArtifactVersions,
   deploymentRegion: string,
 ): Record<string, string> {

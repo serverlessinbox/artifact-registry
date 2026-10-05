@@ -95,20 +95,9 @@ export class RegionalPublisher {
     throwIfFailed(await this.writePointers(release, version));
   }
 
-  /** Copies the files of a template package to the release track of every target. */
-  async uploadReleaseTrack(copy: ReleaseTrackCopy, track: string): Promise<void> {
-    throwIfFailed(await this.copyToTrack(copy, track));
-  }
-
   /** Uploads one file to the same key in every target concurrently. */
   async uploadObject(targets: RegionBucket[], key: string, filePath: string): Promise<void> {
     const outcomes = await this.fanOut(targets, (uploader, target) => uploader.upload(target.bucketName, key, filePath));
-    throwIfFailed(outcomes);
-  }
-
-  /** Writes one JSON document to the same key in every target. */
-  async uploadJson(targets: RegionBucket[], key: string, data: unknown): Promise<void> {
-    const outcomes = await this.fanOut(targets, (uploader, target) => uploader.uploadJson(target.bucketName, key, data));
     throwIfFailed(outcomes);
   }
 

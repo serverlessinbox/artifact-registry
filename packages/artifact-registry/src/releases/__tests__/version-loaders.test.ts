@@ -1,16 +1,14 @@
 /**
- * Pins that the channel, track and prerelease loaders and `S3ArtifactRegistry` request every bucket
- * the override-aware lookup names for the package's region: the override bucket for an overridden
- * region, `{bucketBase}-{region}` elsewhere. A retyped bucket template in a reader would skip the
- * override and read a bucket that does not hold the registry's objects.
+ * Pins that the channel and track loaders request every bucket the override-aware lookup names for
+ * the package's region: the override bucket for an overridden region, `{bucketBase}-{region}` elsewhere.
+ * A retyped bucket template in a reader would skip the override and read a bucket that does not hold
+ * the registry's objects.
  */
 
 import { GetObjectCommand, ListObjectVersionsCommand, S3Client } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 import { loadChannelVersions } from '../load-channel';
 import { loadTrackVersions } from '../load-track';
-import { loadPrereleaseVersions } from '../load-prerelease';
-import { S3ArtifactRegistry } from '../artifact-registry';
 import type { RegistryLocation } from '../../artifacts/registry-location';
 
 const s3Mock = mockClient(S3Client);
@@ -57,20 +55,4 @@ describe('readers form buckets through the override-aware lookup', () => {
     expect(listedBuckets()).toEqual([CONVENTION_BUCKET, OVERRIDE_BUCKET]);
   });
 
-  it('loadPrereleaseVersions reads pointers and lists objects in the override bucket for the overridden region', async () => {
-    await loadPrereleaseVersions(client, { artifactType: 'package', prereleaseTag: 'beta', location, packages });
-
-    expect(pointerBuckets()).toEqual([CONVENTION_BUCKET, OVERRIDE_BUCKET]);
-    expect(listedBuckets()).toEqual([CONVENTION_BUCKET, OVERRIDE_BUCKET]);
-  });
-
-  it('S3ArtifactRegistry resolves a release into the override bucket and reads a track pointer from it', async () => {
-    const registry = new S3ArtifactRegistry(location, client);
-
-    const release = await registry.resolve('package', 'edge-pkg', { kind: 'release', version: '1.2.3' }, 'a.zip', 'us-east-1');
-    await registry.resolve('package', 'edge-pkg', { kind: 'track', track: 'v1' }, 'a.zip', 'us-east-1');
-
-    expect(release.bucket).toBe(OVERRIDE_BUCKET);
-    expect(pointerBuckets()).toEqual([OVERRIDE_BUCKET]);
-  });
 });

@@ -5,7 +5,7 @@ export type { ChannelVersionsOptions } from './load-channel';
 export { loadTrackVersions } from './load-track';
 export type { TrackVersionsOptions, TrackVersionsResult } from './load-track';
 
-export type { ResolvedArtifact } from './artifact-registry';
+export type { ResolvedArtifact } from './artifact-resolver-factory';
 export type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from './artifact-versions';
 export { ArtifactResolver } from './artifact-resolver-factory';
 export type { IArtifactResolver, ArtifactResolverFactoryOptions } from './artifact-resolver-factory';

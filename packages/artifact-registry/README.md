@@ -102,7 +102,7 @@ yarn artifact-registry resolve-artifacts \
 ```ts
 import { SemVer } from 'semver';
 import { S3Client } from '@aws-sdk/client-s3';
-import { RegionalPublisher, RegionPublishError, S3Uploader, buildArtifacts } from '@serverlessinbox/artifact-registry';
+import { RegionalPublisher, RegionPublishError, S3Uploader, buildArtifacts, toArtifactPackageMapKey } from '@serverlessinbox/artifact-registry';
 import type { ReleaseTrackCopy } from '@serverlessinbox/artifact-registry';
 
 const built = await buildArtifacts('packages/example-api', 'dist/artifacts');
@@ -115,8 +115,7 @@ for (const [basename, routing] of built.routingMap) {
       uploaders.set(target.region, new S3Uploader(new S3Client({ region: target.region })));
     }
   }
-  const { project, artifactType, name } = routing.package;
-  const key = `${project}::${artifactType}::${name}`;
+  const key = toArtifactPackageMapKey(routing.package);
   const copy = packages.get(key) ?? { package: routing.package, targets: routing.targets, entries: [] };
   copy.entries.push({ objectName: routing.objectName, filePath: `dist/artifacts/${basename}` });
   packages.set(key, copy);
@@ -140,9 +139,7 @@ try {
 - `uploadRelease(upload)`: uploads all objects of all packages, then, if every upload succeeded, writes each package's pointers and the track copies of template packages.
 - `uploadChannel(routing, channel, filePath)`: uploads one file to the channel path of every target.
 - `uploadObject(targets, key, filePath)`: uploads one file to the same key in every target.
-- `uploadJson(targets, key, data)`: uploads one JSON document to the same key in every target.
 - `writeVersionPointers(release, version)`: writes the global, `v{major}` and `v{major}.{minor}` pointers of one package to its targets. `release.objects` lists the object names the pointer names.
-- `uploadReleaseTrack(copy, track)`: uploads each entry of `copy` to `releases/{track}/{objectName}` in every target.
 
 `RegionPublishError` carries `succeeded: RegionBucket[]` and `failed: RegionFailure[]` (`{ target, cause }`).
 
@@ -296,7 +293,7 @@ example/packages/example-api/releases/v1.2/stable.json
 ### Exports
 
 - Publishing: `buildArtifacts`, `loadWorkspaceConfig`, `RegionalPublisher`, `RegionPublishError`, `S3Uploader`; types `S3WorkspaceConfig`, `S3ArtifactEntry`, `ArtifactBuildResult`, `ArtifactRouting`, `ArtifactPackage`, `ArtifactType`, `RegionFailure`, `ReleaseUpload`, `PackageRelease`, `ReleaseTrackCopy`, `ReleaseTrackEntry`.
-- Keys and locations: `buildArtifactKey`, `buildReleasePointerKey`, `buildArtifactBucketName`, `buildArtifactUrl`, `buildArtifactArn`, `deriveTrack`, `toArtifactPackageMapKey`, `isRegistryLocation`, `isRegistryConfig`, `isRegionBucket`, `isArtifactRouting`; types `ArtifactKeySpec`, `ReleasePointerKeyOptions`, `RegistryLocation`, `RegistryConfig`, `RegionBucket`.
+- Keys and locations: `buildArtifactKey`, `buildReleasePointerKey`, `buildArtifactBucketName`, `buildArtifactUrl`, `buildArtifactArn`, `deriveTrack`, `toArtifactPackageMapKey`, `isArtifactRouting`; types `ArtifactKeySpec`, `ReleasePointerKeyOptions`, `RegistryLocation`, `RegistryConfig`, `RegionBucket`.
 - Reading: `loadChannelVersions`, `loadTrackVersions`, `readReleasePointer`, `ArtifactResolver`; types `ChannelVersionsOptions`, `TrackVersionsOptions`, `TrackVersionsResult`, `IArtifactResolver`, `ArtifactResolverFactoryOptions`, `ResolvedArtifact`, `ArtifactZone`, `ArtifactVersionsEntry`, `ParsedArtifactVersions`, `ReleasePointer`, `ReleasePointerObject`.
 
 ## Requirements

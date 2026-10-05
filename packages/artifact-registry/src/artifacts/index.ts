@@ -7,6 +7,5 @@ export { loadWorkspaceConfig } from './workspace-config';
 export type { ArtifactKeySpec, ReleasePointerKeyOptions } from './artifact-key';
 export type { S3WorkspaceConfig, S3ArtifactEntry } from './workspace-config';
 export type { RegistryLocation, RegistryConfig, RegionBucket } from './registry-location';
-export { isRegistryLocation, isRegistryConfig, isRegionBucket } from './registry-location';
 export { buildArtifactKey, buildReleasePointerKey } from './artifact-key';
 export { buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from './artifact-target';
