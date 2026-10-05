@@ -6,7 +6,7 @@ import { withStagedArtifacts } from '../artifacts/stage-artifacts';
 import { buildArtifactKey } from '../artifacts/artifact-key';
 import { RegionalPublisher, RegionPublishError } from '../releases/regional-publisher';
 import type { ReleaseTrackCopy } from '../releases/release';
-import { createUploaders } from './stage-publish';
+import { createUploaders } from './create-uploaders';
 
 /**
  * Stages a workspace's artifacts and uploads them to the versioned release path in every region

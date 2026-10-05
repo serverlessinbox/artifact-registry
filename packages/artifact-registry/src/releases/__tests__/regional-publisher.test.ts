@@ -169,4 +169,27 @@ describe('RegionalPublisher', () => {
       expect(recordedPuts().filter(p => !p.key.includes('/releases/v1.2.3/'))).toEqual([]);
     });
   });
+
+  describe('uploadObject', () => {
+    it('uploads one file to every target concurrently', async () => {
+      const key = 'test/object.zip';
+      await publisherFor(targets).uploadObject(targets, key, __filename);
+
+      const puts = recordedPuts();
+      expect(puts.filter(p => p.key === key).map(p => p.bucket).sort()).toEqual(['bucket-eu', 'override-use1']);
+    });
+
+    it('throws RegionPublishError naming the failed bucket when an upload fails in one region', async () => {
+      s3Mock.on(PutObjectCommand, { Bucket: 'bucket-eu' }).rejects(new Error('AccessDenied'));
+
+      const failure = await publisherFor(targets).uploadObject(targets, 'test/object.zip', __filename).then(() => undefined, (err: unknown) => err);
+
+      if (!(failure instanceof RegionPublishError)) {
+        throw new Error('expected a RegionPublishError');
+      }
+      expect(failure.message).toContain('bucket-eu');
+      expect(failure.failed.map(f => f.target.bucketName)).toEqual(['bucket-eu']);
+      expect(failure.succeeded).toEqual([overriddenUsBucket]);
+    });
+  });
 });

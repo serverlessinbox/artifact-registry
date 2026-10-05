@@ -2,7 +2,7 @@ import { Command, Option } from 'clipanion';
 import { RegionalPublisher, RegionPublishError } from '../releases/regional-publisher';
 import { ArtifactSelectionError } from '../artifacts/artifact';
 import { withStagedArtifacts } from '../artifacts/stage-artifacts';
-import { createUploaders } from './stage-publish';
+import { createUploaders } from './create-uploaders';
 
 /**
  * Stages a workspace's artifacts and uploads them to a mutable S3 channel path in every region

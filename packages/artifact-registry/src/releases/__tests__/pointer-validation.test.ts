@@ -64,13 +64,13 @@ describe('release pointers read from S3 are validated', () => {
     it('rejects a pointer without publishedAt', async () => {
       s3Mock.on(GetObjectCommand).resolves({ Body: pointerBody('{"version": "1.0.0"}') });
 
-      await expect(readReleasePointer(client, location, 'mailbox-go', 'stable', 'us-east-1')).rejects.toThrow(/release pointer .*publishedAt/);
+      await expect(readReleasePointer(client, location, 'example-go', 'stable', 'us-east-1')).rejects.toThrow(/release pointer .*publishedAt/);
     });
 
     it('rejects a pointer without objects', async () => {
       s3Mock.on(GetObjectCommand).resolves({ Body: pointerBody('{"version": "1.0.0", "publishedAt": "2026-01-01T00:00:00Z"}') });
 
-      await expect(readReleasePointer(client, location, 'mailbox-go', 'stable', 'us-east-1')).rejects.toThrow(/release pointer .*\.objects/);
+      await expect(readReleasePointer(client, location, 'example-go', 'stable', 'us-east-1')).rejects.toThrow(/release pointer .*\.objects/);
     });
   });
 });

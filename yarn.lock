@@ -1687,6 +1687,7 @@ __metadata:
     "@types/jest": "npm:^29"
     "@types/node": "npm:^20"
     "@types/semver": "npm:^7.7.1"
+    aws-sdk-client-mock: "npm:^4"
     jest: "npm:^29"
     jest-util: "npm:^29"
     semver: "npm:^7.8.1"

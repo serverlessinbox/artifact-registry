@@ -2396,6 +2396,7 @@ const RAW_RUNTIME_STATE =
           ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:20.19.41"],\
           ["@types/semver", "npm:7.7.1"],\
+          ["aws-sdk-client-mock", "npm:4.1.0"],\
           ["jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.7.0"],\
           ["jest-util", "npm:29.7.0"],\
           ["semver", "npm:7.8.1"],\

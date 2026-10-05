@@ -11,7 +11,7 @@ export type ReleasePointerObject = t.InferType<typeof isReleasePointerObject>;
 
 /**
  * The track-scoped, distTag-named pointer file, e.g.
- * `serverlessinbox/packages/{name}/releases/v1/stable.json`: the resolved version, the ISO 8601
+ * `{project}/packages/{name}/releases/v1/stable.json`: the resolved version, the ISO 8601
  * timestamp it was published at, and the objects published in the release (at least one).
  */
 export const isReleasePointer = t.isObject({
