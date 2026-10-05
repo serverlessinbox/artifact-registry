@@ -6,8 +6,8 @@
  * object than the one `resolve` pinned.
  */
 
-import { ArtifactResolver } from '../artifact-resolver-factory';
-import type { ArtifactResolverFactoryOptions } from '../artifact-resolver-factory';
+import { ArtifactResolver } from '../artifact-resolver';
+import type { ArtifactResolverFactoryOptions } from '../artifact-resolver';
 import type { ParsedArtifactVersions } from '../artifact-versions';
 import type { RegistryLocation } from '../../artifacts/registry-location';
 

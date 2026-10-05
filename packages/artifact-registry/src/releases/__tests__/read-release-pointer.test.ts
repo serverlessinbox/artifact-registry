@@ -7,7 +7,7 @@
 
 import { readReleasePointer } from '../read-release-pointer';
 import type { RegistryLocation } from '../../artifacts/registry-location';
-import { NoSuchKey, S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { AccessDenied, NoSuchKey, S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 
 const s3Mock = mockClient(S3Client);
@@ -116,24 +116,33 @@ describe('readReleasePointer', () => {
     });
   });
 
-  describe('missing pointer', () => {
-    it('throws "object not found" when NoSuchKey is thrown', async () => {
+  describe('missing or not readable pointer', () => {
+    it('throws "missing or not readable" when NoSuchKey is thrown', async () => {
       s3Mock.on(GetObjectCommand).rejects(new NoSuchKey({ message: 'Not Found', $metadata: {} }));
 
       await expect(readReleasePointer(client, location, 'example-go', 'stable', 'eu-west-1')).rejects.toThrow(
-        'release pointer s3://example-artifacts-eu-west-1/example/packages/example-go/releases/stable.json: object not found',
+        'release pointer s3://example-artifacts-eu-west-1/example/packages/example-go/releases/stable.json: missing or not readable',
+      );
+    });
+
+    it('throws "missing or not readable" when AccessDenied is thrown', async () => {
+      s3Mock.on(GetObjectCommand).rejects(new AccessDenied({ message: 'Access Denied', $metadata: {} }));
+
+      await expect(readReleasePointer(client, location, 'example-go', 'stable', 'eu-west-1')).rejects.toThrow(
+        'release pointer s3://example-artifacts-eu-west-1/example/packages/example-go/releases/stable.json: missing or not readable',
       );
     });
   });
 
-  describe('error handling - rethrows other errors', () => {
-    it('throws on access denied error', async () => {
-      const error = new Error('AccessDenied');
+  describe('error handling', () => {
+    it('throws on other S3 errors', async () => {
+      const error = new Error('InternalError');
+      error.name = 'InternalError';
       s3Mock.on(GetObjectCommand).rejects(error);
 
       await expect(
         readReleasePointer(client, location, 'example-go', 'stable', 'eu-west-1')
-      ).rejects.toThrow('AccessDenied');
+      ).rejects.toThrow('InternalError');
     });
 
     it('throws on invalid JSON', async () => {

@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { unzipSync } from 'fflate';
+import { CONFIG_FILENAME } from '../workspace-config';
 import { buildArtifacts } from '../build-artifacts';
 import type { S3WorkspaceConfig } from '../workspace-config';
 
@@ -76,5 +77,12 @@ describe('buildArtifacts', () => {
       objectName: 'edge.zip',
       targets: [{ region: 'us-east-1', bucketName: 'example-artifacts-use1-7f3a' }],
     });
+  });
+
+  it('rejects an artifact-registry.json entry without a source', async () => {
+    const registry = { bucketBase: 'example-artifacts', project: 'example', regions: ['eu-west-1'] };
+    fs.writeFileSync(path.join(dir, CONFIG_FILENAME), JSON.stringify({ registry, type: 'package', name: 'n', artifacts: [{ objectName: 'o.zip' }] }));
+
+    await expect(buildArtifacts(dir, outputFolder)).rejects.toThrow(/artifact-registry\.json: \.artifacts\[0\]\.source/);
   });
 });

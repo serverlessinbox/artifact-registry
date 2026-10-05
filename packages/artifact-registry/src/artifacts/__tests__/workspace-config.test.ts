@@ -2,12 +2,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { loadWorkspaceConfig as loadWorkspaceConfigFromRoot } from '../../index';
-import { buildArtifacts } from '../build-artifacts';
 import { CONFIG_FILENAME, loadWorkspaceConfig } from '../workspace-config';
 
 /**
- * Config files are parsed JSON, so their content is untyped at runtime. Pins that
- * `loadWorkspaceConfig` and `buildArtifacts` reject a malformed config with an error naming the
+ * Pins that `loadWorkspaceConfig` rejects a malformed config with an error naming the
  * file and the field, instead of failing later as an undefined access, that a missing config file
  * surfaces as `ENOENT` (which the commands and the plugin treat as "no config"), and that a config
  * whose artifacts would publish a package to inconsistent regions, or whose override names an
@@ -220,14 +218,6 @@ describe('workspace config files are validated', () => {
 
         await expect(loadWorkspaceConfig(dir)).resolves.toBeDefined();
       });
-    });
-  });
-
-  describe('buildArtifacts', () => {
-    it('rejects an artifact-registry.json entry without a source', async () => {
-      writeConfig(CONFIG_FILENAME, { registry, type: 'package', name: 'n', artifacts: [{ objectName: 'o.zip' }] });
-
-      await expect(buildArtifacts(dir, path.join(dir, 'out'))).rejects.toThrow(/artifact-registry\.json: \.artifacts\[0\]\.source/);
     });
   });
 });

@@ -29,11 +29,11 @@ describe('loadReleasePointer returns the validated pointer or throws a message n
     await expect(loadReleasePointer(client, 'bkt', 'k/v1/stable.json')).resolves.toEqual(pointer);
   });
 
-  it('throws "object not found" when S3 reports NoSuchKey', async () => {
+  it('throws "missing or not readable" when S3 reports NoSuchKey', async () => {
     s3Mock.on(GetObjectCommand).rejects(new NoSuchKey({ message: 'Not Found', $metadata: {} }));
 
     await expect(loadReleasePointer(client, 'bkt', 'k/v1/stable.json'))
-      .rejects.toThrow(`release pointer ${source}: object not found`);
+      .rejects.toThrow(`release pointer ${source}: missing or not readable`);
   });
 
   it('throws "empty body" when the response has no body', async () => {
