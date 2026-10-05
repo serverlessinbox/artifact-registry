@@ -42,7 +42,6 @@
     "typanion": "^3.14.0"
   },
   "devDependencies": {
-    "@jwpkg/gitversion": "1.4.0-pack-order.2",
     "@types/aws-lambda": "^8.10.141",
     "@types/jest": "^29",
     "@types/node": "^20",
@@ -52,8 +51,5 @@
     "jest-util": "^29",
     "ts-jest": "^29",
     "typescript": "^5"
-  },
-  "peerDependencies": {
-    "@jwpkg/gitversion": "1.4.0-pack-order.2"
   }
 }

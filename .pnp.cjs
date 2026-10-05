@@ -17,6 +17,10 @@ const RAW_RUNTIME_STATE =
     {\
       "name": "@serverlessinbox/artifact-registry",\
       "reference": "workspace:packages/artifact-registry"\
+    },\
+    {\
+      "name": "@serverlessinbox/artifact-registry-gitversion",\
+      "reference": "workspace:packages/artifact-registry-gitversion"\
     }\
   ],\
   "enableTopLevelFallback": true,\
@@ -24,6 +28,7 @@ const RAW_RUNTIME_STATE =
   "pnpZipBackend": "libzip",\
   "fallbackExclusionList": [\
     ["@serverlessinbox/artifact-registry", ["workspace:packages/artifact-registry"]],\
+    ["@serverlessinbox/artifact-registry-gitversion", ["workspace:packages/artifact-registry-gitversion"]],\
     ["artifact-registry-workspace", ["workspace:."]]\
   ],\
   "fallbackPool": [\
@@ -2361,7 +2366,6 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./packages/artifact-registry/",\
         "packageDependencies": [\
           ["@aws-sdk/client-s3", "npm:3.1053.0"],\
-          ["@jwpkg/gitversion", "npm:1.4.0-pack-order.2"],\
           ["@serverlessinbox/artifact-registry", "workspace:packages/artifact-registry"],\
           ["@types/aws-lambda", "npm:8.10.162"],\
           ["@types/jest", "npm:29.5.14"],\
@@ -2375,6 +2379,27 @@ const RAW_RUNTIME_STATE =
           ["jest-util", "npm:29.7.0"],\
           ["semver", "npm:7.8.1"],\
           ["ts-jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.4.11"],\
+          ["typanion", "npm:3.14.0"],\
+          ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
+        ],\
+        "linkType": "SOFT"\
+      }]\
+    ]],\
+    ["@serverlessinbox/artifact-registry-gitversion", [\
+      ["workspace:packages/artifact-registry-gitversion", {\
+        "packageLocation": "./packages/artifact-registry-gitversion/",\
+        "packageDependencies": [\
+          ["@aws-sdk/client-s3", "npm:3.1053.0"],\
+          ["@jwpkg/gitversion", "npm:1.4.0-pack-order.2"],\
+          ["@serverlessinbox/artifact-registry", "workspace:packages/artifact-registry"],\
+          ["@serverlessinbox/artifact-registry-gitversion", "workspace:packages/artifact-registry-gitversion"],\
+          ["@types/jest", "npm:29.5.14"],\
+          ["@types/node", "npm:20.19.41"],\
+          ["@types/semver", "npm:7.7.1"],\
+          ["jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.7.0"],\
+          ["jest-util", "npm:29.7.0"],\
+          ["semver", "npm:7.8.1"],\
+          ["ts-jest", "virtual:70f54df069e0bbafc7c282d7a6791f547f351fc8017ece7cde8f60292e2bc69973ca70c031f8a47eacf931f7f9aa2e566e896e713870e130312774c946e868fd#npm:29.4.11"],\
           ["typanion", "npm:3.14.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
@@ -9011,6 +9036,56 @@ const RAW_RUNTIME_STATE =
           ["make-error", "npm:1.3.6"],\
           ["semver", "npm:7.8.5"],\
           ["ts-jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.4.11"],\
+          ["type-fest", "npm:4.41.0"],\
+          ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
+          ["yargs-parser", "npm:21.1.1"]\
+        ],\
+        "packagePeers": [\
+          "@babel/core",\
+          "@jest/transform",\
+          "@jest/types",\
+          "@types/babel-jest",\
+          "@types/babel__core",\
+          "@types/esbuild",\
+          "@types/jest-util",\
+          "@types/jest",\
+          "@types/jest__transform",\
+          "@types/jest__types",\
+          "@types/typescript",\
+          "babel-jest",\
+          "esbuild",\
+          "jest-util",\
+          "jest",\
+          "typescript"\
+        ],\
+        "linkType": "HARD"\
+      }],\
+      ["virtual:70f54df069e0bbafc7c282d7a6791f547f351fc8017ece7cde8f60292e2bc69973ca70c031f8a47eacf931f7f9aa2e566e896e713870e130312774c946e868fd#npm:29.4.11", {\
+        "packageLocation": "./.yarn/__virtual__/ts-jest-virtual-0d73351204/6/.yarn/berry/cache/ts-jest-npm-29.4.11-dd05249f88-10c0.zip/node_modules/ts-jest/",\
+        "packageDependencies": [\
+          ["@babel/core", null],\
+          ["@jest/transform", null],\
+          ["@jest/types", null],\
+          ["@types/babel-jest", null],\
+          ["@types/babel__core", null],\
+          ["@types/esbuild", null],\
+          ["@types/jest", "npm:29.5.14"],\
+          ["@types/jest-util", null],\
+          ["@types/jest__transform", null],\
+          ["@types/jest__types", null],\
+          ["@types/typescript", null],\
+          ["babel-jest", null],\
+          ["bs-logger", "npm:0.2.6"],\
+          ["esbuild", null],\
+          ["fast-json-stable-stringify", "npm:2.1.0"],\
+          ["handlebars", "npm:4.7.9"],\
+          ["jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.7.0"],\
+          ["jest-util", "npm:29.7.0"],\
+          ["json5", "npm:2.2.3"],\
+          ["lodash.memoize", "npm:4.1.2"],\
+          ["make-error", "npm:1.3.6"],\
+          ["semver", "npm:7.8.5"],\
+          ["ts-jest", "virtual:70f54df069e0bbafc7c282d7a6791f547f351fc8017ece7cde8f60292e2bc69973ca70c031f8a47eacf931f7f9aa2e566e896e713870e130312774c946e868fd#npm:29.4.11"],\
           ["type-fest", "npm:4.41.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
           ["yargs-parser", "npm:21.1.1"]\

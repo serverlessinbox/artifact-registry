@@ -1,4 +1,3 @@
-// Public surface of the package: the artifacts and releases folder APIs plus the gitversion plugin.
+// Public surface of the package: the artifacts and releases folder APIs.
 export * from './artifacts';
 export * from './releases';
-export { S3ArtifactPlugin } from './s3-artifact-plugin';

@@ -10,6 +10,7 @@ export type { ArtifactZone, ArtifactVersionsEntry, ParsedArtifactVersions } from
 export { ArtifactResolver } from './artifact-resolver-factory';
 export type { IArtifactResolver, ArtifactResolverFactoryOptions } from './artifact-resolver-factory';
 
+export { S3Uploader } from './uploader';
 export { deriveTrack } from './derive-track';
 export type { ReleasePointer, ReleasePointerObject } from './release-pointer';
 export { readReleasePointer } from './read-release-pointer';

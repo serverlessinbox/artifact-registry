@@ -1,18 +1,10 @@
-import * as fs from 'fs/promises';
 import * as path from 'path';
 import semver from 'semver';
 import type { IPlugin, IPackManager, IWorkspace, PackedPackage, PackResult, PackFileResult } from '@jwpkg/gitversion';
 import { S3Client } from '@aws-sdk/client-s3';
-import { S3Uploader } from './releases/uploader';
-import { zipDirectory } from './utils/zip';
-import { hasErrorCode } from './utils/error-code';
-import { readArtifactMap } from './artifacts/artifact-map';
-import { buildArtifactKey } from './artifacts/artifact-key';
-import { loadWorkspaceConfig } from './artifacts/workspace-config';
-import type { S3ArtifactEntry, S3WorkspaceConfig } from './artifacts/workspace-config';
-import type { ReleasePointerObject } from './releases/release-pointer';
-import { toArtifactPackageMapKey } from './artifacts/artifact';
-import type { ArtifactPackage } from './artifacts/artifact';
+import { S3Uploader, buildArtifactKey, buildArtifacts, toArtifactPackageMapKey } from '@serverlessinbox/artifact-registry';
+import type { ReleasePointerObject } from '@serverlessinbox/artifact-registry';
+import { readArtifactMap } from './artifact-map';
 
 /**
  * gitversion plugin that packs the artifacts a workspace declares in its config file and publishes
@@ -31,64 +23,28 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
   }
 
   async pack(workspace: IWorkspace, outputFolder: string): Promise<PackResult | null> {
-    let config: S3WorkspaceConfig | undefined;
-    try {
-      config = await loadWorkspaceConfig(workspace.cwd);
-    } catch (err: unknown) {
-      if (!hasErrorCode(err, 'ENOENT')) {
-        throw err;
-      }
-      // No config file for this workspace — skip silently
+    const built = await buildArtifacts(workspace.cwd, outputFolder);
+    if (built.outputFiles.length === 0) {
       return null;
     }
 
-    if (!Array.isArray(config.artifacts)) {
-      return null;
-    }
+    const version = semver.parse(workspace.version);
+    if (!version) throw new Error(`Invalid semver version from workspace: ${workspace.version}`);
 
     const files: PackFileResult[] = [];
-
-    for (const entry of config.artifacts) {
-      const resolved = path.isAbsolute(entry.source)
-        ? entry.source
-        : path.join(workspace.cwd, entry.source);
-
-      const outputBasename = path.basename(entry.objectName);
-      const outPath = path.join(outputFolder, outputBasename);
-
-      let isDirectory = false;
-      try {
-        isDirectory = (await fs.stat(resolved)).isDirectory();
-      } catch {
-        throw new Error(`[s3-artifact] Source not found: ${resolved}`);
-      }
-
-      if (isDirectory) {
-        await zipDirectory(resolved, outPath);
-      } else {
-        await fs.copyFile(resolved, outPath);
-      }
-
-      const pkg: ArtifactPackage = {
-        bucketName: entry.bucketName ?? config.bucketName,
-        artifactType: config.type,
-        name: entry.name ?? config.name,
-      };
-      const parsedVersion = semver.parse(workspace.version);
-      if (!parsedVersion) throw new Error(`Invalid semver version from workspace: ${workspace.version}`);
-      const key = buildArtifactKey(pkg.artifactType, pkg.name, { type: 'release', version: parsedVersion, objectName: entry.objectName });
-
+    for (const [basename, routing] of built.routingMap) {
+      const pkg = routing.package;
+      const key = buildArtifactKey(pkg.artifactType, pkg.name, { type: 'release', version, objectName: routing.objectName });
       files.push({
-        name: outputBasename,
+        name: basename,
         metadata: {
           package: pkg,
           key,
-          region: entry.region,
-          objectName: entry.objectName,
+          region: routing.region,
+          objectName: routing.objectName,
         },
       });
-
-      console.log(`[s3-artifact] Packing: ${entry.objectName} from ${resolved}`);
+      console.log(`[s3-artifact] Packing: ${routing.objectName}`);
     }
 
     console.log(`[s3-artifact] Staged ${files.length} artifact(s) from ${workspace.cwd}/artifact-registry.json`);
@@ -142,4 +98,3 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
 }
 
 export { S3ArtifactPlugin };
-export type { S3ArtifactEntry, S3WorkspaceConfig } from './artifacts/workspace-config';

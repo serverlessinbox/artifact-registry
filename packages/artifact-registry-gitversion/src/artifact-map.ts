@@ -1,5 +1,5 @@
 import * as t from 'typanion';
-import { isArtifactRouting } from './artifact';
+import { isArtifactRouting } from '@serverlessinbox/artifact-registry';
 
 /** The routing of one packed artifact file plus the S3 key it is uploaded to, recorded at pack time. */
 export const isArtifactMapEntry = t.isObject({

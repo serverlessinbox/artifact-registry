@@ -1677,12 +1677,32 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@serverlessinbox/artifact-registry@workspace:packages/artifact-registry":
+"@serverlessinbox/artifact-registry-gitversion@workspace:packages/artifact-registry-gitversion":
+  version: 0.0.0-use.local
+  resolution: "@serverlessinbox/artifact-registry-gitversion@workspace:packages/artifact-registry-gitversion"
+  dependencies:
+    "@aws-sdk/client-s3": "npm:^3"
+    "@jwpkg/gitversion": "npm:1.4.0-pack-order.2"
+    "@serverlessinbox/artifact-registry": "workspace:^"
+    "@types/jest": "npm:^29"
+    "@types/node": "npm:^20"
+    "@types/semver": "npm:^7.7.1"
+    jest: "npm:^29"
+    jest-util: "npm:^29"
+    semver: "npm:^7.8.1"
+    ts-jest: "npm:^29"
+    typanion: "npm:^3.14.0"
+    typescript: "npm:^5"
+  peerDependencies:
+    "@jwpkg/gitversion": ^1.4.0-pack-order.2
+  languageName: unknown
+  linkType: soft
+
+"@serverlessinbox/artifact-registry@workspace:^, @serverlessinbox/artifact-registry@workspace:packages/artifact-registry":
   version: 0.0.0-use.local
   resolution: "@serverlessinbox/artifact-registry@workspace:packages/artifact-registry"
   dependencies:
     "@aws-sdk/client-s3": "npm:^3"
-    "@jwpkg/gitversion": "npm:1.4.0-pack-order.2"
     "@types/aws-lambda": "npm:^8.10.141"
     "@types/jest": "npm:^29"
     "@types/node": "npm:^20"
@@ -1697,8 +1717,6 @@ __metadata:
     ts-jest: "npm:^29"
     typanion: "npm:^3.14.0"
     typescript: "npm:^5"
-  peerDependencies:
-    "@jwpkg/gitversion": 1.4.0-pack-order.2
   bin:
     artifact-registry: dist/cli-entry.js
   languageName: unknown
