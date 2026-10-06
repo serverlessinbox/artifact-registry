@@ -28,7 +28,9 @@
     "tsBuildInfoFile": "tsconfig.tsbuildinfo",
     "esModuleInterop": true,
     "outDir": "./lib",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "types": ["node", "jest"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/__tests__/**"]
 }

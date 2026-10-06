@@ -2520,11 +2520,15 @@ const RAW_RUNTIME_STATE =
           ["@serverlessinbox/artifact-registry", "workspace:packages/artifact-registry"],\
           ["@serverlessinbox/artifact-registry-cdk", "workspace:packages/artifact-registry-cdk"],\
           ["@serverlessinbox/jsii-bundler", "virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#workspace:packages/jsii-bundler"],\
+          ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:20.19.41"],\
           ["aws-cdk-lib", "virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#npm:2.272.0"],\
           ["constructs", "npm:10.8.1"],\
           ["esbuild", "npm:0.27.7"],\
+          ["jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.7.0"],\
+          ["jest-util", "npm:29.7.0"],\
           ["jsii", "npm:5.9.55"],\
+          ["ts-jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.4.11"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
         "linkType": "SOFT"\

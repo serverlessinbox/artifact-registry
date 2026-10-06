@@ -15,6 +15,7 @@
     "build": "jsii --tsconfig tsconfig.build.json",
     "prepack": "yarn build && jsii-bundler package .",
     "postpack": "yarn clean",
+    "test": "tsc --noEmit --project tsconfig.eslint.json && jest",
     "clean": "rm -rf dist lib .jsii tsconfig.tsbuildinfo"
   },
   "repository": {
@@ -43,11 +44,15 @@
   "devDependencies": {
     "@serverlessinbox/artifact-registry": "workspace:^",
     "@serverlessinbox/jsii-bundler": "workspace:^",
+    "@types/jest": "^29",
     "@types/node": "^20",
     "aws-cdk-lib": "^2.261.0",
     "constructs": "^10.5.0",
     "esbuild": "^0.27.1",
+    "jest": "^29",
+    "jest-util": "^29",
     "jsii": "^5.9.44",
+    "ts-jest": "^29",
     "typescript": "^5"
   }
 }
