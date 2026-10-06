@@ -1,6 +1,5 @@
 import { buildArtifactKey } from './artifact-key';
 import type { ArtifactType } from './artifact';
-import type { RegistryLocation } from './registry-location';
 
 /** An exact release, by semver `version`. */
 export interface ReleaseTarget { readonly kind: 'release'; readonly version: string; }
@@ -47,14 +46,6 @@ export function buildChannelPrefix(
     project,
   });
   return key.replace(/\/$/, '');
-}
-
-/**
- * The bucket of `region` in the registry: the location's override for that region when it has one,
- * else `{bucketBase}-{region}`. Every writer and reader names a bucket through this function.
- */
-export function buildArtifactBucketName(location: RegistryLocation, region: string): string {
-  return location.bucketOverrides?.[region] ?? `${location.bucketBase}-${region}`;
 }
 
 /** HTTPS URL for an S3 object, optionally pinned to a specific version. */

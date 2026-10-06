@@ -2,8 +2,9 @@ import { Command, Option } from 'clipanion';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { S3Client } from '@aws-sdk/client-s3';
-import { loadRegistryRecord, parseRegistryRecord, compareRegistryRecords } from '../artifacts/registry-record';
-import type { RegistryLocation } from '../artifacts/registry-location';
+import { loadRegistryRecord } from '../artifacts/load-registry-record';
+import { parseRegistryRecord } from '../registry';
+import { compareRegistryRecords } from '../registry/compare-registry-records';
 
 /**
  * Checks if the registry record in a file matches the live record in S3.
@@ -13,6 +14,17 @@ export class CheckRegistryRecordCommand extends Command {
 
   static override usage = Command.Usage({
     description: 'Check if a local registry record file matches the live record in S3.',
+    details: `
+      Reads the registry record from the given file, then reads the live record from the bucket of the
+      first region listed in that file, and compares the two. Regions are compared as sets and bucket
+      overrides as maps, so ordering never counts as a difference.
+
+      The positional argument \`record-file\` is the path to the registry record JSON file (required,
+      taken once); a relative path is resolved against the current directory.
+
+      Exit code 0: the records are equal. Exit code 1: any difference, or the file or the live record
+      cannot be read or parsed.
+    `,
     examples: [
       [
         'Check if a local file matches the live record',
@@ -22,6 +34,7 @@ export class CheckRegistryRecordCommand extends Command {
   });
 
   recordFile = Option.String({
+    name: 'record-file',
     required: true,
   });
 

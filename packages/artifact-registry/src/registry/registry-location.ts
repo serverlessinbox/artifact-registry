@@ -51,3 +51,11 @@ export const isRegionBucket = t.isObject({
 
 /** One publish destination: a region and the name of that region's bucket. */
 export type RegionBucket = t.InferType<typeof isRegionBucket>;
+
+/**
+ * The bucket of `region` in the registry: the location's override for that region when it has one,
+ * else `{bucketBase}-{region}`. Every writer and reader names a bucket through this function.
+ */
+export function buildArtifactBucketName(location: RegistryLocation, region: string): string {
+  return location.bucketOverrides?.[region] ?? `${location.bucketBase}-${region}`;
+}
