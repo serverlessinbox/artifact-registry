@@ -1,7 +1,7 @@
 import type { SemVer } from 'semver';
 import { buildArtifactKey } from '../artifacts/artifact-key';
 import type { ArtifactRouting } from '../artifacts/artifact';
-import type { RegionBucket } from '../artifacts/registry-location';
+import type { RegionBucket } from '../registry';
 import type { ReleasePointer } from './release-pointer';
 import type { PackageRelease, ReleaseTrackCopy, ReleaseUpload } from './release';
 import type { S3Uploader } from './uploader';

@@ -1,5 +1,5 @@
 import * as t from 'typanion';
-import { isRegionBucket } from './registry-location';
+import { isRegionBucket } from '../registry/registry-location';
 
 export const isArtifactType = t.isEnum(['package', 'template'] as const);
 

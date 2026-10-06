@@ -1,8 +1,9 @@
 import type { ArtifactVersionsEntry, ParsedArtifactVersions } from './artifact-versions';
-import { buildReleasePrefix, buildChannelPrefix, buildArtifactBucketName, buildArtifactUrl, buildArtifactArn } from '../artifacts/artifact-target';
+import { buildReleasePrefix, buildChannelPrefix, buildArtifactUrl, buildArtifactArn } from '../artifacts/artifact-target';
 import type { ArtifactType } from '../artifacts/artifact';
-import { ZONE_REGIONS } from '../artifacts/registry-location';
-import type { RegistryLocation } from '../artifacts/registry-location';
+import { buildArtifactBucketName } from '../registry';
+import { ZONE_REGIONS } from '../registry/registry-location';
+import type { RegistryLocation } from '../registry';
 
 /**
  * The S3 location of one artifact object: the bucket, the object key and, when the object is

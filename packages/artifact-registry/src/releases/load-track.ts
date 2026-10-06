@@ -3,8 +3,8 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import { parse as parseSemver } from 'semver';
 import type { ArtifactType } from '../artifacts/artifact';
 import { buildArtifactKey } from '../artifacts/artifact-key';
-import { buildArtifactBucketName } from '../artifacts/artifact-target';
-import type { RegistryLocation } from '../artifacts/registry-location';
+import { buildArtifactBucketName } from '../registry';
+import type { RegistryLocation } from '../registry';
 import { loadReleasePointer } from './release-pointer';
 
 /** Which track's 'stable' pointer {@link loadTrackVersions} reads for which packages, and where the packages live. */

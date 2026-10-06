@@ -2,8 +2,8 @@ import { ListObjectVersionsCommand } from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { ArtifactType } from '../artifacts/artifact';
 import { buildArtifactKey } from '../artifacts/artifact-key';
-import { buildArtifactBucketName } from '../artifacts/artifact-target';
-import type { RegistryLocation } from '../artifacts/registry-location';
+import { buildArtifactBucketName } from '../registry';
+import type { RegistryLocation } from '../registry';
 
 /** Which channel of which packages {@link loadChannelVersions} lists, and where the packages live. */
 export interface ChannelVersionsOptions {

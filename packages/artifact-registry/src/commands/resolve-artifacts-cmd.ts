@@ -5,8 +5,8 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { buildArtifactKey } from '../artifacts/artifact-key';
 import { loadReleasePointer } from '../releases/release-pointer';
 import { isArtifactType } from '../artifacts/artifact';
-import { buildArtifactBucketName } from '../artifacts/artifact-target';
-import type { RegistryLocation } from '../artifacts/registry-location';
+import { buildArtifactBucketName } from '../registry';
+import type { RegistryLocation } from '../registry';
 import { CommandInputError } from './command-input-error';
 import { parseRegistryLocation } from './registry-location-flags';
 

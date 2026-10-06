@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises';
 import * as path from 'path';
 import * as t from 'typanion';
 import { isArtifactType } from './artifact';
-import { isArtifactZone, isRegionList, isRegistryConfig } from './registry-location';
+import { isArtifactZone, isRegionList, isRegistryConfig } from '../registry/registry-location';
 import { resolveTargets } from './resolve-targets';
 
 export const CONFIG_FILENAME = 'artifact-registry.json';

@@ -1,4 +1,4 @@
-import type { RegionBucket } from '../artifacts/registry-location';
+import type { RegionBucket } from '../registry';
 
 /** One region bucket that a publish operation failed for, with the error that stopped it. */
 export interface RegionFailure {

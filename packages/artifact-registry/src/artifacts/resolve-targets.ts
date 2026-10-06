@@ -1,6 +1,6 @@
-import { buildArtifactBucketName } from './artifact-target';
-import { ZONE_REGIONS } from './registry-location';
-import type { RegionBucket } from './registry-location';
+import { buildArtifactBucketName } from '../registry';
+import { ZONE_REGIONS } from '../registry/registry-location';
+import type { RegionBucket } from '../registry';
 import type { S3ArtifactEntry, S3WorkspaceConfig } from './workspace-config';
 
 /**

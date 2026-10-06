@@ -2,9 +2,9 @@ import { Command, Option } from 'clipanion';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { S3Client } from '@aws-sdk/client-s3';
-import { loadRegistryRecord } from '../artifacts/registry-record';
-import type { RegistryLocation } from '../artifacts/registry-location';
-import { buildArtifactBucketName } from '../artifacts/artifact-target';
+import { loadRegistryRecord } from '../artifacts/load-registry-record';
+import type { RegistryLocation } from '../registry';
+import { buildArtifactBucketName } from '../registry';
 import { CommandInputError } from './command-input-error';
 import { parseRegistryLocation } from './registry-location-flags';
 

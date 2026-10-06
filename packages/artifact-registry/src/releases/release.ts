@@ -1,6 +1,6 @@
 import type { SemVer } from 'semver';
 import type { ArtifactPackage } from '../artifacts/artifact';
-import type { RegionBucket } from '../artifacts/registry-location';
+import type { RegionBucket } from '../registry';
 import type { ReleasePointerObject } from './release-pointer';
 
 /** An artifact file of a package: the object name it is published under and its local path. */

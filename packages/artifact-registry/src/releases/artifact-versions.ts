@@ -1,5 +1,5 @@
 import type * as t from 'typanion';
-import type { isArtifactZone } from '../artifacts/registry-location';
+import type { isArtifactZone } from '../registry/registry-location';
 
 /**
  * Zone designation for an artifact.

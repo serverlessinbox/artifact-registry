@@ -1,7 +1,7 @@
 import type { S3Client } from '@aws-sdk/client-s3';
 import { buildReleasePointerKey } from '../artifacts/artifact-key';
-import { buildArtifactBucketName } from '../artifacts/artifact-target';
-import type { RegistryLocation } from '../artifacts/registry-location';
+import { buildArtifactBucketName } from '../registry';
+import type { RegistryLocation } from '../registry';
 import { loadReleasePointer } from './release-pointer';
 import type { ReleasePointer } from './release-pointer';
 

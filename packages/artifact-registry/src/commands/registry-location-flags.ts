@@ -1,5 +1,5 @@
-import { isRegistryLocation } from '../artifacts/registry-location';
-import type { RegistryLocation } from '../artifacts/registry-location';
+import { isRegistryLocation } from '../registry/registry-location';
+import type { RegistryLocation } from '../registry';
 import { CommandInputError } from './command-input-error';
 
 /**
