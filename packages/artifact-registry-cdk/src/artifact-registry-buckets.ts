@@ -1,9 +1,5 @@
-import {
-  buildArtifactBucketName,
-  registryRecordKey,
-  type RegistryRecord,
-} from '@serverlessinbox/artifact-registry/registry';
-import { Aws, Duration, Stack } from 'aws-cdk-lib';
+import { registryRecordKey, type RegistryRecord } from '@serverlessinbox/artifact-registry/registry';
+import { Aws, CfnCondition, CfnRule, Duration, Fn, Stack, Token } from 'aws-cdk-lib';
 import * as cloudformation from 'aws-cdk-lib/aws-cloudformation';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3assets from 'aws-cdk-lib/aws-s3-assets';
@@ -35,22 +31,24 @@ export interface ArtifactRegistryConfig {
   readonly project: string;
 
   /**
-   * The additional regions that get a bucket, as region names such as `eu-west-1`.
+   * The regions that get a bucket in addition to the region the stack is deployed in, as region
+   * names such as `us-east-1`. The list may be empty.
    *
-   * The region of the stack that holds this construct always gets a bucket and its bucket receives
-   * the registry record, so the list may be empty. A region that is also the stack's region is
-   * counted once. The stack's region followed by these regions is the set of regions written into
-   * the registry record.
+   * The region the stack is deployed in always gets a bucket and holds the registry record, so it
+   * is not listed here. The stack needs no `env`: that region is known only at deployment, and a
+   * CloudFormation rule in the stack rejects a deployment whose region is listed here, with a
+   * message naming this list. A region listed twice is counted once. The registry record holds the
+   * deployment region followed by the regions listed here.
    */
-  readonly regions: string[];
+  readonly additionalRegions: string[];
 
   /**
    * Bucket names that replace the `{bucketBase}-{region}` name for individual regions, keyed by
    * region name.
    *
-   * An override for the stack's own region applies only when the stack has a concrete region
-   * (`env.region`); with an environment-agnostic stack that region is not known at synthesis and
-   * the override is not matched. Leave it out to use the convention name everywhere.
+   * An override applies to every region that gets a bucket, including the region the stack is
+   * deployed in: the bucket, the registry record and the record write all use it. Leave it out to
+   * use the convention name everywhere.
    *
    * @default - every region uses `{bucketBase}-{region}`
    */
@@ -76,10 +74,10 @@ export interface ArtifactWriter {
  */
 export interface ArtifactRegistryBucketsProps {
   /**
-   * Which buckets to create and how to name them. The stack's own region always gets a bucket, in
-   * addition to the regions listed in `registry.regions`, and that bucket receives the registry
-   * record. Deploy the stack with a concrete `env.region` so the bucket name, and any override for
-   * it, are known at synthesis.
+   * Which buckets to create and how to name them. The region the stack is deployed in and every
+   * region in `registry.additionalRegions` get a bucket, and the bucket of the deployment region receives the
+   * registry record. The stack needs no `env`: the deployment region is chosen when the stack is
+   * deployed.
    */
   readonly registry: ArtifactRegistryConfig;
 
@@ -129,16 +127,27 @@ export interface ArtifactRegistryBucketsProps {
   readonly stackSetExecutionRole: iam.IRole;
 }
 
+/**
+ * A bucket name override and the condition that is true when the stack is deployed in the
+ * overridden region.
+ */
+interface DeployRegionOverride {
+  readonly isDeployRegion: CfnCondition;
+  readonly bucketName: string;
+}
+
 const MEMBER_TEMPLATE_PATH = path.join(__dirname, '..', 'templates', 'artifact-bucket.yaml');
 
 /**
  * The S3 buckets of an artifact registry, one per region, and the registry record that describes
  * them.
  *
- * The buckets are deployed by a CloudFormation StackSet that targets this account in the stack's
- * region and every region of `registry.regions`, so adding a region adds a bucket without any per-region bootstrap. The
- * record, which holds the registry configuration and the owning account, is written to the bucket
- * of the stack's own region.
+ * The buckets are deployed by a CloudFormation StackSet that targets this account in the region the
+ * stack is deployed in and in every region of `registry.additionalRegions`, so adding a region adds a bucket
+ * without any per-region bootstrap. The record, which holds the registry configuration and the
+ * owning account, is written to the bucket of the deployment region. The construct is
+ * environment-agnostic: the deployment region is a CloudFormation pseudo parameter, and a
+ * CloudFormation rule rejects a deployment in a region that is also listed in `registry.additionalRegions`.
  *
  * The construct creates no IAM roles: the StackSet administration and execution roles are passed
  * in.
@@ -147,12 +156,12 @@ export class ArtifactRegistryBuckets extends Construct {
   constructor(scope: Construct, id: string, props: ArtifactRegistryBucketsProps) {
     super(scope, id);
 
-    const stackRegion = Stack.of(this).region;
     const registry: ArtifactRegistryConfig = {
       ...props.registry,
-      regions: [...new Set([stackRegion, ...props.registry.regions])],
+      additionalRegions: [...new Set(props.registry.additionalRegions)],
     };
     const retentionDays = (props.channelHistoryRetention ?? Duration.days(1)).toDays();
+    const deployRegionOverrides = this.declareDeployRegionOverrides(registry.bucketOverrides ?? {});
 
     const memberTemplate = new s3assets.Asset(this, 'member-template', { path: MEMBER_TEMPLATE_PATH });
 
@@ -175,24 +184,74 @@ export class ArtifactRegistryBuckets extends Construct {
           parameterValue: String(retentionDays),
         },
       ],
-      stackInstancesGroup: this.buildStackInstanceGroups(registry),
+      stackInstancesGroup: this.buildStackInstanceGroups(registry, deployRegionOverrides),
     });
 
     stackSet.node.addDependency(memberTemplate);
     stackSet.node.addDependency(props.stackSetAdministrationRole);
     stackSet.node.addDependency(props.stackSetExecutionRole);
 
-    const recordWriter = this.writeRecord(registry, stackRegion);
+    this.requireDeployRegionNotListed(registry.additionalRegions);
+    const deployRegionBucketName = this.chooseDeployRegionBucketName(
+      deployRegionOverrides,
+      Fn.sub(`${registry.bucketBase}-\${AWS::Region}`)
+    );
+    const recordWriter = this.writeRecord(registry, deployRegionBucketName);
     recordWriter.node.addDependency(stackSet);
   }
 
   /**
-   * Writes the registry record into the bucket of `region` with a single S3 `PutObject`, and writes
-   * it again whenever the record changes. The caller adds the dependency on whatever creates the
-   * bucket.
+   * Makes CloudFormation reject a deployment in a region that `registry.additionalRegions` lists, because the
+   * deployment region gets its bucket automatically and listing it as well would describe it twice.
+   * With no additional regions there is nothing to reject.
    */
-  private writeRecord(registry: ArtifactRegistryConfig, region: string): cr.AwsCustomResource {
-    const bucketName = buildArtifactBucketName(registry, region);
+  private requireDeployRegionNotListed(additionalRegions: string[]): void {
+    if (additionalRegions.length === 0) {
+      return;
+    }
+    new CfnRule(this, 'deploy-region-not-listed', {
+      assertions: [
+        {
+          assert: Fn.conditionNot(Fn.conditionContains(additionalRegions, Aws.REGION)),
+          assertDescription:
+            `registry.additionalRegions lists only the additional regions (${additionalRegions.join(', ')}). ` +
+            'The region the stack is deployed in gets a bucket automatically and must not be in that list.',
+        },
+      ],
+    });
+  }
+
+  /**
+   * One condition per overridden region, true when the stack is deployed in that region, so the
+   * bucket name of the deployment region is chosen at deployment instead of computed at synthesis.
+   */
+  private declareDeployRegionOverrides(overrides: { [region: string]: string }): DeployRegionOverride[] {
+    return Object.entries(overrides).map(([region, bucketName]) => ({
+      isDeployRegion: new CfnCondition(this, `deploy-region-is-${region}`, {
+        expression: Fn.conditionEquals(Aws.REGION, region),
+      }),
+      bucketName,
+    }));
+  }
+
+  /**
+   * The bucket name of the deployment region: the override of the region the stack is deployed in,
+   * or `otherwise` when that region has none.
+   */
+  private chooseDeployRegionBucketName(deployRegionOverrides: DeployRegionOverride[], otherwise: string): string {
+    return deployRegionOverrides.reduceRight(
+      (fallback, { isDeployRegion, bucketName }) =>
+        Token.asString(Fn.conditionIf(isDeployRegion.logicalId, bucketName, fallback)),
+      otherwise
+    );
+  }
+
+  /**
+   * Writes the registry record into the bucket named `bucketName` with a single S3 `PutObject`, and
+   * writes it again whenever the record changes. The caller adds the dependency on whatever creates
+   * the bucket.
+   */
+  private writeRecord(registry: ArtifactRegistryConfig, bucketName: string): cr.AwsCustomResource {
     const key = registryRecordKey(registry.project);
     const body = Stack.of(this).toJsonString(this.buildRecord(registry));
 
@@ -223,20 +282,37 @@ export class ArtifactRegistryBuckets extends Construct {
   }
 
   /**
-   * One group holds every region that keeps the convention bucket name. Each region with a bucket
-   * name override gets a group of its own that carries the name as the `BucketNameOverride`
-   * parameter of that region's stack instance only.
+   * The deployment region has a group of its own, which carries the `BucketNameOverride` parameter
+   * only when some region is overridden: its value is the override of the deployment region, or
+   * empty. The additional regions that keep the convention bucket name share one group, and each
+   * additional region with an override gets a group that carries its name.
    */
   private buildStackInstanceGroups(
-    registry: ArtifactRegistryConfig
+    registry: ArtifactRegistryConfig,
+    deployRegionOverrides: DeployRegionOverride[]
   ): cloudformation.CfnStackSet.StackInstancesProperty[] {
     const overrides = registry.bucketOverrides ?? {};
     const deploymentTargets = { accounts: [Aws.ACCOUNT_ID] };
 
-    const conventionRegions = registry.regions.filter(region => overrides[region] === undefined);
+    const deployRegionGroup = {
+      deploymentTargets,
+      regions: [Aws.REGION],
+      ...(deployRegionOverrides.length > 0
+        ? {
+            parameterOverrides: [
+              {
+                parameterKey: 'BucketNameOverride',
+                parameterValue: this.chooseDeployRegionBucketName(deployRegionOverrides, ''),
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const conventionRegions = registry.additionalRegions.filter(region => overrides[region] === undefined);
     const conventionGroups = conventionRegions.length > 0 ? [{ deploymentTargets, regions: conventionRegions }] : [];
 
-    const overrideGroups = registry.regions
+    const overrideGroups = registry.additionalRegions
       .filter(region => overrides[region] !== undefined)
       .map(region => ({
         deploymentTargets,
@@ -244,7 +320,7 @@ export class ArtifactRegistryBuckets extends Construct {
         parameterOverrides: [{ parameterKey: 'BucketNameOverride', parameterValue: overrides[region] }],
       }));
 
-    return [...conventionGroups, ...overrideGroups];
+    return [deployRegionGroup, ...conventionGroups, ...overrideGroups];
   }
 
   private buildRecord(registry: ArtifactRegistryConfig): RegistryRecord {
@@ -252,7 +328,7 @@ export class ArtifactRegistryBuckets extends Construct {
       schemaVersion: 1,
       bucketBase: registry.bucketBase,
       project: registry.project,
-      regions: registry.regions,
+      regions: [Aws.REGION, ...registry.additionalRegions],
       ...(registry.bucketOverrides ? { bucketOverrides: registry.bucketOverrides } : {}),
       ownerAccountId: Aws.ACCOUNT_ID,
     };
