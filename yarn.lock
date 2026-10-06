@@ -1776,9 +1776,11 @@ __metadata:
   resolution: "@serverlessinbox/artifact-registry-cdk@workspace:packages/artifact-registry-cdk"
   dependencies:
     "@serverlessinbox/artifact-registry": "workspace:^"
+    "@serverlessinbox/jsii-bundler": "workspace:^"
     "@types/node": "npm:^20"
     aws-cdk-lib: "npm:^2.261.0"
     constructs: "npm:^10.5.0"
+    esbuild: "npm:^0.27.1"
     jsii: "npm:^5.9.44"
     typescript: "npm:^5"
   peerDependencies:
@@ -1833,7 +1835,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@serverlessinbox/jsii-bundler@workspace:packages/jsii-bundler":
+"@serverlessinbox/jsii-bundler@workspace:^, @serverlessinbox/jsii-bundler@workspace:packages/jsii-bundler":
   version: 0.0.0-use.local
   resolution: "@serverlessinbox/jsii-bundler@workspace:packages/jsii-bundler"
   dependencies:

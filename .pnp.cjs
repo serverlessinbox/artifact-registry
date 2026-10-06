@@ -38,7 +38,7 @@ const RAW_RUNTIME_STATE =
     ["@serverlessinbox/artifact-registry", ["workspace:packages/artifact-registry"]],\
     ["@serverlessinbox/artifact-registry-cdk", ["workspace:packages/artifact-registry-cdk"]],\
     ["@serverlessinbox/artifact-registry-gitversion", ["workspace:packages/artifact-registry-gitversion"]],\
-    ["@serverlessinbox/jsii-bundler", ["workspace:packages/jsii-bundler"]],\
+    ["@serverlessinbox/jsii-bundler", ["virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#workspace:packages/jsii-bundler", "workspace:packages/jsii-bundler"]],\
     ["artifact-registry-workspace", ["workspace:."]]\
   ],\
   "fallbackPool": [\
@@ -2519,9 +2519,11 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["@serverlessinbox/artifact-registry", "workspace:packages/artifact-registry"],\
           ["@serverlessinbox/artifact-registry-cdk", "workspace:packages/artifact-registry-cdk"],\
+          ["@serverlessinbox/jsii-bundler", "virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#workspace:packages/jsii-bundler"],\
           ["@types/node", "npm:20.19.41"],\
           ["aws-cdk-lib", "virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#npm:2.272.0"],\
           ["constructs", "npm:10.8.1"],\
+          ["esbuild", "npm:0.27.7"],\
           ["jsii", "npm:5.9.55"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
@@ -2551,6 +2553,29 @@ const RAW_RUNTIME_STATE =
       }]\
     ]],\
     ["@serverlessinbox/jsii-bundler", [\
+      ["virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#workspace:packages/jsii-bundler", {\
+        "packageLocation": "./.yarn/__virtual__/@serverlessinbox-jsii-bundler-virtual-015e33e70b/1/packages/jsii-bundler/",\
+        "packageDependencies": [\
+          ["@serverlessinbox/jsii-bundler", "virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#workspace:packages/jsii-bundler"],\
+          ["@types/esbuild", null],\
+          ["@types/jest", "npm:29.5.14"],\
+          ["@types/node", "npm:24.19.1"],\
+          ["clipanion", "virtual:b80567f1f726ad28b5f69c2f4d583115762754ed5e643c8ffc700d555267034c078163b8acf27ac9e54b95573c3afeb591dde0dc0755beb1e2c159d60551a612#npm:4.0.0-rc.4"],\
+          ["esbuild", "npm:0.27.7"],\
+          ["glob", "npm:10.5.0"],\
+          ["jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.7.0"],\
+          ["jest-util", "npm:29.7.0"],\
+          ["ts-jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.4.11"],\
+          ["ts-node", "virtual:015e33e70bb51ce520fcd4d8525a5f13ce07dcc54afd3bea33372b1fac747ad37e9411f7ab0f5c902f747c089e084ec2b0cf293eca68c95e6c4db5999b42d923#npm:10.9.2"],\
+          ["typanion", "npm:3.14.0"],\
+          ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
+        ],\
+        "packagePeers": [\
+          "@types/esbuild",\
+          "esbuild"\
+        ],\
+        "linkType": "SOFT"\
+      }],\
       ["workspace:packages/jsii-bundler", {\
         "packageLocation": "./packages/jsii-bundler/",\
         "packageDependencies": [\
@@ -2563,7 +2588,7 @@ const RAW_RUNTIME_STATE =
           ["jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.7.0"],\
           ["jest-util", "npm:29.7.0"],\
           ["ts-jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.4.11"],\
-          ["ts-node", "virtual:4a121de8ff8356c688f2157d59a93a92a6aa2c75e62de470a20ebe343596eaeeeca31a6676418fe5c614e25fa4a88560b1673828ed3a97df3b2ea1a1729ae27f#npm:10.9.2"],\
+          ["ts-node", "virtual:015e33e70bb51ce520fcd4d8525a5f13ce07dcc54afd3bea33372b1fac747ad37e9411f7ab0f5c902f747c089e084ec2b0cf293eca68c95e6c4db5999b42d923#npm:10.9.2"],\
           ["typanion", "npm:3.14.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
@@ -9595,8 +9620,8 @@ const RAW_RUNTIME_STATE =
         ],\
         "linkType": "SOFT"\
       }],\
-      ["virtual:4a121de8ff8356c688f2157d59a93a92a6aa2c75e62de470a20ebe343596eaeeeca31a6676418fe5c614e25fa4a88560b1673828ed3a97df3b2ea1a1729ae27f#npm:10.9.2", {\
-        "packageLocation": "./.yarn/__virtual__/ts-node-virtual-4180f508e1/6/.yarn/berry/cache/ts-node-npm-10.9.2-3f3890b9ac-10c0.zip/node_modules/ts-node/",\
+      ["virtual:015e33e70bb51ce520fcd4d8525a5f13ce07dcc54afd3bea33372b1fac747ad37e9411f7ab0f5c902f747c089e084ec2b0cf293eca68c95e6c4db5999b42d923#npm:10.9.2", {\
+        "packageLocation": "./.yarn/__virtual__/ts-node-virtual-47678bc45b/6/.yarn/berry/cache/ts-node-npm-10.9.2-3f3890b9ac-10c0.zip/node_modules/ts-node/",\
         "packageDependencies": [\
           ["@cspotcode/source-map-support", "npm:0.8.1"],\
           ["@swc/core", null],\
@@ -9615,7 +9640,7 @@ const RAW_RUNTIME_STATE =
           ["create-require", "npm:1.1.1"],\
           ["diff", "npm:4.0.4"],\
           ["make-error", "npm:1.3.6"],\
-          ["ts-node", "virtual:4a121de8ff8356c688f2157d59a93a92a6aa2c75e62de470a20ebe343596eaeeeca31a6676418fe5c614e25fa4a88560b1673828ed3a97df3b2ea1a1729ae27f#npm:10.9.2"],\
+          ["ts-node", "virtual:015e33e70bb51ce520fcd4d8525a5f13ce07dcc54afd3bea33372b1fac747ad37e9411f7ab0f5c902f747c089e084ec2b0cf293eca68c95e6c4db5999b42d923#npm:10.9.2"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
           ["v8-compile-cache-lib", "npm:3.0.1"],\
           ["yn", "npm:3.1.1"]\

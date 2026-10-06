@@ -1,0 +1,53 @@
+{
+  "name": "@serverlessinbox/artifact-registry-cdk",
+  "version": "0.0.0",
+  "description": "CDK construct that deploys the per-region S3 buckets of an artifact registry",
+  "author": "Joost van der Waal",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": [
+    "lib",
+    ".jsii",
+    "templates",
+    "!lib/**/__tests__"
+  ],
+  "scripts": {
+    "build": "jsii --tsconfig tsconfig.build.json",
+    "prepack": "yarn build && jsii-bundler package .",
+    "postpack": "yarn clean",
+    "clean": "rm -rf dist lib .jsii tsconfig.tsbuildinfo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serverlessinbox/artifact-registry.git",
+    "directory": "packages/artifact-registry-cdk"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "access": "public"
+  },
+  "jsii": {
+    "outdir": "dist",
+    "tsconfig": "tsconfig.json",
+    "targets": {}
+  },
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "aws-cdk-lib": "^2.261.0",
+    "constructs": "^10.5.0"
+  },
+  "devDependencies": {
+    "@serverlessinbox/artifact-registry": "workspace:^",
+    "@serverlessinbox/jsii-bundler": "workspace:^",
+    "@types/node": "^20",
+    "aws-cdk-lib": "^2.261.0",
+    "constructs": "^10.5.0",
+    "esbuild": "^0.27.1",
+    "jsii": "^5.9.44",
+    "typescript": "^5"
+  }
+}
