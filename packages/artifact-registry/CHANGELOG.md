@@ -4,6 +4,34 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.1.2](https://github.com/serverlessinbox/artifact-registry/compare/v0.1.1...v0.1.2) (Tue Oct 06 2026)
+
+### feat
+
+* registry record type, loader and registry-record fetch|check commands ([97b39fe](https://github.com/serverlessinbox/artifact-registry/commit/97b39fe03b096b02ab01be5f964685d04555dd0d))
+
+* Added region flag to check registry records ([73ba27d](https://github.com/serverlessinbox/artifact-registry/commit/73ba27d5807313ce26199cad3567d59272552b85))
+
+### refactor
+
+* one class per file (RegionPublishError, ArtifactResolver), enforced by lint ([ff157d6](https://github.com/serverlessinbox/artifact-registry/commit/ff157d6f949824692a8a8a81a4dbd4854b6d9928))
+
+* imports follow the registry module ([c98b9a5](https://github.com/serverlessinbox/artifact-registry/commit/c98b9a53eeaffc17a71ae95964ba083e24d4c5dc))
+
+* registry subpath export (@serverlessinbox/artifact-registry/registry), loader split out, unused-code checks on ([363c1e4](https://github.com/serverlessinbox/artifact-registry/commit/363c1e4717395b3610c9317728e47d32b8b6438a))
+
+### test
+
+* one test file per source file; registry record and command tests ([8989cae](https://github.com/serverlessinbox/artifact-registry/commit/8989caeb8ab7b46817c2bac872322a8970a67819))
+
+* registry and record-loader tests follow their sources; registry subpath exports pinned ([3654c02](https://github.com/serverlessinbox/artifact-registry/commit/3654c02b17ec29f31fe8f18ec92fc887440aab7a))
+
+### docs
+
+* registry record and registry-record commands ([cbfbd34](https://github.com/serverlessinbox/artifact-registry/commit/cbfbd3409853b69382ba846bed40219ec28bdbb6))
+
+* registry subpath, check exit codes, pointer access-denied ([b3cddf1](https://github.com/serverlessinbox/artifact-registry/commit/b3cddf1290567e83ac1cb8eb171df98547945ca2))
+
 ## [0.1.1](https://github.com/serverlessinbox/artifact-registry/compare/v0.1.0...v0.1.1) (Mon Oct 05 2026)
 
 
