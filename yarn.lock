@@ -1837,10 +1837,14 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@serverlessinbox/jsii-bundler@workspace:packages/jsii-bundler"
   dependencies:
+    "@types/jest": "npm:^29"
     "@types/node": "npm:^24.10.1"
     clipanion: "npm:^4.0.0-rc.2"
     esbuild: "npm:^0.27.1"
     glob: "npm:^10.3.10"
+    jest: "npm:^29"
+    jest-util: "npm:^29"
+    ts-jest: "npm:^29"
     ts-node: "npm:^10.9.2"
     typanion: "npm:^3.14.0"
     typescript: "npm:^5.9.3"

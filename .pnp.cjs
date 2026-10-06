@@ -2555,10 +2555,14 @@ const RAW_RUNTIME_STATE =
         "packageLocation": "./packages/jsii-bundler/",\
         "packageDependencies": [\
           ["@serverlessinbox/jsii-bundler", "workspace:packages/jsii-bundler"],\
+          ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:24.19.1"],\
           ["clipanion", "virtual:b80567f1f726ad28b5f69c2f4d583115762754ed5e643c8ffc700d555267034c078163b8acf27ac9e54b95573c3afeb591dde0dc0755beb1e2c159d60551a612#npm:4.0.0-rc.4"],\
           ["esbuild", "npm:0.27.7"],\
           ["glob", "npm:10.5.0"],\
+          ["jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.7.0"],\
+          ["jest-util", "npm:29.7.0"],\
+          ["ts-jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.4.11"],\
           ["ts-node", "virtual:4a121de8ff8356c688f2157d59a93a92a6aa2c75e62de470a20ebe343596eaeeeca31a6676418fe5c614e25fa4a88560b1673828ed3a97df3b2ea1a1729ae27f#npm:10.9.2"],\
           ["typanion", "npm:3.14.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\

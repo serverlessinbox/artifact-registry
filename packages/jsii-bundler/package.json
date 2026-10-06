@@ -21,6 +21,7 @@
   "bin": "./bin/index-typescript.js",
   "scripts": {
     "build": "tsc --project tsconfig.json",
+    "test": "jest",
     "prepack": "yarn build",
     "postpack": "rm -rf lib"
   },
@@ -31,8 +32,12 @@
     "typanion": "^3.14.0"
   },
   "devDependencies": {
+    "@types/jest": "^29",
     "@types/node": "^24.10.1",
     "esbuild": "^0.27.1",
+    "jest": "^29",
+    "jest-util": "^29",
+    "ts-jest": "^29",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
