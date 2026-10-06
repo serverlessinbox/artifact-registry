@@ -3,8 +3,8 @@ import { mockClient } from 'aws-sdk-client-mock';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { parseRegistryRecord } from '../../artifacts/registry-record';
-import type { RegistryRecord } from '../../artifacts/registry-record';
+import { parseRegistryRecord } from '../../registry';
+import type { RegistryRecord } from '../../registry';
 import { FetchRegistryRecordCommand } from '../fetch-registry-record-cmd';
 import { runCommand } from './run-command';
 

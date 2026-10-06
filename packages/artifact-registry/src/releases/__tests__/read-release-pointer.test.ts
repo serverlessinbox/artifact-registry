@@ -6,7 +6,7 @@
  */
 
 import { readReleasePointer } from '../read-release-pointer';
-import type { RegistryLocation } from '../../artifacts/registry-location';
+import type { RegistryLocation } from '../../registry';
 import { AccessDenied, NoSuchKey, S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 

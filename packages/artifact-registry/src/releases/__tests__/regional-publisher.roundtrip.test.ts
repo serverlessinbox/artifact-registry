@@ -14,7 +14,7 @@ import { RegionalPublisher } from '../regional-publisher';
 import { buildArtifactKey } from '../../artifacts/artifact-key';
 import { buildReleasePrefix, buildChannelPrefix } from '../../artifacts/artifact-target';
 import type { ArtifactPackage } from '../../artifacts/artifact';
-import type { RegionBucket } from '../../artifacts/registry-location';
+import type { RegionBucket } from '../../registry';
 
 const s3Mock = mockClient(S3Client);
 

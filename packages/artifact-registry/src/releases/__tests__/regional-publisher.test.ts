@@ -16,7 +16,7 @@ import { RegionalPublisher } from '../regional-publisher';
 import { RegionPublishError } from '../region-publish-error';
 import { buildArtifactKey } from '../../artifacts/artifact-key';
 import type { ArtifactPackage } from '../../artifacts/artifact';
-import type { RegionBucket } from '../../artifacts/registry-location';
+import type { RegionBucket } from '../../registry';
 import type { ReleaseUpload } from '../release';
 
 /** One PutObject the faked S3 client received, in arrival order. */

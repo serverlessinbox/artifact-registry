@@ -8,7 +8,7 @@
 import { GetObjectCommand, ListObjectVersionsCommand, S3Client } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 import { loadTrackVersions } from '../load-track';
-import type { RegistryLocation } from '../../artifacts/registry-location';
+import type { RegistryLocation } from '../../registry';
 
 const s3Mock = mockClient(S3Client);
 const client = new S3Client({ region: 'eu-west-1' });

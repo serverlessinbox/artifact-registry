@@ -1,4 +1,4 @@
-import { buildArtifactBucketName } from '../artifact-target';
+import { buildArtifactBucketName } from '../registry-location';
 
 /**
  * Pins the one place a bucket name is formed: a region's override wins over the `{bucketBase}-{region}`

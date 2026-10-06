@@ -9,7 +9,7 @@
 import { ArtifactResolver } from '../artifact-resolver';
 import type { ArtifactResolverFactoryOptions } from '../artifact-resolver';
 import type { ParsedArtifactVersions } from '../artifact-versions';
-import type { RegistryLocation } from '../../artifacts/registry-location';
+import type { RegistryLocation } from '../../registry';
 
 const location: RegistryLocation = {
   bucketBase: 'example-artifacts',

@@ -3,7 +3,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import type { RegistryRecord } from '../../artifacts/registry-record';
+import type { RegistryRecord } from '../../registry';
 import { CheckRegistryRecordCommand } from '../check-registry-record-cmd';
 import { runCommand } from './run-command';
 
