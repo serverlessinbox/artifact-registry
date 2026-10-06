@@ -2527,7 +2527,7 @@ const RAW_RUNTIME_STATE =
           ["esbuild", "npm:0.27.7"],\
           ["jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.7.0"],\
           ["jest-util", "npm:29.7.0"],\
-          ["jsii", "npm:5.9.55"],\
+          ["jsii", "virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#npm:5.9.55"],\
           ["ts-jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.4.11"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
@@ -7706,12 +7706,23 @@ const RAW_RUNTIME_STATE =
       ["npm:5.9.55", {\
         "packageLocation": "../../../../../.yarn/berry/cache/jsii-npm-5.9.55-4e284dcfe1-10c0.zip/node_modules/jsii/",\
         "packageDependencies": [\
+          ["jsii", "npm:5.9.55"]\
+        ],\
+        "linkType": "SOFT"\
+      }],\
+      ["virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#npm:5.9.55", {\
+        "packageLocation": "./.yarn/__virtual__/jsii-virtual-14da60b687/6/.yarn/berry/cache/jsii-npm-5.9.55-4e284dcfe1-10c0.zip/node_modules/jsii/",\
+        "packageDependencies": [\
           ["@jsii/check-node", "npm:1.141.0"],\
           ["@jsii/spec", "npm:1.141.0"],\
+          ["@types/aws-cdk-lib", null],\
+          ["@types/constructs", null],\
+          ["aws-cdk-lib", "virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#npm:2.272.0"],\
           ["case", "npm:1.6.3"],\
           ["chalk", "npm:4.1.2"],\
+          ["constructs", "npm:10.8.1"],\
           ["fast-deep-equal", "npm:3.1.3"],\
-          ["jsii", "npm:5.9.55"],\
+          ["jsii", "virtual:0ed51e484c659c8c3fa7cbc505b6d352ea37e67cbe3b919cfb15bfbeb7c7c4e923137a273df1f76b11f54e83694274289a673161f929446ab26b055fa50b2dc4#npm:5.9.55"],\
           ["log4js", "npm:6.9.1"],\
           ["semver", "npm:7.8.5"],\
           ["semver-intersect", "npm:1.5.0"],\
@@ -7719,6 +7730,12 @@ const RAW_RUNTIME_STATE =
           ["spdx-license-list", "npm:6.12.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"],\
           ["yargs", "npm:17.7.3"]\
+        ],\
+        "packagePeers": [\
+          "@types/aws-cdk-lib",\
+          "@types/constructs",\
+          "aws-cdk-lib",\
+          "constructs"\
         ],\
         "linkType": "HARD"\
       }]\
