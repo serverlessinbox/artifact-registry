@@ -72,7 +72,7 @@ The package installs the `artifact-registry` binary.
 | `publish release` | Builds the artifacts, uploads each to `releases/v{version}/{objectName}` in every target region, then writes the pointers of each package and, for `template` packages, the track copies. | `--version` semver (required); `--cwd`; `--profile`; `--object`; `--region` |
 | `resolve-artifacts` | Reads the `stable` pointer of each component and writes a JSON object of component key to version to every `--output`. Reads only. | `--bucket-base` (required); `--project` (required); `--region` the region whose bucket is read (required); `--component` as `key:type:name` (required, repeatable); `--output` (required, repeatable); `--track` (without it the global pointer is read); `--bucket-override` as `region=bucket` (repeatable); `--profile` |
 | `registry-record fetch` | Fetches the registry record from a published location and writes it as formatted JSON. | `--bucket-base` (required); `--project` (required); `--region` (required); `--output` (required); `--bucket-override` as `region=bucket` (repeatable) |
-| `registry-record check` | Checks if a local registry record file matches the live record in S3. | file path (positional, required) |
+| `registry-record check` | Checks if a local registry record file matches the live record in S3. It reads the live record from the bucket of the first region listed in the file. Exits `0` when the records are equal and `1` on any difference. | `record-file` path (positional, required) |
 
 Building is the same in `build`, `publish channel` and `publish release`: a directory is zipped (file paths and modes kept), a file is copied, and an entry with `bundleType: "js-zip"` is bundled with esbuild into a zip holding `index.js`. A built file is named after the basename of its `objectName`, so basenames must be unique within a workspace.
 
@@ -173,6 +173,13 @@ const location: RegistryLocation = { bucketBase: 'example-artifacts', project: '
 
 The registry record (`{project}/registry.json`, written to every region bucket) holds the configuration of where artifacts are published: the bucket base, project, list of regions, any bucket overrides, the schema version (currently `1`), and the AWS account ID that owns the buckets. It is fetched and validated to verify the record is complete and readable.
 
+The shape of the registry, which is the record, its location and the bucket naming, is also importable on its own from the `@serverlessinbox/artifact-registry/registry` subpath. It has no S3 client, build or semver dependencies, so construct libraries and other consumers that only need the registry shape import it without pulling in the publishing code.
+
+```ts
+import { buildArtifactBucketName, parseRegistryRecord, registryRecordKey } from '@serverlessinbox/artifact-registry/registry';
+import type { RegionBucket, RegistryConfig, RegistryLocation, RegistryRecord } from '@serverlessinbox/artifact-registry/registry';
+```
+
 `loadRegistryRecord(client, location, region)` reads and validates the record from the bucket of `region`. It throws when the record is missing or not readable (both NoSuchKey and AccessDenied are reported as "missing or not readable"). `parseRegistryRecord(text, source)` parses and validates a record from JSON text, naming the source (path, URL, or bucket/key) in errors.
 
 ```ts
@@ -206,7 +213,7 @@ const { versionMap, resolvedVersions } = await loadTrackVersions(client, {
 });
 ```
 
-`readReleasePointer(client, location, packageName, distTag, region, track?)` reads and validates the pointer of a `package`; without `track` it reads the global pointer. It throws when the pointer is missing, empty, not valid JSON or malformed.
+`readReleasePointer(client, location, packageName, distTag, region, track?)` reads and validates the pointer of a `package`; without `track` it reads the global pointer. It throws when the pointer is missing or not readable (NoSuchKey and AccessDenied are both reported as "missing or not readable"), empty, not valid JSON or malformed.
 
 ```ts
 const pointer = await readReleasePointer(client, location, 'example-api', 'stable', 'eu-west-1', 'v1');
@@ -310,6 +317,7 @@ example/packages/example-api/releases/v1.2/stable.json
 - Publishing: `buildArtifacts`, `loadWorkspaceConfig`, `RegionalPublisher`, `RegionPublishError`, `S3Uploader`; types `S3WorkspaceConfig`, `S3ArtifactEntry`, `ArtifactBuildResult`, `ArtifactRouting`, `ArtifactPackage`, `ArtifactType`, `RegionFailure`, `ReleaseUpload`, `PackageRelease`, `ReleaseTrackCopy`, `ReleaseTrackEntry`.
 - Keys and locations: `buildArtifactKey`, `buildReleasePointerKey`, `buildArtifactBucketName`, `buildArtifactUrl`, `buildArtifactArn`, `deriveTrack`, `toArtifactPackageMapKey`, `isArtifactRouting`; types `ArtifactKeySpec`, `ReleasePointerKeyOptions`, `RegistryLocation`, `RegistryConfig`, `RegionBucket`.
 - Registry record: `registryRecordKey`, `parseRegistryRecord`, `loadRegistryRecord`; type `RegistryRecord`.
+- Subpath `@serverlessinbox/artifact-registry/registry`: `buildArtifactBucketName`, `registryRecordKey`, `parseRegistryRecord`; types `RegistryLocation`, `RegistryConfig`, `RegionBucket`, `RegistryRecord`. The root export includes all of these too.
 - Reading: `loadChannelVersions`, `loadTrackVersions`, `readReleasePointer`, `ArtifactResolver`; types `ChannelVersionsOptions`, `TrackVersionsOptions`, `TrackVersionsResult`, `IArtifactResolver`, `ArtifactResolverFactoryOptions`, `ResolvedArtifact`, `ArtifactZone`, `ArtifactVersionsEntry`, `ParsedArtifactVersions`, `ReleasePointer`, `ReleasePointerObject`.
 
 ## Requirements
