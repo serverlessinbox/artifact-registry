@@ -46,7 +46,7 @@ describe('CheckRegistryRecordCommand', () => {
   function checkAgainstLive(fileRecord: RegistryRecord, liveRecord: RegistryRecord) {
     fs.writeFileSync(recordFile, JSON.stringify(fileRecord));
     serveRecord(liveRecord);
-    return runCommand(CheckRegistryRecordCommand, ['registry-record', 'check', recordFile]);
+    return runCommand(CheckRegistryRecordCommand, ['registry-record', 'check', recordFile, '--region', 'eu-west-1']);
   }
 
   it('exits 0 when the file record equals the live record', async () => {
@@ -84,6 +84,27 @@ describe('CheckRegistryRecordCommand', () => {
     const run = await checkAgainstLive(fileRecord, liveRecord);
 
     expect(run.exitCode).toBe(0);
+  });
+
+  it('reads the live record from the bucket of --region, not the first region in the file', async () => {
+    fs.writeFileSync(recordFile, JSON.stringify(exampleRecord));
+    serveRecord(exampleRecord);
+
+    const run = await runCommand(CheckRegistryRecordCommand, ['registry-record', 'check', recordFile, '--region', 'us-east-1']);
+
+    expect(run.exitCode).toBe(0);
+    const buckets = s3Mock.commandCalls(GetObjectCommand).map((call) => call.args[0].input.Bucket);
+    expect(buckets).toEqual(['example-artifacts-us-east-1']);
+  });
+
+  it('exits 1 when --region is omitted', async () => {
+    fs.writeFileSync(recordFile, JSON.stringify(exampleRecord));
+    serveRecord(exampleRecord);
+
+    const run = await runCommand(CheckRegistryRecordCommand, ['registry-record', 'check', recordFile]);
+
+    expect(run.exitCode).not.toBe(0);
+    expect(s3Mock.commandCalls(GetObjectCommand)).toHaveLength(0);
   });
 
   it('exits 1 naming regions when one side has an extra region', async () => {

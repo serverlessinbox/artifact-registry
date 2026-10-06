@@ -16,11 +16,13 @@ export class CheckRegistryRecordCommand extends Command {
     description: 'Check if a local registry record file matches the live record in S3.',
     details: `
       Reads the registry record from the given file, then reads the live record from the bucket of the
-      first region listed in that file, and compares the two. Regions are compared as sets and bucket
+      region given by \`--region\`, and compares the two. Regions are compared as sets and bucket
       overrides as maps, so ordering never counts as a difference.
 
       The positional argument \`record-file\` is the path to the registry record JSON file (required,
       taken once); a relative path is resolved against the current directory.
+
+      The option \`--region\` is the region whose bucket holds the live record (required, given once).
 
       Exit code 0: the records are equal. Exit code 1: any difference, or the file or the live record
       cannot be read or parsed.
@@ -28,7 +30,7 @@ export class CheckRegistryRecordCommand extends Command {
     examples: [
       [
         'Check if a local file matches the live record',
-        '$0 registry-record check registry-record.json',
+        '$0 registry-record check registry-record.json --region eu-west-1',
       ],
     ],
   });
@@ -36,6 +38,11 @@ export class CheckRegistryRecordCommand extends Command {
   recordFile = Option.String({
     name: 'record-file',
     required: true,
+  });
+
+  region = Option.String('--region', {
+    required: true,
+    description: 'The region whose bucket holds the live record (required, given once).',
   });
 
   async execute(): Promise<number> {
@@ -46,9 +53,8 @@ export class CheckRegistryRecordCommand extends Command {
       const fileContent = await fs.readFile(filePath, 'utf-8');
       const fileRecord = parseRegistryRecord(fileContent, `file ${filePath}`);
 
-      const firstRegion = fileRecord.regions[0];
-      const client = new S3Client({ region: firstRegion, followRegionRedirects: true });
-      const liveRecord = await loadRegistryRecord(client, fileRecord, firstRegion);
+      const client = new S3Client({ region: this.region, followRegionRedirects: true });
+      const liveRecord = await loadRegistryRecord(client, fileRecord, this.region);
 
       const differences = compareRegistryRecords(fileRecord, liveRecord);
 
