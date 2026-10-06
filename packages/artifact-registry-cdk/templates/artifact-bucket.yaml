@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Regional publication assets bucket (deployed via StackSet)
+
+Parameters:
+  BaseName:
+    Type: String
+    Description: Base bucket name (final bucket name includes AWS::Region)
+  WriterArns:
+    Type: CommaDelimitedList
+    Description: 'IAM ARNs allowed to write assets'
+  NoncurrentVersionRetentionDays:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    Description: Days to retain non-current (old) object versions before permanent deletion
+  BucketNameOverride:
+    Type: String
+    Default: ''
+    Description: Bucket name that replaces BaseName-Region; empty keeps the BaseName-Region name
+
+Conditions:
+  HasBucketNameOverride: !Not [!Equals [!Ref BucketNameOverride, '']]
+
+Resources:
+  PublicationAssetsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: RetainExceptOnCreate
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !If [HasBucketNameOverride, !Ref BucketNameOverride, !Sub '${BaseName}-${AWS::Region}']
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: false
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: false
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireNoncurrentVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: !Ref NoncurrentVersionRetentionDays
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  PublicationAssetsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PublicationAssetsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:s3:::${PublicationAssetsBucket}'
+              - !Sub 'arn:${AWS::Partition}:s3:::${PublicationAssetsBucket}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+          - Sid: AllowReadForAwsPrincipals
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:s3:::${PublicationAssetsBucket}/*'
+            Condition:
+              StringNotEquals:
+                aws:PrincipalType: Anonymous
+
+          - Sid: AllowListForAwsPrincipals
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - 's3:ListBucket'
+              - 's3:GetBucketLocation'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:s3:::${PublicationAssetsBucket}'
+            Condition:
+              StringNotEquals:
+                aws:PrincipalType: Anonymous
+
+          - Sid: AllowWriteForAccounts
+            Effect: Allow
+            Principal:
+              AWS: !Ref WriterArns
+            Action:
+              - 's3:PutObject'
+              - 's3:PutObjectTagging'
+              - 's3:DeleteObject'
+              - 's3:DeleteObjectVersion'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:s3:::${PublicationAssetsBucket}/*'
+          - Sid: AllowListVersionsForAccounts
+            Effect: Allow
+            Principal:
+              AWS: !Ref WriterArns
+            Action:
+              - 's3:ListBucketVersions'
+            Resource:
+              - !Sub 'arn:${AWS::Partition}:s3:::${PublicationAssetsBucket}'
+
+Outputs:
+  BucketName:
+    Value: !Ref PublicationAssetsBucket
+  BucketArn:
+    Value: !GetAtt PublicationAssetsBucket.Arn
