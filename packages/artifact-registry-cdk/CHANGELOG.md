@@ -4,6 +4,26 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.2.0](https://github.com/serverlessinbox/artifact-registry/compare/v0.1.3...v0.2.0) (Fri Oct 09 2026)
+
+### refactor
+
+* artifact-registry-cdk buckets construct moves to src/buckets/ ([5b3fe82](https://github.com/serverlessinbox/artifact-registry/commit/5b3fe82c5db3b9756ff3304f361471802d80ea01))
+
+### feat
+
+* artifact-registry-cdk resolution contract (jsii) pinned to the core types ([4322d5c](https://github.com/serverlessinbox/artifact-registry/commit/4322d5c064553b82c58dc0f4e5150713c2fb918d))
+
+* artifact-registry-cdk PinnedArtifactResolver and ArtifactCode (an S3Code) ([4a33a5d](https://github.com/serverlessinbox/artifact-registry/commit/4a33a5dc9bf15cce97a46329af10b87f7b78b415))
+
+### test
+
+* PinnedArtifactResolver and ArtifactCode ([f4e371c](https://github.com/serverlessinbox/artifact-registry/commit/f4e371cd6b75b9a9015a7c057d3b552c3c71e1b1))
+
+### chore
+
+* typanion as artifact-registry-cdk devDependency (inlined at pack) ([81aa3d7](https://github.com/serverlessinbox/artifact-registry/commit/81aa3d7f790423386f0ee87b0285072ca4b576e0))
+
 ## [0.1.3](https://github.com/serverlessinbox/artifact-registry/compare/v0.1.2...v0.1.3) (Tue Oct 06 2026)
 
 ### feat
