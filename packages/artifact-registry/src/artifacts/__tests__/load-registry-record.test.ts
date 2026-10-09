@@ -1,12 +1,7 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import { S3Client, GetObjectCommand, NoSuchKey, AccessDenied } from '@aws-sdk/client-s3';
 import { loadRegistryRecord } from '../load-registry-record';
-
-function createMockStream(text: string) {
-  return {
-    transformToString: jest.fn().mockResolvedValue(text),
-  };
-}
+import { s3Body } from '../../__tests__/s3-body';
 
 const s3Mock = mockClient(S3Client);
 const client = new S3Client({ region: 'eu-west-1' });
@@ -30,7 +25,7 @@ describe('loadRegistryRecord', () => {
       ownerAccountId: '123456789012',
     });
 
-    s3Mock.on(GetObjectCommand).resolves({ Body: createMockStream(recordBody) });
+    s3Mock.on(GetObjectCommand).resolves({ Body: s3Body(recordBody) });
 
     const record = await loadRegistryRecord(client, {
       bucketBase: 'artifacts',
@@ -66,7 +61,7 @@ describe('loadRegistryRecord', () => {
   });
 
   it('throws with proper message for empty body', async () => {
-    s3Mock.on(GetObjectCommand).resolves({ Body: createMockStream('') });
+    s3Mock.on(GetObjectCommand).resolves({ Body: s3Body('') });
 
     await expect(
       loadRegistryRecord(client, {
@@ -86,7 +81,7 @@ describe('loadRegistryRecord', () => {
       ownerAccountId: '123456789012',
     });
 
-    s3Mock.on(GetObjectCommand).resolves({ Body: createMockStream(recordBody) });
+    s3Mock.on(GetObjectCommand).resolves({ Body: s3Body(recordBody) });
 
     const recordClient = new S3Client({ region: 'us-east-1' });
     const record = await loadRegistryRecord(recordClient, {
@@ -101,7 +96,7 @@ describe('loadRegistryRecord', () => {
   });
 
   it('throws with proper message for invalid JSON', async () => {
-    s3Mock.on(GetObjectCommand).resolves({ Body: createMockStream('not json') });
+    s3Mock.on(GetObjectCommand).resolves({ Body: s3Body('not json') });
 
     await expect(
       loadRegistryRecord(client, {
@@ -120,7 +115,7 @@ describe('loadRegistryRecord', () => {
       ownerAccountId: '123456789012',
     });
 
-    s3Mock.on(GetObjectCommand).resolves({ Body: createMockStream(recordBody) });
+    s3Mock.on(GetObjectCommand).resolves({ Body: s3Body(recordBody) });
 
     await expect(
       loadRegistryRecord(client, {

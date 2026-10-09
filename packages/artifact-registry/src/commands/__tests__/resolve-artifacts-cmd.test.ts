@@ -1,25 +1,17 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import type { GetObjectCommandOutput } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { s3Body } from '../../__tests__/s3-body';
+import type { S3ObjectBody } from '../../__tests__/s3-body';
 import { ResolveArtifactsCommand } from '../resolve-artifacts-cmd';
 import { runCommand } from './run-command';
 
 const s3Mock = mockClient(S3Client);
 
-function bodyOf(text: string): GetObjectCommandOutput['Body'] {
-  const blob = new Blob([text]);
-  return Object.assign(blob, {
-    transformToString: async () => text,
-    transformToByteArray: async () => new TextEncoder().encode(text),
-    transformToWebStream: () => blob.stream(),
-  });
-}
-
-function pointerBody(version: string): GetObjectCommandOutput['Body'] {
-  return bodyOf(JSON.stringify({ version, publishedAt: '2026-01-01T00:00:00.000Z', objects: [{ name: 'a.zip' }] }));
+function pointerBody(version: string): S3ObjectBody {
+  return s3Body(JSON.stringify({ version, publishedAt: '2026-01-01T00:00:00.000Z', objects: [{ name: 'a.zip' }] }));
 }
 
 /**
@@ -68,7 +60,7 @@ describe('ResolveArtifactsCommand rejects malformed input', () => {
   });
 
   it('rejects a release pointer that is not an object', async () => {
-    s3Mock.on(GetObjectCommand).resolves({ Body: bodyOf('["not", "an", "object"]') });
+    s3Mock.on(GetObjectCommand).resolves({ Body: s3Body('["not", "an", "object"]') });
 
     const run = await runCommand(ResolveArtifactsCommand, args('key:package:name:regional'));
 

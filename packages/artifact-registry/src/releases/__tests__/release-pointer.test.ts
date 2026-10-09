@@ -1,11 +1,12 @@
 import { GetObjectCommand, NoSuchKey, S3Client } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 import { loadReleasePointer } from '../release-pointer';
+import { s3Body } from '../../__tests__/s3-body';
 
 const s3Mock = mockClient(S3Client);
 
 function respondWith(text: string): void {
-  s3Mock.on(GetObjectCommand).resolves({ Body: { transformToString: jest.fn().mockResolvedValue(text) } });
+  s3Mock.on(GetObjectCommand).resolves({ Body: s3Body(text) });
 }
 
 /**

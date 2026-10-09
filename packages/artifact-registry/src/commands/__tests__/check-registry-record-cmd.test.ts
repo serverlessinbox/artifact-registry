@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import type { RegistryRecord } from '../../registry';
+import { s3Body } from '../../__tests__/s3-body';
 import { CheckRegistryRecordCommand } from '../check-registry-record-cmd';
 import { runCommand } from './run-command';
 
@@ -19,7 +20,7 @@ const exampleRecord: RegistryRecord = {
 
 function serveRecord(record: RegistryRecord): void {
   s3Mock.on(GetObjectCommand).resolves({
-    Body: { transformToString: jest.fn().mockResolvedValue(JSON.stringify(record)) },
+    Body: s3Body(JSON.stringify(record)),
   });
 }
 

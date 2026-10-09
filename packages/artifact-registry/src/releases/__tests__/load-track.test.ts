@@ -9,6 +9,7 @@ import { GetObjectCommand, ListObjectVersionsCommand, S3Client } from '@aws-sdk/
 import { mockClient } from 'aws-sdk-client-mock';
 import { loadTrackVersions } from '../load-track';
 import type { RegistryLocation } from '../../registry';
+import { s3Body } from '../../__tests__/s3-body';
 
 const s3Mock = mockClient(S3Client);
 const client = new S3Client({ region: 'eu-west-1' });
@@ -23,7 +24,7 @@ const CONVENTION_BUCKET = 'example-artifacts-eu-west-1';
 
 function respondWithPointerAndListing(): void {
   const pointer = { version: '1.2.3', publishedAt: '2026-07-08T00:00:00Z', objects: [{ name: 'a.zip' }] };
-  s3Mock.on(GetObjectCommand).resolves({ Body: { transformToString: jest.fn().mockResolvedValue(JSON.stringify(pointer)) } });
+  s3Mock.on(GetObjectCommand).resolves({ Body: s3Body(JSON.stringify(pointer)) });
   s3Mock.on(ListObjectVersionsCommand).resolves({ Versions: [{ Key: 'some/key', VersionId: 'v1', IsLatest: true }] });
 }
 

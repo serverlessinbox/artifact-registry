@@ -7,18 +7,13 @@
 
 import { readReleasePointer } from '../read-release-pointer';
 import type { RegistryLocation } from '../../registry';
+import { s3Body } from '../../__tests__/s3-body';
 import { AccessDenied, NoSuchKey, S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 
 const s3Mock = mockClient(S3Client);
 const client = new S3Client({ region: 'eu-west-1' });
 const location: RegistryLocation = { bucketBase: 'example-artifacts', project: 'example' };
-
-function createMockStream(text: string) {
-  return {
-    transformToString: jest.fn().mockResolvedValue(text),
-  };
-}
 
 describe('readReleasePointer', () => {
   beforeEach(() => {
@@ -36,7 +31,7 @@ describe('readReleasePointer', () => {
       };
 
       s3Mock.on(GetObjectCommand).resolves({
-        Body: createMockStream(JSON.stringify(pointer)),
+        Body: s3Body(JSON.stringify(pointer)),
       });
 
       const result = await readReleasePointer(client, location, 'example-go', 'stable', 'eu-west-1');
@@ -60,7 +55,7 @@ describe('readReleasePointer', () => {
       };
 
       s3Mock.on(GetObjectCommand).resolves({
-        Body: createMockStream(JSON.stringify(pointer)),
+        Body: s3Body(JSON.stringify(pointer)),
       });
 
       const result = await readReleasePointer(client, location, 'example-go', 'stable', 'eu-west-1', 'v1');
@@ -76,7 +71,7 @@ describe('readReleasePointer', () => {
       const pointer = { version: '2.3.5', publishedAt: '2026-07-08T14:00:00Z', objects: [{ name: 'a.zip' }] };
 
       s3Mock.on(GetObjectCommand).resolves({
-        Body: createMockStream(JSON.stringify(pointer)),
+        Body: s3Body(JSON.stringify(pointer)),
       });
 
       await readReleasePointer(client, location, 'example-cdk', 'stable', 'eu-west-1', 'v2.3');
@@ -92,7 +87,7 @@ describe('readReleasePointer', () => {
       const pointer = { version: '1.0.0', publishedAt: '2026-07-08T00:00:00Z', objects: [{ name: 'a.zip' }] };
 
       s3Mock.on(GetObjectCommand).resolves({
-        Body: createMockStream(JSON.stringify(pointer)),
+        Body: s3Body(JSON.stringify(pointer)),
       });
 
       await readReleasePointer(client, { bucketBase: 'custom-bucket', project: 'acme' }, 'example-go', 'stable', 'eu-west-1');
@@ -105,7 +100,7 @@ describe('readReleasePointer', () => {
 
     it('reads from the override bucket of the region that has one, and the convention bucket elsewhere', async () => {
       const pointer = { version: '1.0.0', publishedAt: '2026-07-08T00:00:00Z', objects: [{ name: 'a.zip' }] };
-      s3Mock.on(GetObjectCommand).resolves({ Body: createMockStream(JSON.stringify(pointer)) });
+      s3Mock.on(GetObjectCommand).resolves({ Body: s3Body(JSON.stringify(pointer)) });
       const overridden: RegistryLocation = { ...location, bucketOverrides: { 'us-east-1': 'example-artifacts-use1-7f3a' } };
 
       await readReleasePointer(client, overridden, 'example-go', 'stable', 'us-east-1');
@@ -147,7 +142,7 @@ describe('readReleasePointer', () => {
 
     it('throws on invalid JSON', async () => {
       s3Mock.on(GetObjectCommand).resolves({
-        Body: createMockStream('{ invalid json'),
+        Body: s3Body('{ invalid json'),
       });
 
       await expect(
