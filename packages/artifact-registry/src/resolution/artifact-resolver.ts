@@ -26,21 +26,6 @@ interface ResolvedArtifactData {
 }
 
 /**
- * Synchronous lookup, per package name, of an object's S3 location, URL and ARN, the package's
- * pinned version and S3 version ID, and the registry location shared by all packages. Every
- * package-specific method throws for a package the resolver does not know.
- */
-export interface IArtifactResolver {
-  resolve(packageName: string, objectPath: string): ResolvedArtifact;
-  getUrl(packageName: string, objectPath: string): string;
-  getArn(packageName: string, objectPath: string): string;
-  /** Version string of the package's entry in the versions file, as written there. */
-  getVersion(packageName: string): string;
-  /** Registry location (bucket naming and key prefix), shared across all packages. */
-  getLocation(): RegistryLocation;
-}
-
-/**
  * Options for constructing an {@link ArtifactResolver}.
  */
 export interface ArtifactResolverFactoryOptions {
@@ -57,14 +42,15 @@ export interface ArtifactResolverFactoryOptions {
 }
 
 /**
- * {@link IArtifactResolver} over the packages of one artifact-versions file. Resolves every package
- * to its bucket and key prefix in the constructor. It does not read S3.
+ * Synchronous lookup, per package name, of an object's S3 location, URL and ARN and the package's
+ * version, over the packages of one artifact-versions file. Resolves every package to its bucket
+ * and key prefix in the constructor. It does not read S3. Every package-specific method throws for
+ * a package the resolver does not know.
  */
-export class ArtifactResolver implements IArtifactResolver {
+export class ArtifactResolver {
   private readonly resolvedData: Record<string, ResolvedArtifactData>;
   private readonly regionMap: Record<string, string>;
   private readonly versionMap: Record<string, string>;
-  private readonly location: RegistryLocation;
   private readonly s3VersionMap: Record<string, string>;
 
   constructor(options: ArtifactResolverFactoryOptions) {
@@ -84,7 +70,6 @@ export class ArtifactResolver implements IArtifactResolver {
         Object.entries(options.versions.packages).map(([name, entry]) => [name, entry.version])
       )
     );
-    this.location = location;
     this.s3VersionMap = Object.freeze(options.s3VersionMap ?? {});
   }
 
@@ -112,10 +97,6 @@ export class ArtifactResolver implements IArtifactResolver {
     const v = this.versionMap[packageName];
     if (v === undefined) throw new Error(`No resolved data for package '${packageName}'`);
     return v;
-  }
-
-  getLocation(): RegistryLocation {
-    return this.location;
   }
 }
 

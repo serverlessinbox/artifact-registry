@@ -5,8 +5,6 @@ export type { ChannelVersionsOptions } from './load-channel';
 export { loadTrackVersions } from './load-track';
 export type { TrackVersionsOptions, TrackVersionsResult } from './load-track';
 
-export type { IArtifactResolver } from '../resolution/artifact-resolver';
-
 export { S3Uploader } from './uploader';
 export { RegionalPublisher } from './regional-publisher';
 export { RegionPublishError } from './region-publish-error';

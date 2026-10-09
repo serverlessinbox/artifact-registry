@@ -61,10 +61,6 @@ describe('ArtifactResolver region and bucket', () => {
     expect(createResolver().resolve('channel-pkg', 'a.zip').key).toBe('example/packages/channel-pkg/channels/dev/a.zip');
   });
 
-  it('exposes the location it was constructed with', () => {
-    expect(createResolver().getLocation()).toBe(location);
-  });
-
   it('throws for a package the versions file does not list', () => {
     expect(() => createResolver().resolve('unknown-pkg', 'a.zip')).toThrow("No resolved data for package 'unknown-pkg'");
   });
