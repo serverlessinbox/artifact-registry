@@ -70,7 +70,7 @@ The package installs the `artifact-registry` binary.
 | `build` | Builds the artifacts into an output folder without uploading, and prints the written file names. | `--output` output folder, must exist (required); `--cwd` workspace directory (default: current directory) |
 | `publish channel` | Builds the artifacts and uploads each to `channels/{channel}/{objectName}` in every target region. Writes no pointers. | `--channel` (default `dev`); `--cwd`; `--profile`; `--object`; `--region` |
 | `publish release` | Builds the artifacts, uploads each to `releases/v{version}/{objectName}` in every target region, then writes the pointers of each package and, for `template` packages, the track copies. | `--version` semver (required); `--cwd`; `--profile`; `--object`; `--region` |
-| `resolve-artifacts` | Reads the `stable` pointer of each component and writes a JSON object of component key to version to every `--output`. Reads only. | `--bucket-base` (required); `--project` (required); `--region` the region whose bucket is read (required); `--component` as `key:type:name` (required, repeatable); `--output` (required, repeatable); `--track` (without it the global pointer is read); `--bucket-override` as `region=bucket` (repeatable); `--profile` |
+| `resolve-artifacts` | Reads the `stable` pointer of each component and writes a JSON object of component key to `{ "version", "zone" }` to every `--output`. Components of zone `edge` are read from the edge zone's fixed region (`us-east-1`) whatever `--region` says. Reads only. | `--bucket-base` (required); `--project` (required); `--region` the region whose bucket is read for `regional` components (required); `--component` as `key:type:name:zone`, zone `regional` or `edge` (required, repeatable); `--output` (required, repeatable); `--track` (without it the global pointer is read); `--bucket-override` as `region=bucket` (repeatable); `--profile` |
 | `registry-record fetch` | Fetches the registry record from a published location and writes it as formatted JSON. | `--bucket-base` (required); `--project` (required); `--region` (required); `--output` (required); `--bucket-override` as `region=bucket` (repeatable) |
 | `registry-record check` | Checks if a local registry record file matches the live record in S3. It reads the live record from the bucket of the region given by `--region`. Exits `0` when the records are equal and `1` on any difference. | `record-file` path (positional, required); `--region` the region whose bucket holds the live record (required) |
 
@@ -88,7 +88,8 @@ yarn artifact-registry publish channel --channel dev --object lambdas/handler.zi
 yarn artifact-registry publish release --version 1.2.3 --region eu-west-1
 yarn artifact-registry resolve-artifacts \
   --bucket-base example-artifacts --project example --region eu-west-1 --track v1 \
-  --component api:package:example-api --output artifact-versions.json
+  --component api:package:example-api:regional --component cdn:package:example-edge:edge \
+  --output artifact-versions.json
 ```
 
 ### Publish order and failure handling
