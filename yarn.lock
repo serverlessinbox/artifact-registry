@@ -1786,6 +1786,7 @@ __metadata:
     jest-util: "npm:^29"
     jsii: "npm:^5.9.44"
     ts-jest: "npm:^29"
+    typanion: "npm:^3.14.0"
     typescript: "npm:^5"
   peerDependencies:
     aws-cdk-lib: ^2.261.0

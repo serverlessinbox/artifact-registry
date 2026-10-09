@@ -53,6 +53,7 @@
     "jest-util": "^29",
     "jsii": "^5.9.44",
     "ts-jest": "^29",
+    "typanion": "^3.14.0",
     "typescript": "^5"
   }
 }

@@ -5350,6 +5350,7 @@ const RAW_RUNTIME_STATE =
           ["jest-util", "npm:29.7.0"],\
           ["jsii", "npm:5.9.55"],\
           ["ts-jest", "virtual:52fdaea180f8d30fc0dd3eab79bea12285c2ef3fcfb141c99365f4377909e3521449c41ee76f6fad61b2e2929662beb9c74ce8b011786b1ff016567cce9a4e68#npm:29.4.11"],\
+          ["typanion", "npm:3.14.0"],\
           ["typescript", "patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"]\
         ],\
         "linkType": "SOFT"\
