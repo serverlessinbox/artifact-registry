@@ -1,5 +1,5 @@
 import type { ArtifactVersionsEntry, ParsedArtifactVersions } from './artifact-versions';
-import { buildReleasePrefix, buildChannelPrefix, buildArtifactUrl, buildArtifactArn } from '../artifacts/artifact-target';
+import { buildReleasePrefix, buildChannelPrefix, buildArtifactUrl, buildArtifactArn } from './artifact-target';
 import type { ArtifactType } from '../artifacts/artifact';
 import { buildArtifactBucketName } from '../registry';
 import { ZONE_REGIONS } from '../registry/registry-location';

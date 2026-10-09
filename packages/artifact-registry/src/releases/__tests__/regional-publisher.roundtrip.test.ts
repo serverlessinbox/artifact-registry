@@ -12,7 +12,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { S3Uploader } from '../uploader';
 import { RegionalPublisher } from '../regional-publisher';
 import { buildArtifactKey } from '../../artifacts/artifact-key';
-import { buildReleasePrefix, buildChannelPrefix } from '../../artifacts/artifact-target';
+import { buildReleasePrefix, buildChannelPrefix } from '../../resolution/artifact-target';
 import type { ArtifactPackage } from '../../artifacts/artifact';
 import type { RegionBucket } from '../../registry';
 

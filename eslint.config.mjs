@@ -76,4 +76,22 @@ export default [
       'max-classes-per-file': ['error', 1],
     },
   },
+  {
+    files: ['packages/*/src/resolution/**/*.ts'],
+    ignores: ['**/__tests__/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['@aws-sdk/*'], message: 'The resolution closure stays free of the S3 SDK.' },
+            { group: ['esbuild', 'esbuild/*'], message: 'The resolution closure stays free of esbuild.' },
+            { group: ['fflate', 'fflate/*'], message: 'The resolution closure stays free of fflate.' },
+            { group: ['clipanion', 'clipanion/*'], message: 'The resolution closure stays free of clipanion.' },
+            { group: ['node:fs', 'node:fs/*', 'fs', 'fs/*'], message: 'The resolution closure does no file I/O.' },
+          ],
+        },
+      ],
+    },
+  },
 ];

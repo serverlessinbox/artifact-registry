@@ -8,4 +8,3 @@ export type { ArtifactKeySpec, ReleasePointerKeyOptions } from './artifact-key';
 export type { S3WorkspaceConfig, S3ArtifactEntry } from './workspace-config';
 export { loadRegistryRecord } from './load-registry-record';
 export { buildArtifactKey, buildReleasePointerKey } from './artifact-key';
-export { buildArtifactUrl, buildArtifactArn } from './artifact-target';

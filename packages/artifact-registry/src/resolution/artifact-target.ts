@@ -1,5 +1,5 @@
-import { buildArtifactKey } from './artifact-key';
-import type { ArtifactType } from './artifact';
+import { buildArtifactKey } from '../artifacts/artifact-key';
+import type { ArtifactType } from '../artifacts/artifact';
 
 /** An exact release, by semver `version`. */
 export interface ReleaseTarget { readonly kind: 'release'; readonly version: string; }

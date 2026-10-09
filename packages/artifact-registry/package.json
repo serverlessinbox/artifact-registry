@@ -13,6 +13,10 @@
       "types": "./src/registry/index.ts",
       "default": "./src/registry/index.ts"
     },
+    "./resolution": {
+      "types": "./src/resolution/index.ts",
+      "default": "./src/resolution/index.ts"
+    },
     "./package.json": "./package.json"
   },
   "bin": "dist/cli-entry.js",
@@ -43,6 +47,10 @@
       "./registry": {
         "types": "./dist/registry/index.d.ts",
         "default": "./dist/registry/index.js"
+      },
+      "./resolution": {
+        "types": "./dist/resolution/index.d.ts",
+        "default": "./dist/resolution/index.js"
       },
       "./package.json": "./package.json"
     },
