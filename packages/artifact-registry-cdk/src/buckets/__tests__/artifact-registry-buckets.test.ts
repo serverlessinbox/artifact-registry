@@ -64,7 +64,7 @@ const WRITERS: ArtifactWriter[] = [
   { principalArn: 'arn:aws:iam::222222222222:role/publisher' },
 ];
 
-const MEMBER_TEMPLATE_PATH = path.join(__dirname, '..', '..', 'templates', 'artifact-bucket.yaml');
+const MEMBER_TEMPLATE_PATH = path.join(__dirname, '..', '..', '..', 'templates', 'artifact-bucket.yaml');
 
 function synthesize(options: SynthesisOptions = {}): Template {
   const stack = new Stack(new App(), 'RegistryStack', options.env ? { env: options.env } : undefined);

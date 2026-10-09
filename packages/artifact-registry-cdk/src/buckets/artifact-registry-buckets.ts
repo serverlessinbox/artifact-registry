@@ -136,7 +136,7 @@ interface DeployRegionOverride {
   readonly bucketName: string;
 }
 
-const MEMBER_TEMPLATE_PATH = path.join(__dirname, '..', 'templates', 'artifact-bucket.yaml');
+const MEMBER_TEMPLATE_PATH = path.join(__dirname, '..', '..', 'templates', 'artifact-bucket.yaml');
 
 /**
  * The S3 buckets of an artifact registry, one per region, and the registry record that describes
