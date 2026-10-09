@@ -1,6 +1,6 @@
 # @serverlessinbox/artifact-registry-cdk
 
-A CDK construct that creates the S3 buckets of an artifact registry, one per region, and writes a registry record into one of them that describes the registry.
+CDK constructs for an artifact registry: one creates the S3 buckets of the registry, one per region, and writes a registry record into one of them that describes the registry; the others let a stack read artifacts from the registry, resolving a package to its bucket, key, URL and ARN and building Lambda `Code` from it.
 
 An artifact registry is a set of identically configured buckets that a build publishes versioned artifacts to and that consumers read them from. The construct keeps the buckets and the description of where they are in one place.
 
@@ -63,6 +63,70 @@ Changing the override of a region that already has a bucket makes CloudFormation
 ## Adopting existing buckets
 
 The StackSet resource takes the logical ID of the construct id you choose. Using the id `PublicationAssetsBucketStackSet` gives the StackSet that logical ID, so a stack that already deploys a StackSet under that id keeps that StackSet instead of replacing it. The member template keeps the logical IDs of the bucket and the bucket policy.
+
+## Resolving artifacts
+
+A stack that deploys artifacts from the registry (Lambda zips, nested templates) asks an `IArtifactResolver` where an object is. Constructs take the interface, so the registry, the pinned versions and the region logic are decided once, where the resolver is built.
+
+```ts
+import { ArtifactCode, ArtifactZone, PinnedArtifactResolver } from '@serverlessinbox/artifact-registry-cdk';
+
+const resolver = new PinnedArtifactResolver({
+  location: { bucketBase: 'acme-artifacts', project: 'acme' },
+  deploymentRegion: stack.region,
+  packages: {
+    'acme-api': { zone: ArtifactZone.REGIONAL, version: '1.4.2' },
+    'acme-edge': { zone: ArtifactZone.EDGE, channel: 'dev' },
+  },
+});
+
+new lambda.Function(stack, 'Api', {
+  runtime: lambda.Runtime.PROVIDED_AL2023,
+  handler: 'bootstrap',
+  code: new ArtifactCode(stack, resolver, 'acme-api', 'lambdas/api.zip'),
+});
+
+resolver.getUrl('acme-api', 'templates/app.yaml');
+resolver.getArn('acme-api', 'lambdas/api.zip');
+resolver.getVersion('acme-api'); // '1.4.2'; the channel name for a channel pin
+```
+
+| Member | Meaning |
+|---|---|
+| `resolve(package, path)` | The `bucket`, `key` and, when pinned, `versionId` of the object. |
+| `getUrl(package, path)` | The HTTPS URL of the object, with `?versionId=` when pinned. |
+| `getArn(package, path)` | The `arn:aws:s3:::bucket/key` of the object. |
+| `getVersion(package)` | The pinned release version, or the channel name. |
+| `location` | The `RegistryLocation` (`bucketBase`, `project`, `bucketOverrides`) every object lives under. |
+
+Every method that takes a package throws `No resolved data for package '<name>'` for a package without a pin.
+
+### Pins
+
+A pin names the package's `zone` and exactly one of `version` (a release) or `channel` (a mutable channel, whose objects each publish overwrites). A pin with neither or both is rejected, naming the package.
+
+- A `REGIONAL` pin is read from the bucket of the deployment region; an `EDGE` pin from the bucket of `us-east-1`, whatever the deployment region.
+- A pin's optional `region` wins over its zone.
+- `objectVersionIds` pins listed object keys to an S3 object version: the object then resolves with its `versionId`, `getUrl` appends `?versionId=`, and the Lambda keeps running the pinned bytes when the key is overwritten.
+- `ArtifactCode` is an `S3Code`; it imports each registry bucket once per stack. Importing creates no resources and no stack exports.
+
+### Shipping pins with your package
+
+`PinnedArtifactResolver.parsePins(json, source)` validates pins from JSON text, for example a file shipped in your package, and throws naming `source`, the package and the field on any problem:
+
+```json
+{
+  "acme-api": { "zone": "regional", "version": "1.4.2" },
+  "acme-edge": { "zone": "edge", "channel": "dev" }
+}
+```
+
+`PinnedArtifactResolver.fromContext(scope, props)` builds the resolver from such default pins and a default location, overridden by CDK context during development. The two context keys are yours to name (`artifactsContextKey`, `objectVersionsContextKey`):
+
+- the `artifactsContextKey` value is an object with the optional fields `bucketBase`, `project`, `bucketOverrides` and `packages`; each location field present replaces the default's field, and each pin in `packages` replaces the default pin of that package or adds one;
+- the `objectVersionsContextKey` value maps object keys to S3 object version IDs.
+
+With no context set the resolver holds exactly the defaults. A present value of the wrong shape, or a context pin without a `zone`, throws naming the key and the value.
 
 ## License
 
