@@ -4,6 +4,22 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.2.0](https://github.com/serverlessinbox/artifact-registry/compare/v0.1.3...v0.2.0) (Fri Oct 09 2026)
+
+### refactor
+
+* core ./resolution subpath with the resolver closure, free of S3/esbuild ([8804cc0](https://github.com/serverlessinbox/artifact-registry/commit/8804cc00ec7410803d80e8750d8119106f40f775))
+
+* remove core IArtifactResolver and ArtifactResolver.getLocation() ([385ea8d](https://github.com/serverlessinbox/artifact-registry/commit/385ea8d62c1d6dc58eb512d65bf865c2656fb058))
+
+### feat
+
+* resolve-artifacts takes a zone per component and writes { version, zone } ([eb9286d](https://github.com/serverlessinbox/artifact-registry/commit/eb9286d31ba907a9f880bd0789c54e833eeb5c85))
+
+### test
+
+* one typed S3 body helper; fixes 9 suites that only passed from the jest cache ([41ed427](https://github.com/serverlessinbox/artifact-registry/commit/41ed427135c8e52afb32e040093e2f260f68843c))
+
 ## [0.1.3](https://github.com/serverlessinbox/artifact-registry/compare/v0.1.2...v0.1.3) (Tue Oct 06 2026)
 
 
