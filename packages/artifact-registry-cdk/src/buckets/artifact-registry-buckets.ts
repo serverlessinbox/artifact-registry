@@ -70,6 +70,29 @@ export interface ArtifactWriter {
 }
 
 /**
+ * The principals that may read objects from the registry buckets, in place of everyone.
+ */
+export interface ReadAllowlist {
+  /**
+   * The ARNs of the principals that may read the registry's objects, for example
+   * `arn:aws:iam::111111111111:root` for every principal of an account that delegates to IAM, or the
+   * ARN of one role. Release and channel objects, release pointers and the registry record are all
+   * read with these permissions.
+   *
+   * Without a read allowlist the objects under the project prefix are readable by every authenticated
+   * AWS principal; unauthenticated requests are always denied. With one, the buckets answer only the
+   * listed principals: every other reader, including a CloudFormation or Lambda request made by a
+   * principal that is not listed, receives an access-denied response. List every account and role that deploys from or updates against this
+   * registry, plus the principals that run `registry-record` and `resolve-artifacts`.
+   *
+   * The ARNs are written into each bucket's policy as principals. Pass well-formed ARNs: S3 rejects a
+   * bucket policy whose principal it cannot resolve. The list must not be empty, otherwise synthesis
+   * fails; leave `readAllowlist` out to let every authenticated AWS principal read.
+   */
+  readonly principalArns: string[];
+}
+
+/**
  * Properties of `ArtifactRegistryBuckets`.
  */
 export interface ArtifactRegistryBucketsProps {
@@ -87,6 +110,21 @@ export interface ArtifactRegistryBucketsProps {
    * Pass at least one: a registry that nobody can write to cannot receive artifacts.
    */
   readonly writers: ArtifactWriter[];
+
+  /**
+   * Restricts who may read the registry's objects to the listed principals. Readers fetch objects
+   * with `s3:GetObject` and `s3:GetObjectVersion`: CloudFormation reading templates, Lambda reading
+   * function code and the tools that read release pointers and the registry record.
+   *
+   * Leave it out and every authenticated AWS principal may read the objects under
+   * `registry.project`; unauthenticated requests are denied, and no one but the writers may list the
+   * bucket. Set it and that permission is replaced by one for exactly the listed principals, and
+   * everyone else is denied. A reader that asks for an object that does not exist
+   * is answered access-denied in both cases, because readers cannot list the bucket.
+   *
+   * @default - every authenticated AWS principal may read the objects under `registry.project`
+   */
+  readonly readAllowlist?: ReadAllowlist;
 
   /**
    * How long earlier versions of overwritten keys stay retrievable: channel objects and pointer
@@ -161,6 +199,7 @@ export class ArtifactRegistryBuckets extends Construct {
       additionalRegions: [...new Set(props.registry.additionalRegions)],
     };
     const retentionDays = (props.channelHistoryRetention ?? Duration.days(1)).toDays();
+    const readPrincipalParameters = this.buildReadPrincipalParameters(props.readAllowlist);
     const deployRegionOverrides = this.declareDeployRegionOverrides(registry.bucketOverrides ?? {});
 
     const memberTemplate = new s3assets.Asset(this, 'member-template', { path: MEMBER_TEMPLATE_PATH });
@@ -175,6 +214,8 @@ export class ArtifactRegistryBuckets extends Construct {
       templateUrl: memberTemplate.httpUrl,
       parameters: [
         { parameterKey: 'BaseName', parameterValue: registry.bucketBase },
+        { parameterKey: 'Project', parameterValue: registry.project },
+        ...readPrincipalParameters,
         {
           parameterKey: 'WriterArns',
           parameterValue: props.writers.map(writer => writer.principalArn).join(','),
@@ -198,6 +239,24 @@ export class ArtifactRegistryBuckets extends Construct {
     );
     const recordWriter = this.writeRecord(registry, deployRegionBucketName);
     recordWriter.node.addDependency(stackSet);
+  }
+
+  /**
+   * The `ReadPrincipals` StackSet parameter of an allowlist, or none without one: the member template
+   * defaults the parameter to empty, which lets every authenticated AWS principal read.
+   */
+  private buildReadPrincipalParameters(
+    readAllowlist: ReadAllowlist | undefined
+  ): cloudformation.CfnStackSet.ParameterProperty[] {
+    if (readAllowlist === undefined) {
+      return [];
+    }
+    if (readAllowlist.principalArns.length === 0) {
+      throw new Error(
+        'readAllowlist.principalArns is empty: list the principals that may read, or leave readAllowlist out to let every authenticated AWS principal read.'
+      );
+    }
+    return [{ parameterKey: 'ReadPrincipals', parameterValue: readAllowlist.principalArns.join(',') }];
   }
 
   /**

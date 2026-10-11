@@ -1,13 +1,16 @@
 import { parseRegistryRecord } from '@serverlessinbox/artifact-registry/registry';
 import { App, Duration, Stack } from 'aws-cdk-lib';
 import { Capture, Match, Template } from 'aws-cdk-lib/assertions';
+import { CfnInclude } from 'aws-cdk-lib/cloudformation-include';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as t from 'typanion';
 import {
   ArtifactRegistryBuckets,
   type ArtifactRegistryConfig,
   type ArtifactWriter,
+  type ReadAllowlist,
 } from '../artifact-registry-buckets';
 
 /**
@@ -21,13 +24,41 @@ import {
  * deployment region left out of the instances leaves the record with no bucket to be written to, and
  * a region or bucket name baked in at synthesis breaks every customer who deploys the template
  * elsewhere, so loosening these assertions re-opens those failures.
+ *
+ * The member template's bucket policy is pinned by evaluating the template the way CloudFormation
+ * does for given parameter values: a bucket that lets non-writers list, or that is readable outside
+ * the project prefix, that answers unauthenticated requests, or that stays open to every AWS principal
+ * once an allowlist is set, exposes artifacts the owner meant to protect or lets anyone enumerate the
+ * registry.
  */
 
 interface SynthesisOptions {
   readonly env?: { readonly region: string };
   readonly registry?: Partial<ArtifactRegistryConfig>;
   readonly channelHistoryRetention?: Duration;
+  readonly readAllowlist?: ReadAllowlist;
 }
+
+/** A parameter value of the member template: a string, or the list a CommaDelimitedList holds. */
+type ParameterValue = string | string[];
+
+/** The template sections the evaluation of a member template needs, with the parameter values to evaluate for. */
+interface TemplateEvaluation {
+  readonly parameters: { [name: string]: ParameterValue };
+  readonly conditions: { [name: string]: unknown };
+}
+
+const isPolicyStatement = t.isPartial({
+  Sid: t.isString(),
+  Effect: t.isString(),
+  Principal: t.isOneOf([t.isLiteral('*'), t.isObject({ AWS: t.isArray(t.isString()) })]),
+  Action: t.isOneOf([t.isString(), t.isArray(t.isString())]),
+  Resource: t.isOneOf([t.isString(), t.isArray(t.isString())]),
+  Condition: t.isOptional(t.isRecord(t.isRecord(t.isOneOf([t.isBoolean(), t.isString()])))),
+});
+
+/** A statement of the member template's bucket policy after CloudFormation evaluated it. */
+type PolicyStatement = t.InferType<typeof isPolicyStatement>;
 
 /** The single S3 `putObject` call the record writer makes, with the region and account tokens resolved. */
 interface RecordWrite {
@@ -71,6 +102,7 @@ function synthesize(options: SynthesisOptions = {}): Template {
   new ArtifactRegistryBuckets(stack, ADOPTED_CONSTRUCT_ID, {
     registry: { ...BASE_REGISTRY, ...options.registry },
     writers: WRITERS,
+    readAllowlist: options.readAllowlist,
     channelHistoryRetention: options.channelHistoryRetention,
     stackSetName: STACK_SET_NAME,
     stackSetAdministrationRole: iam.Role.fromRoleArn(stack, 'AdminRole', 'arn:aws:iam::123456789012:role/stackset-admin'),
@@ -81,6 +113,93 @@ function synthesize(options: SynthesisOptions = {}): Template {
 
 function readMemberTemplate(): string {
   return fs.readFileSync(MEMBER_TEMPLATE_PATH, 'utf8');
+}
+
+const MEMBER_BUCKET_NAME = 'acme-artifacts-eu-west-1';
+const MEMBER_WRITER_ARNS = ['arn:aws:iam::111111111111:role/writer'];
+
+/** Evaluates the intrinsic functions the member template's bucket policy uses, as CloudFormation does. */
+function evaluateTemplateValue(value: unknown, evaluation: TemplateEvaluation): unknown {
+  if (Array.isArray(value)) {
+    return value.map(item => evaluateTemplateValue(item, evaluation));
+  }
+  if (typeof value !== 'object' || value === null) {
+    return value;
+  }
+  const record: { [key: string]: unknown } = Object.fromEntries(Object.entries(value));
+  const [functionName, ...otherKeys] = Object.keys(record);
+  const argument = record[functionName];
+  if (otherKeys.length === 0) {
+    switch (functionName) {
+      case 'Ref': {
+        const name = String(argument);
+        return evaluation.parameters[name] ?? { PublicationAssetsBucket: MEMBER_BUCKET_NAME, 'AWS::Partition': 'aws' }[name];
+      }
+      case 'Fn::Sub':
+        return String(argument).replace(/\$\{([^}]+)\}/g, (_, name: string) =>
+          String(evaluateTemplateValue({ Ref: name }, evaluation))
+        );
+      case 'Fn::If': {
+        const [condition, whenTrue, whenFalse] = asList(argument);
+        const holds = evaluateTemplateValue(evaluation.conditions[String(condition)], evaluation);
+        return evaluateTemplateValue(holds ? whenTrue : whenFalse, evaluation);
+      }
+      case 'Fn::Join': {
+        const [delimiter, items] = asList(argument);
+        return asList(evaluateTemplateValue(items, evaluation)).join(String(delimiter));
+      }
+      case 'Fn::Equals': {
+        const [left, right] = asList(evaluateTemplateValue(argument, evaluation));
+        return left === right;
+      }
+      case 'Fn::Not': {
+        const [negated] = asList(evaluateTemplateValue(argument, evaluation));
+        return !negated;
+      }
+    }
+  }
+  return Object.fromEntries(Object.entries(record).map(([key, inner]) => [key, evaluateTemplateValue(inner, evaluation)]));
+}
+
+function asList(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [value];
+}
+
+function propertyOf(value: unknown, key: string): unknown {
+  return typeof value === 'object' && value !== null ? Reflect.get(value, key) : undefined;
+}
+
+/** The member template's bucket policy statements for the given `ReadPrincipals` parameter. */
+function memberPolicyStatements(readPrincipals: string[]): PolicyStatement[] {
+  const stack = new Stack(new App(), 'MemberTemplate');
+  new CfnInclude(stack, 'Member', { templateFile: MEMBER_TEMPLATE_PATH });
+  const template = Template.fromStack(stack);
+  const evaluation: TemplateEvaluation = {
+    parameters: { Project: 'acme', WriterArns: MEMBER_WRITER_ARNS, ReadPrincipals: readPrincipals.length > 0 ? readPrincipals : [''] },
+    conditions: templateSection(template, 'Conditions'),
+  };
+  const policy = Object.values(template.findResources('AWS::S3::BucketPolicy'))[0];
+  const statements = evaluateTemplateValue(
+    propertyOf(propertyOf(propertyOf(policy, 'Properties'), 'PolicyDocument'), 'Statement'),
+    evaluation
+  );
+  const errors: string[] = [];
+  if (!t.isArray(isPolicyStatement)(statements, { errors })) {
+    throw new Error(errors.join('; '));
+  }
+  return statements;
+}
+
+function actionsOf(statement: PolicyStatement): string[] {
+  return [statement.Action ?? []].flat();
+}
+
+function isWriterStatement(statement: PolicyStatement): boolean {
+  return typeof statement.Principal === 'object' && JSON.stringify(statement.Principal.AWS) === JSON.stringify(MEMBER_WRITER_ARNS);
+}
+
+function nonWriterAllows(statements: PolicyStatement[]): PolicyStatement[] {
+  return statements.filter(statement => statement.Effect === 'Allow' && !isWriterStatement(statement));
 }
 
 /** The entries of one top-level section of the template, by logical ID. */
@@ -213,6 +332,7 @@ describe('ArtifactRegistryBuckets', () => {
         PermissionModel: 'SELF_MANAGED',
         Parameters: [
           { ParameterKey: 'BaseName', ParameterValue: 'acme-artifacts' },
+          { ParameterKey: 'Project', ParameterValue: 'acme' },
           {
             ParameterKey: 'WriterArns',
             ParameterValue: 'arn:aws:iam::111111111111:root,arn:aws:iam::222222222222:role/publisher',
@@ -428,6 +548,103 @@ describe('ArtifactRegistryBuckets', () => {
       expect(() => synthesize({ channelHistoryRetention: Duration.hours(36) })).toThrow(
         /cannot be converted into a whole number of days/
       );
+    });
+  });
+
+  describe('read access', () => {
+    const READER = 'arn:aws:iam::333333333333:role/reader';
+
+    it('without an allowlist grants one non-writer statement: GetObject and GetObjectVersion on the project prefix', () => {
+      const allows = nonWriterAllows(memberPolicyStatements([]));
+
+      expect(allows).toHaveLength(1);
+      expect(allows[0].Principal).toBe('*');
+      expect(actionsOf(allows[0]).sort()).toEqual(['s3:GetObject', 's3:GetObjectVersion']);
+      expect([allows[0].Resource].flat()).toEqual([`arn:aws:s3:::${MEMBER_BUCKET_NAME}/acme/*`]);
+    });
+
+    it('denies unauthenticated requests: the read statement excludes the Anonymous principal type', () => {
+      const allows = nonWriterAllows(memberPolicyStatements([]));
+
+      expect(allows[0].Condition).toEqual({ StringNotEquals: { 'aws:PrincipalType': 'Anonymous' } });
+    });
+
+    it('lets no non-writer list the bucket or read its location', () => {
+      for (const readPrincipals of [[], [READER]]) {
+        const actions = nonWriterAllows(memberPolicyStatements(readPrincipals)).flatMap(actionsOf);
+
+        expect(actions).not.toContain('s3:ListBucket');
+        expect(actions).not.toContain('s3:GetBucketLocation');
+      }
+    });
+
+    it('keeps the TLS deny on the bucket and its objects', () => {
+      const denies = memberPolicyStatements([]).filter(statement => statement.Effect === 'Deny');
+
+      expect(denies).toHaveLength(1);
+      expect(denies[0]).toMatchObject({
+        Principal: '*',
+        Action: 's3:*',
+        Condition: { Bool: { 'aws:SecureTransport': false } },
+      });
+      expect([denies[0].Resource].flat()).toEqual([
+        `arn:aws:s3:::${MEMBER_BUCKET_NAME}`,
+        `arn:aws:s3:::${MEMBER_BUCKET_NAME}/*`,
+      ]);
+    });
+
+    it('with an allowlist replaces the all-principals statement by one for exactly the listed principals', () => {
+      const statements = memberPolicyStatements([READER]);
+      const allows = nonWriterAllows(statements);
+
+      expect(allows).toHaveLength(1);
+      expect(allows[0].Principal).toEqual({ AWS: [READER] });
+      expect(actionsOf(allows[0]).sort()).toEqual(['s3:GetObject', 's3:GetObjectVersion']);
+      expect(statements.filter(statement => statement.Effect === 'Allow' && statement.Principal === '*')).toEqual([]);
+    });
+
+    it('keeps the writers on Put, PutTagging, Delete, DeleteVersion and ListBucketVersions', () => {
+      const writerActions = memberPolicyStatements([])
+        .filter(statement => statement.Effect === 'Allow' && isWriterStatement(statement))
+        .flatMap(actionsOf);
+
+      expect(writerActions.sort()).toEqual([
+        's3:DeleteObject',
+        's3:DeleteObjectVersion',
+        's3:ListBucketVersions',
+        's3:PutObject',
+        's3:PutObjectTagging',
+      ]);
+    });
+  });
+
+  describe('read allowlist parameters', () => {
+    it('passes Project and no ReadPrincipals without an allowlist', () => {
+      const template = synthesize();
+
+      template.hasResourceProperties('AWS::CloudFormation::StackSet', {
+        Parameters: Match.arrayWith([{ ParameterKey: 'Project', ParameterValue: 'acme' }]),
+      });
+      template.hasResourceProperties('AWS::CloudFormation::StackSet', {
+        Parameters: Match.not(Match.arrayWith([Match.objectLike({ ParameterKey: 'ReadPrincipals' })])),
+      });
+    });
+
+    it('passes the allowlist principals as ReadPrincipals', () => {
+      synthesize({
+        readAllowlist: { principalArns: ['arn:aws:iam::333333333333:root', 'arn:aws:iam::444444444444:role/updater'] },
+      }).hasResourceProperties('AWS::CloudFormation::StackSet', {
+        Parameters: Match.arrayWith([
+          {
+            ParameterKey: 'ReadPrincipals',
+            ParameterValue: 'arn:aws:iam::333333333333:root,arn:aws:iam::444444444444:role/updater',
+          },
+        ]),
+      });
+    });
+
+    it('rejects an empty allowlist, naming readAllowlist.principalArns', () => {
+      expect(() => synthesize({ readAllowlist: { principalArns: [] } })).toThrow(/readAllowlist\.principalArns is empty/);
     });
   });
 

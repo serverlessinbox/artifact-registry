@@ -8,6 +8,14 @@ Parameters:
   WriterArns:
     Type: CommaDelimitedList
     Description: 'IAM ARNs allowed to write assets'
+  Project:
+    Type: String
+    MinLength: 1
+    Description: Key prefix that leads every object; read access is granted on Project/* only
+  ReadPrincipals:
+    Type: CommaDelimitedList
+    Default: ''
+    Description: 'IAM ARNs allowed to read objects; empty lets every authenticated AWS principal read Project/*'
   NoncurrentVersionRetentionDays:
     Type: Number
     Default: 1
@@ -20,6 +28,7 @@ Parameters:
 
 Conditions:
   HasBucketNameOverride: !Not [!Equals [!Ref BucketNameOverride, '']]
+  HasReadPrincipals: !Not [!Equals [!Join ['', !Ref ReadPrincipals], '']]
 
 Resources:
   PublicationAssetsBucket:
@@ -65,26 +74,17 @@ Resources:
               Bool:
                 aws:SecureTransport: false
 
-          - Sid: AllowReadForAwsPrincipals
+          - Sid: AllowReadOfProjectObjects
             Effect: Allow
-            Principal: '*'
+            Principal: !If
+              - HasReadPrincipals
+              - AWS: !Ref ReadPrincipals
+              - '*'
             Action:
               - 's3:GetObject'
               - 's3:GetObjectVersion'
             Resource:
-              - !Sub 'arn:${AWS::Partition}:s3:::${PublicationAssetsBucket}/*'
-            Condition:
-              StringNotEquals:
-                aws:PrincipalType: Anonymous
-
-          - Sid: AllowListForAwsPrincipals
-            Effect: Allow
-            Principal: '*'
-            Action:
-              - 's3:ListBucket'
-              - 's3:GetBucketLocation'
-            Resource:
-              - !Sub 'arn:${AWS::Partition}:s3:::${PublicationAssetsBucket}'
+              - !Sub 'arn:${AWS::Partition}:s3:::${PublicationAssetsBucket}/${Project}/*'
             Condition:
               StringNotEquals:
                 aws:PrincipalType: Anonymous

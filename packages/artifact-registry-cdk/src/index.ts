@@ -3,6 +3,7 @@ export {
   ArtifactRegistryBucketsProps,
   ArtifactRegistryConfig,
   ArtifactWriter,
+  ReadAllowlist,
 } from './buckets/artifact-registry-buckets';
 export {
   ArtifactPin,
