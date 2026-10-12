@@ -4,6 +4,10 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.3.0](https://github.com/serverlessinbox/artifact-registry/compare/v0.2.0...v0.3.0) (Sun Oct 11 2026)
+
+
+
 ## [0.2.0](https://github.com/serverlessinbox/artifact-registry/compare/v0.1.3...v0.2.0) (Fri Oct 09 2026)
 
 
