@@ -9,7 +9,9 @@ Publishes build artifacts to versioned, per-region S3 buckets in a fixed layout,
 | Package | What it is |
 |---|---|
 | [@serverlessinbox/artifact-registry](packages/artifact-registry) | The S3 layout, publishing and reading APIs, and CLI commands to build and publish artifacts. |
+| [@serverlessinbox/artifact-registry-cdk](packages/artifact-registry-cdk) | CDK constructs that deploy the per-region S3 buckets of a registry and resolvers that locate artifacts in them. |
 | [@serverlessinbox/artifact-registry-gitversion](packages/artifact-registry-gitversion) | A `@jwpkg/gitversion` plugin that publishes a workspace's artifacts on release. |
+| [@serverlessinbox/jsii-bundler](packages/jsii-bundler) | Bundles a jsii CDK construct library and Lambda zips with esbuild, inlining non-jsii dependencies. |
 
 Usage and reference are in each package's README.
 

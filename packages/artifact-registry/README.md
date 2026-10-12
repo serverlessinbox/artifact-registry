@@ -164,7 +164,7 @@ import {
   loadTrackVersions,
   readReleasePointer,
 } from '@serverlessinbox/artifact-registry';
-import type { IArtifactResolver, RegistryLocation } from '@serverlessinbox/artifact-registry';
+import type { RegistryLocation } from '@serverlessinbox/artifact-registry';
 
 const client = new S3Client({ region: 'eu-west-1', followRegionRedirects: true });
 const location: RegistryLocation = { bucketBase: 'example-artifacts', project: 'example' };
@@ -223,10 +223,10 @@ console.log(pointer.version, pointer.publishedAt, pointer.objects.map((o) => o.n
 
 ### Resolver
 
-`ArtifactResolver` implements `IArtifactResolver`: a synchronous, per-package lookup of where an object lives. It reads nothing from S3. Each package entry has a pinned `version` and a `zone`: `regional` resolves in `deploymentRegion`, `edge` in `us-east-1`. An entry may also set `region`, which wins over `zone`, and `channel`, which resolves under the channel path instead of the release path of its version. `artifactType` defaults to `package`.
+`ArtifactResolver` is a synchronous, per-package lookup of where an object lives. It reads nothing from S3. Each package entry has a pinned `version` and a `zone`: `regional` resolves in `deploymentRegion`, `edge` in `us-east-1`. An entry may also set `region`, which wins over `zone`, and `channel`, which resolves under the channel path instead of the release path of its version. `artifactType` defaults to `package`.
 
 ```ts
-const resolver: IArtifactResolver = new ArtifactResolver({
+const resolver = new ArtifactResolver({
   versions: {
     packages: {
       'example-api': { version: '1.4.2', zone: 'regional' },
@@ -243,7 +243,7 @@ const url = resolver.getUrl('example-api', 'lambdas/handler.zip');
 const arn = resolver.getArn('example-api', 'lambdas/handler.zip');
 ```
 
-`resolve` returns `{ bucket, key, versionId? }`; `versionId` is set when the key is listed in `s3VersionMap`. `getUrl`, `getArn`, `resolve` and `getVersion` throw for a package the resolver does not know. `getLocation()` returns the registry location.
+`resolve` returns `{ bucket, key, versionId? }`; `versionId` is set when the key is listed in `s3VersionMap`. `getUrl`, `getArn`, `resolve` and `getVersion` throw for a package the resolver does not know. CDK stacks resolve through `PinnedArtifactResolver` and the `IArtifactResolver` interface in `@serverlessinbox/artifact-registry-cdk`.
 
 ### Keys, URLs and ARNs
 
@@ -319,7 +319,8 @@ example/packages/example-api/releases/v1.2/stable.json
 - Keys and locations: `buildArtifactKey`, `buildReleasePointerKey`, `buildArtifactBucketName`, `buildArtifactUrl`, `buildArtifactArn`, `deriveTrack`, `toArtifactPackageMapKey`, `isArtifactRouting`; types `ArtifactKeySpec`, `ReleasePointerKeyOptions`, `RegistryLocation`, `RegistryConfig`, `RegionBucket`.
 - Registry record: `registryRecordKey`, `parseRegistryRecord`, `loadRegistryRecord`; type `RegistryRecord`.
 - Subpath `@serverlessinbox/artifact-registry/registry`: `buildArtifactBucketName`, `registryRecordKey`, `parseRegistryRecord`; types `RegistryLocation`, `RegistryConfig`, `RegionBucket`, `RegistryRecord`. The root export includes all of these too.
-- Reading: `loadChannelVersions`, `loadTrackVersions`, `readReleasePointer`, `ArtifactResolver`; types `ChannelVersionsOptions`, `TrackVersionsOptions`, `TrackVersionsResult`, `IArtifactResolver`, `ArtifactResolverFactoryOptions`, `ResolvedArtifact`, `ArtifactZone`, `ArtifactVersionsEntry`, `ParsedArtifactVersions`, `ReleasePointer`, `ReleasePointerObject`.
+- Reading: `loadChannelVersions`, `loadTrackVersions`, `readReleasePointer`, `ArtifactResolver`; types `ChannelVersionsOptions`, `TrackVersionsOptions`, `TrackVersionsResult`, `ArtifactResolverFactoryOptions`, `ResolvedArtifact`, `ArtifactZone`, `ArtifactVersionsEntry`, `ParsedArtifactVersions`, `ReleasePointer`, `ReleasePointerObject`.
+- Subpath `@serverlessinbox/artifact-registry/resolution`: `ArtifactResolver`, `buildArtifactUrl`, `buildArtifactArn`; types `ResolvedArtifact`, `ArtifactResolverFactoryOptions`, `ArtifactZone`, `ArtifactVersionsEntry`, `ParsedArtifactVersions`. This subpath has no S3 client or build dependencies, so consumers using only the resolver import it without pulling in publishing code.
 
 ## Requirements
 

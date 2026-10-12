@@ -43,6 +43,7 @@ Deployed from `eu-west-1`, this creates buckets in `eu-west-1` and `us-east-1`. 
 | `registry.additionalRegions` | The regions that get a bucket in addition to the region the stack is deployed in, which always gets one. The list may be empty and must not contain the deployment region; a region listed twice is counted once. |
 | `registry.bucketOverrides` | Optional bucket names that replace the convention name, keyed by region. An override applies to every region that gets a bucket, including the deployment region. |
 | `writers` | Principals (`principalArn`) allowed to write to every bucket. |
+| `readAllowlist` | Optional. Restricts read access to the listed IAM principal ARNs. Readers fetch objects with `s3:GetObject` and `s3:GetObjectVersion` (CloudFormation reading templates, Lambda reading function code, and tools reading release pointers and the registry record). Without it, every authenticated AWS principal may read the objects under `registry.project`; with it, only the listed principals may read, and everyone else is denied. A reader asking for a nonexistent object is answered access-denied in both cases because readers cannot list the bucket. |
 | `channelHistoryRetention` | Optional `Duration`, default 1 day. How long earlier versions of overwritten keys (channel objects and pointer files) stay retrievable, so a deployment that resolved an older channel object version can still roll back or redeploy within the window. Release objects are never overwritten and are not affected. A longer window adds S3 storage for those earlier versions. A whole number of days, otherwise synthesis fails, and at least 1, otherwise the StackSet parameter rejects it at deployment. |
 | `stackSetName` | Name of the StackSet. |
 | `stackSetAdministrationRole` | Role CloudFormation assumes to administer the StackSet. |
@@ -53,6 +54,26 @@ Deployed from `eu-west-1`, this creates buckets in `eu-west-1` and `us-east-1`. 
 A region listed in `registry.bucketOverrides` gets a bucket with that name instead of `{bucketBase}-{region}`. The override applies everywhere the bucket name matters: the bucket itself (the StackSet instance of that region receives it as its own parameter, the deployment region included), the registry record, and the target of the record write. Regions without an override keep the convention name.
 
 Changing the override of a region that already has a bucket makes CloudFormation create a bucket under the new name while the old, retained bucket stays behind. Review such a change before deploying it.
+
+## Read access
+
+Every authenticated AWS principal may read the objects under `{project}/*` by default. Readers cannot list the bucket; a request for a nonexistent object is answered access-denied. The registry record itself is also readable to authenticated principals without an allowlist.
+
+Pass `readAllowlist` to restrict read access to specific principals:
+
+```ts
+new ArtifactRegistryBuckets(stack, 'ArtifactRegistryBuckets', {
+  // ...
+  readAllowlist: {
+    principalArns: [
+      'arn:aws:iam::111111111111:root',  // every principal of the account
+      'arn:aws:iam::222222222222:role/deployer',  // one role in another account
+    ],
+  },
+});
+```
+
+Pass well-formed ARNs: S3 rejects a bucket policy whose principal it cannot resolve. List every AWS account and role that runs `resolve-artifacts`, reads the registry record, or deploys from the registry (CloudFormation stacks and Lambdas).
 
 ## Requirements
 
