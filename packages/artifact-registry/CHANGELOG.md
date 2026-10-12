@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.3.1](https://github.com/serverlessinbox/artifact-registry/compare/v0.3.0...v0.3.1) (Mon Oct 12 2026)
+
+### docs
+
+* Updated readme to follow the new cdk package ([433f280](https://github.com/serverlessinbox/artifact-registry/commit/433f2808c6a01dbf3e2cd9bcf997f62771da2b32))
+
 ## [0.3.0](https://github.com/serverlessinbox/artifact-registry/compare/v0.2.0...v0.3.0) (Sun Oct 11 2026)
 
 
