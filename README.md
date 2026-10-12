@@ -4,6 +4,24 @@
 
 Publishes build artifacts to versioned, per-region S3 buckets in a fixed layout, enabling deployments to reference them directly instead of uploading assets at deploy time. Artifacts are discoverable by version, channel, or release track.
 
+## How it works
+
+```mermaid
+flowchart LR
+  Build["Build or release"] --> Plugin["S3ArtifactPlugin (gitversion plugin)"]
+  Build --> CLI["artifact-registry CLI (publish)"]
+  Plugin -->|upload objects, write pointers| Buckets[("Registry buckets, one per region")]
+  CLI -->|upload objects, write pointers| Buckets
+  Stack["ArtifactRegistryBuckets (StackSet)"] -->|deploys| Buckets
+  Resolve["CLI resolve-artifacts"] -->|read pointers| Buckets
+  Resolve -->|writes| Versions["artifact-versions.json"]
+  Versions -->|parsePins| Pins["PinnedArtifactResolver"]
+  Pins --> Code["ArtifactCode (S3Code)"]
+  Code -->|Lambda code read from| Buckets
+```
+
+A build publishes artifacts into the per-region registry buckets, through the gitversion plugin or the CLI. Consumers resolve pinned versions with `resolve-artifacts`, whose output file feeds the resolver when each component key is the package name, and deploy straight from the buckets with the CDK resolver and `ArtifactCode`; the buckets themselves are deployed by `ArtifactRegistryBuckets`.
+
 ## Packages
 
 | Package | What it is |

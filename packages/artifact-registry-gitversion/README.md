@@ -4,6 +4,25 @@ A [`@jwpkg/gitversion`](https://github.com/jwpkg/gitversion) plugin that packs t
 
 Built for [ServerlessInbox](https://github.com/serverlessinbox/serverlessinbox).
 
+## How it works
+
+`gitversion` calls the plugin's `pack` hook to build the artifacts and its `publish` hook to upload each one; the plugin writes the release pointers once a package's last file is uploaded.
+
+```mermaid
+sequenceDiagram
+  participant G as gitversion
+  participant P as S3ArtifactPlugin
+  participant B as Registry buckets
+  G->>G: bump (version)
+  G->>P: pack(workspace, outputFolder)
+  P-->>G: files with routing in plugin data
+  loop each packed file
+    G->>P: publish(packedPackage, fileName, releaseTag, dryRun)
+    P->>B: upload to releases/vVersion/ in each target region
+  end
+  P->>B: write version pointers (after the package's last file)
+```
+
 ## Installation
 
 ```bash

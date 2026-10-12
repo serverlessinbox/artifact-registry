@@ -6,6 +6,36 @@ An artifact registry is a set of identically configured buckets that a build pub
 
 Built for [ServerlessInbox](https://github.com/serverlessinbox/serverlessinbox).
 
+## How it works
+
+`ArtifactRegistryBuckets` deploys one bucket per region through a StackSet and writes the registry record; writers get write access and readers get read access on `{project}/*` without listing.
+
+```mermaid
+flowchart LR
+  Construct["ArtifactRegistryBuckets"] --> SS["CfnStackSet (member template)"]
+  SS -->|stack instance| B1[("Bucket, deployment region")]
+  SS -->|stack instance per region| B2[("Bucket, each additionalRegions region")]
+  Construct -->|record-writer putObject| Record["project/registry.json"]
+  Record --> B1
+  Writers["writers"] -->|write objects, list versions| B1
+  Writers --> B2
+  Readers["readers"] -->|"GetObject on project/*, no listing"| B1
+  Readers --> B2
+  Allow["readAllowlist (optional)"] -.->|restricts readers| Readers
+```
+
+In a consuming stack, `PinnedArtifactResolver` locates an object and `ArtifactCode` turns it into Lambda code.
+
+```mermaid
+flowchart LR
+  Pins["packages: version or channel pins"] --> Resolver["PinnedArtifactResolver"]
+  Loc["RegistryLocation"] --> Resolver
+  Ctx["CDK context (optional override)"] -.-> Resolver
+  Resolver -->|resolve| Resolved["bucket, key, versionId"]
+  Resolved --> Code["ArtifactCode (S3Code)"]
+  Code --> Fn["Lambda function"]
+```
+
 ## What it deploys
 
 - **A CloudFormation StackSet** that deploys one bucket in the account of the stack, in the region the stack is deployed in and in each region of `registry.additionalRegions`. Adding a region to the list adds a bucket; no per-region bootstrap is needed. Each bucket is versioned, blocks ACLs, enforces TLS, and expires replaced object versions after `channelHistoryRetention`.

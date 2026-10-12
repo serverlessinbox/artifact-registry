@@ -15,6 +15,38 @@ The package defines that layout and provides both sides:
 
 Publishing as part of a [`@jwpkg/gitversion`](https://github.com/jwpkg/gitversion) release is done by the separate `@serverlessinbox/artifact-registry-gitversion` package.
 
+## How it works
+
+Every object lives under the project prefix of a regional bucket, either in an immutable release or on a mutable channel. Release pointers and the registry record sit beside them.
+
+```mermaid
+flowchart TD
+  Bucket[("Bucket bucketBase-region")] --> Project["project/"]
+  Project --> Record["registry.json"]
+  Project --> Pkg["packages or templates / name /"]
+  Pkg --> Releases["releases/"]
+  Pkg --> Channels["channels/"]
+  Channels --> ChannelDir["channel/ objectName"]
+  Releases --> Version["vVersion/ objectName"]
+  Releases --> Global["distTag.json (global pointer)"]
+  Releases --> Track["track/ (v1, v1.4)"]
+  Track --> TrackPointer["distTag.json (track pointer)"]
+  Track --> TrackCopy["objectName (template track copy)"]
+```
+
+A release uploads its objects to every region first and writes pointers only when all uploads succeeded; a consumer reads the pointer to learn which version to use.
+
+```mermaid
+sequenceDiagram
+  participant Pub as publish release
+  participant B as Regional buckets
+  participant Res as resolve-artifacts
+  Pub->>B: upload objects to releases/vVersion/ in every region
+  Pub->>B: write global and track pointers (after all uploads)
+  Res->>B: read the stable pointer
+  B-->>Res: version
+```
+
 ## Concepts
 
 | Concept | Meaning |
