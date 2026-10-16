@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.3.3](https://github.com/serverlessinbox/artifact-registry/compare/v0.3.2...v0.3.3) (Mon Oct 12 2026)
+
+### docs
+
+* Added mermaid diagrams ([2173753](https://github.com/serverlessinbox/artifact-registry/commit/217375307f0f937140d25442456db1f635382125))
+
 ## [0.3.2](https://github.com/serverlessinbox/artifact-registry/compare/v0.3.1...v0.3.2) (Mon Oct 12 2026)
 
 ### docs
