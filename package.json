@@ -14,7 +14,7 @@
     "lint:all": "eslint packages/*/src --max-warnings=-1"
   },
   "devDependencies": {
-    "@jwpkg/gitversion": "1.4.0-pack-order.2",
+    "@jwpkg/gitversion": "1.4.0-pack-order.3",
     "eslint": "^9",
     "typescript": "^5",
     "typescript-eslint": "^8"

@@ -9,9 +9,10 @@ import type { ArtifactMap } from './artifact-map';
 
 /**
  * gitversion plugin that packs the artifacts a workspace declares in its config file and publishes
- * them to S3 at the versioned release path, followed by the version pointers. `pack` records each
- * file's routing in the package's plugin data; `publish` uploads from that record and does no
- * config lookup of its own.
+ * them to S3 at the versioned release path, followed by the version pointers. `onPostPack` stages
+ * the files once the other pack managers have finished building, and records each file's routing in
+ * the package's plugin data; `publish` uploads from that record and does no config lookup of its own.
+ * `pack` stages nothing, because it runs in parallel with the build that produces the artifacts.
  */
 class S3ArtifactPlugin implements IPlugin, IPackManager {
   readonly ident = 's3-artifact';
@@ -26,10 +27,14 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     return this;
   }
 
-  async pack(workspace: IWorkspace, outputFolder: string): Promise<PackResult | null> {
+  async pack(): Promise<null> {
+    return null;
+  }
+
+  async onPostPack(_application: unknown, workspace: IWorkspace, outputFolder: string): Promise<PackResult | void> {
     const built = await buildArtifacts(workspace.cwd, outputFolder);
     if (built.outputFiles.length === 0) {
-      return null;
+      return;
     }
 
     const version = semver.parse(workspace.version);
@@ -65,7 +70,7 @@ class S3ArtifactPlugin implements IPlugin, IPackManager {
     const mapEntry = pluginData?.[basename];
 
     if (pluginData === undefined || mapEntry === undefined) {
-      console.log(`[s3-artifact] ERROR: no routing found for ${basename} — was pack run first?`);
+      console.log(`[s3-artifact] ERROR: no routing found for ${basename} — was the postPack staging run first?`);
       return;
     }
 

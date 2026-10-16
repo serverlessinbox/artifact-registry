@@ -47,7 +47,7 @@
     "typanion": "^3.14.0"
   },
   "devDependencies": {
-    "@jwpkg/gitversion": "1.4.0-pack-order.2",
+    "@jwpkg/gitversion": "1.4.0-pack-order.3",
     "@types/jest": "^29",
     "@types/node": "^20",
     "@types/semver": "^7.7.1",
@@ -58,6 +58,6 @@
     "typescript": "^5"
   },
   "peerDependencies": {
-    "@jwpkg/gitversion": "^1.4.0-pack-order.2"
+    "@jwpkg/gitversion": "^1.4.0-pack-order.3"
   }
 }

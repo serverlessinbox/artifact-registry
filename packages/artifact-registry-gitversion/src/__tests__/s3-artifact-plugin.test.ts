@@ -35,8 +35,8 @@ function packedPackage(pluginData: Record<string, unknown>): PackedPackage {
 }
 
 /**
- * Stands in for the workspace gitversion hands to `pack`; only `cwd` and `version` carry meaning,
- * the rest of the interface exists to satisfy the type and fails loudly if `pack` ever touches it.
+ * Stands in for the workspace gitversion hands to `onPostPack`; only `cwd` and `version` carry meaning,
+ * the rest of the interface exists to satisfy the type and fails loudly if staging ever touches it.
  */
 class FakeWorkspace implements IProject {
   readonly manifest: IManifest = { name: 'p' };
@@ -52,24 +52,26 @@ class FakeWorkspace implements IProject {
   constructor(readonly cwd: string, readonly version: string) {}
 
   async updateChangelog(): Promise<string> {
-    throw new Error('FakeWorkspace.updateChangelog is not used by pack');
+    throw new Error('FakeWorkspace.updateChangelog is not used by staging');
   }
 
   async updateVersion(): Promise<void> {
-    throw new Error('FakeWorkspace.updateVersion is not used by pack');
+    throw new Error('FakeWorkspace.updateVersion is not used by staging');
   }
 
   async detectBumpType(): Promise<BumpType> {
-    throw new Error('FakeWorkspace.detectBumpType is not used by pack');
+    throw new Error('FakeWorkspace.detectBumpType is not used by staging');
   }
 }
 
 /**
- * Pins that `S3ArtifactPlugin.pack` stages nothing for a workspace without an artifact config and
- * records, per staged file, the versioned release key that `publish` later uploads to. A wrong key
- * here uploads an artifact to a path no resolver reads.
+ * Pins that `S3ArtifactPlugin.onPostPack` stages nothing for a workspace without an artifact config
+ * and records, per staged file, the versioned release key that `publish` later uploads to. A wrong
+ * key here uploads an artifact to a path no resolver reads. Staging runs in `onPostPack` because
+ * `pack` runs in parallel with the build that produces the artifacts, so `pack` itself contributes
+ * nothing.
  */
-describe('S3ArtifactPlugin.pack', () => {
+describe('S3ArtifactPlugin staging', () => {
   let dir: string;
   let outputFolder: string;
 
@@ -83,13 +85,7 @@ describe('S3ArtifactPlugin.pack', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it('returns null for a workspace without an artifact config', async () => {
-    const result = await new S3ArtifactPlugin().pack(new FakeWorkspace(dir, '1.2.3'), outputFolder);
-
-    expect(result).toBeNull();
-  });
-
-  it('records the release key and routing of each staged file', async () => {
+  function writeArtifactConfig(): void {
     fs.writeFileSync(path.join(dir, 'lambda.zip'), 'zip-bytes');
     fs.writeFileSync(
       path.join(dir, 'artifact-registry.json'),
@@ -100,8 +96,26 @@ describe('S3ArtifactPlugin.pack', () => {
         artifacts: [{ source: 'lambda.zip', objectName: 'lambda.zip' }],
       }),
     );
+  }
 
-    const result = await new S3ArtifactPlugin().pack(new FakeWorkspace(dir, '1.2.3'), outputFolder);
+  it('onPostPack returns no files for a workspace without an artifact config', async () => {
+    const result = await new S3ArtifactPlugin().onPostPack(undefined, new FakeWorkspace(dir, '1.2.3'), outputFolder);
+
+    expect(result).toBeUndefined();
+  });
+
+  it('pack returns null for a workspace with an artifact config', async () => {
+    writeArtifactConfig();
+
+    const result = await new S3ArtifactPlugin().pack();
+
+    expect(result).toBeNull();
+  });
+
+  it('onPostPack records the release key and routing of each staged file', async () => {
+    writeArtifactConfig();
+
+    const result = await new S3ArtifactPlugin().onPostPack(undefined, new FakeWorkspace(dir, '1.2.3'), outputFolder);
 
     expect(result).toEqual({
       files: [{

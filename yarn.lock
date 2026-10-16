@@ -1683,9 +1683,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jwpkg/gitversion@npm:1.4.0-pack-order.2":
-  version: 1.4.0-pack-order.2
-  resolution: "@jwpkg/gitversion@npm:1.4.0-pack-order.2"
+"@jwpkg/gitversion@npm:1.4.0-pack-order.3":
+  version: 1.4.0-pack-order.3
+  resolution: "@jwpkg/gitversion@npm:1.4.0-pack-order.3"
   dependencies:
     "@yarnpkg/cli": "npm:^4.1.0"
     "@yarnpkg/core": "npm:^4.0.3"
@@ -1704,7 +1704,7 @@ __metadata:
     typanion: "npm:^3.14.0"
   bin:
     gitversion: bin/index.js
-  checksum: 10c0/d171efb2dcffef4768879aaf5cc0c0d2a9d9916f2ad4efc1438029ba898a8e746f957394eda4f7d3648eefd1eef100b17dd9c0d4cdd9e69166f6c74b43a79933
+  checksum: 10c0/9c1c377e254ac00b39fd724671a9d959a46df2314134111ca11cf7b6ba6954a9d06742b4d107dd32da8059ed84fc8f7829986a211b8138574fb3f873e4370b41
   languageName: node
   linkType: hard
 
@@ -1799,7 +1799,7 @@ __metadata:
   resolution: "@serverlessinbox/artifact-registry-gitversion@workspace:packages/artifact-registry-gitversion"
   dependencies:
     "@aws-sdk/client-s3": "npm:^3"
-    "@jwpkg/gitversion": "npm:1.4.0-pack-order.2"
+    "@jwpkg/gitversion": "npm:1.4.0-pack-order.3"
     "@serverlessinbox/artifact-registry": "workspace:^"
     "@types/jest": "npm:^29"
     "@types/node": "npm:^20"
@@ -1812,7 +1812,7 @@ __metadata:
     typanion: "npm:^3.14.0"
     typescript: "npm:^5"
   peerDependencies:
-    "@jwpkg/gitversion": ^1.4.0-pack-order.2
+    "@jwpkg/gitversion": ^1.4.0-pack-order.3
   languageName: unknown
   linkType: soft
 
@@ -3288,7 +3288,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "artifact-registry-workspace@workspace:."
   dependencies:
-    "@jwpkg/gitversion": "npm:1.4.0-pack-order.2"
+    "@jwpkg/gitversion": "npm:1.4.0-pack-order.3"
     eslint: "npm:^9"
     typescript: "npm:^5"
     typescript-eslint: "npm:^8"
