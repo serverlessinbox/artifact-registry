@@ -9,6 +9,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./artifact-key": {
+      "types": "./src/artifacts/artifact-key.ts",
+      "default": "./src/artifacts/artifact-key.ts"
+    },
     "./registry": {
       "types": "./src/registry/index.ts",
       "default": "./src/registry/index.ts"
@@ -43,6 +47,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
+      },
+      "./artifact-key": {
+        "types": "./dist/artifacts/artifact-key.d.ts",
+        "default": "./dist/artifacts/artifact-key.js"
       },
       "./registry": {
         "types": "./dist/registry/index.d.ts",
