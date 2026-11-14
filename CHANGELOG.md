@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.3.6](https://github.com/serverlessinbox/artifact-registry/compare/v0.3.5...v0.3.6) (Sat Nov 14 2026)
+
+### feat
+
+* **exports** add ./artifact-key import path for key builders ([ed70c00](https://github.com/serverlessinbox/artifact-registry/commit/ed70c00fcb7ef11592603f9d8b370b6d19c8ea54))
+
 ## [0.3.5](https://github.com/serverlessinbox/artifact-registry/compare/v0.3.4...v0.3.5) (Sun Nov 08 2026)
 
 ### feat
