@@ -4,6 +4,12 @@
 All notable changes to this project will be documented in this file
 
 
+## [0.3.5](https://github.com/serverlessinbox/artifact-registry/compare/v0.3.4...v0.3.5) (Sun Nov 08 2026)
+
+### feat
+
+* **release** add bump-type input to release workflow ([7b75338](https://github.com/serverlessinbox/artifact-registry/commit/7b75338380499a10314750adb20d7865f717f3ca))
+
 ## [0.3.4](https://github.com/serverlessinbox/artifact-registry/compare/v0.3.3...v0.3.4) (Fri Oct 16 2026)
 
 ### feat
